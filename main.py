@@ -1,3 +1,6 @@
+import eventlet
+eventlet.monkey_patch()
+
 import time
 import yaml
 from core.bybit_client import BybitClient
@@ -11,7 +14,7 @@ def load_config():
     with open("config/config.yaml", "r") as f:
         return yaml.safe_load(f)
 
-def main():
+def bot_loop():
     config = load_config()
     print("--- INICIANDO BOT DE TRADING IA (BYBIT) ---")
     
@@ -32,8 +35,6 @@ def main():
     memory_manager = MemoryManager()
     engine = ExecutionEngine(client, risk_manager, memory_manager, config)
     
-    # Iniciar Dashboard
-    start_dashboard()
     
     try:
         while True:
@@ -123,9 +124,14 @@ def main():
     except KeyboardInterrupt:
         print("\nBot detenido por el usuario.")
         telegram.send_message("⚠️ *Bot Detenido Manualmente*")
-    except Exception as e:
-        print(f"Error crítico en el bucle principal: {e}")
-        telegram.send_message(f"❌ *Error Crítico:* {e}")
-
 if __name__ == "__main__":
-    main()
+    # Iniciar el bucle del bot en un hilo de fondo
+    import threading
+    bot_thread = threading.Thread(target=bot_loop)
+    bot_thread.daemon = True
+    bot_thread.start()
+    
+    # Iniciar el Dashboard en el hilo principal (REQUERIDO POR RENDER)
+    from dashboard.app import run_server
+    print("Servidor iniciando en el hilo principal...")
+    run_server()
