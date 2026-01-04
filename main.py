@@ -125,13 +125,10 @@ def bot_loop():
         print("\nBot detenido por el usuario.")
         telegram.send_message("⚠️ *Bot Detenido Manualmente*")
 if __name__ == "__main__":
-    # Iniciar el bucle del bot en un hilo de fondo
-    import threading
-    bot_thread = threading.Thread(target=bot_loop)
-    bot_thread.daemon = True
-    bot_thread.start()
+    # Iniciar el bucle del bot usando eventlet (mejor para SocketIO)
+    eventlet.spawn(bot_loop)
     
-    # Iniciar el Dashboard en el hilo principal (REQUERIDO POR RENDER)
+    # Iniciar el Dashboard en el hilo principal
     from dashboard.app import run_server
     print("Servidor iniciando en el hilo principal...")
     run_server()
