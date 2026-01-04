@@ -1,0 +1,33 @@
+estrategia:
+  ema_lenta: 21
+  ema_rapida: 8
+  rsi_periodo: 14
+  temporalidad_diaria: D
+  temporalidad_ejecucion: '5'
+  volumen_minimo: 1000000
+ia:
+  exploracion_diaria: 2
+  puntos_ganancia: 10
+  puntos_perdida: 5
+  umbral_aprendizaje: 50
+riesgo:
+  filtro_btc_volatilidad: 2
+  max_drawdown_diario: 5
+  stop_loss_atr_multiplicador: 2
+  take_profit_ratio: 1.5
+  trailing_stop_activacion: 0.5
+trading:
+  apalancamiento: 3
+  capital_total: 100
+  demo: true
+  max_operaciones_simultaneas: 5
+  monto_por_operacion: 5
+  pares_permitidos:
+  - BTCUSDT
+  - ETHUSDT
+  - SOLUSDT
+  - LINKUSDT
+  - AVAXUSDT
+  - DOTUSDT
+  - MATICUSDT
+  testnet: false
