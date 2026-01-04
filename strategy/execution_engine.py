@@ -82,21 +82,27 @@ class ExecutionEngine:
         score = self.memory_manager.get_coin_score(symbol)
         es_exploracion = score < self.config['ia']['umbral_aprendizaje']
         
-        monto = self.config['trading']['monto_por_operacion']
+        monto = self.risk_manager.calculate_position_size(balance)
         if es_exploracion:
             monto = monto * 0.5 # Menor tamaño para aprender
             send_log(f"Operación de EXPLORACIÓN en {symbol}", "log-info")
 
-        qty = self.risk_manager.calculate_position_size(balance) # Usar lógica de riesgo
-        # Ajustar qty basado en monto configurado
-        # (Aquí se debería calcular qty basado en precio actual y monto en USDT)
-        
-        # Obtener datos para SL/TP
+        # Obtener datos para SL/TP y Qty
         klines = self.client.get_kline(symbol=symbol, interval="5", limit=20)
+        if not klines: return
         df = Indicators.klines_to_df(klines)
         df = Indicators.add_indicators(df, self.config)
-        atr = df.iloc[-1]['atr']
-        entry_price = df.iloc[-1]['close']
+        
+        entry_price = float(df.iloc[-1]['close'])
+        atr = float(df.iloc[-1]['atr'])
+        
+        if entry_price <= 0: return
+
+        # Calcular qty basado en monto USDT
+        qty = round(monto / entry_price, 3) 
+        if qty <= 0:
+            send_log(f"Cantidad calculada demasiado pequeña para {symbol}", "log-warning")
+            return
         
         sl, tp = self.risk_manager.calculate_sl_tp(signal, entry_price, atr)
         
