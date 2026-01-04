@@ -1,4 +1,5 @@
 from strategy.indicators import Indicators
+import pandas as pd
 
 class TrendAnalyzer:
     def __init__(self, client, config):
@@ -18,11 +19,15 @@ class TrendAnalyzer:
         df = Indicators.add_indicators(df, self.config)
         
         last_row = df.iloc[-1]
-        ema_fast = last_row['ema_fast']
-        ema_slow = last_row['ema_slow']
-        rsi = last_row['rsi']
-        close = last_row['close']
+        ema_fast = last_row.get('ema_fast')
+        ema_slow = last_row.get('ema_slow')
+        rsi = last_row.get('rsi')
+        close = last_row.get('close')
         
+        # Verificar que no sean NaN o None
+        if any(pd.isna(x) for x in [ema_fast, ema_slow, rsi, close]):
+            return "LATERAL"
+            
         # Lógica de tendencia basada en EMAs y RSI
         if close > ema_fast > ema_slow and rsi > 50:
             return "ALCISTA"

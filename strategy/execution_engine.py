@@ -1,6 +1,7 @@
 from strategy.indicators import Indicators
 from strategy.trend_analyzer import TrendAnalyzer
 from dashboard.app import send_log
+import pandas as pd
 
 class ExecutionEngine:
     def __init__(self, client, risk_manager, memory_manager, config):
@@ -34,9 +35,18 @@ class ExecutionEngine:
         df = Indicators.klines_to_df(klines_5m)
         df = Indicators.add_indicators(df, self.config)
         
+        if len(df) < 2:
+            return None
+            
         last_row = df.iloc[-1]
         prev_row = df.iloc[-2]
         
+        # Verificar que los indicadores no sean NaN
+        required_cols = ['ema_fast', 'ema_slow', 'rsi']
+        if any(pd.isna(last_row[col]) for col in required_cols) or \
+           any(pd.isna(prev_row[col]) for col in ['ema_fast', 'ema_slow']):
+            return None
+
         # Lógica de cruce de EMAs
         cruce_alcista = prev_row['ema_fast'] <= prev_row['ema_slow'] and last_row['ema_fast'] > last_row['ema_slow']
         cruce_bajista = prev_row['ema_fast'] >= prev_row['ema_slow'] and last_row['ema_fast'] < last_row['ema_slow']
