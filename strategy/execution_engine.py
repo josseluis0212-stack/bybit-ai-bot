@@ -99,7 +99,7 @@ class ExecutionEngine:
         if entry_price <= 0: return
 
         # Calcular qty basado en monto USDT
-        qty = round(monto / entry_price, 3) 
+        qty = round(monto / entry_price, 5) 
         if qty <= 0:
             send_log(f"Cantidad calculada demasiado pequeña para {symbol}", "log-warning")
             return
