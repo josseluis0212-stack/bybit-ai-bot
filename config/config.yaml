@@ -21,7 +21,7 @@ trading:
   capital_total: 100
   demo: true
   max_operaciones_simultaneas: 5
-  monto_por_operacion: 5
+  monto_por_operacion: 10
   pares_permitidos:
   - BTCUSDT
   - ETHUSDT
@@ -31,3 +31,4 @@ trading:
   - DOTUSDT
   - MATICUSDT
   testnet: false
+
