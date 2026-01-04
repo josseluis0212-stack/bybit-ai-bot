@@ -60,7 +60,12 @@ def main():
                     # La posición se cerró. Intentamos obtener el PnL realizado.
                     # Por ahora usamos el último PnL no realizado conocido o una estimación.
                     # En una versión más avanzada, consultaríamos el historial de trades de Bybit.
-                    pnl = float(prev_p.get('unrealisedPnl', 0))
+                    raw_pnl = prev_p.get('unrealisedPnl', 0)
+                    try:
+                        pnl = float(raw_pnl) if raw_pnl is not None and str(raw_pnl).strip() != "" else 0.0
+                    except (ValueError, TypeError):
+                        pnl = 0.0
+                    
                     total_pnl += pnl
                     if pnl > 0: win_count += 1
                     else: loss_count += 1
