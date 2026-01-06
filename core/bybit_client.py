@@ -1,26 +1,32 @@
 import os
 from pybit.unified_trading import HTTP
 from dotenv import load_dotenv
-
 load_dotenv()
-
 class BybitClient:
     def __init__(self, testnet=False, demo=True):
         self.api_key = os.getenv("BYBIT_API_KEY")
         self.api_secret = os.getenv("BYBIT_API_SECRET")
         self.testnet = testnet
         self.demo = demo
+        self.instruments_info = {}
         
-        # Para Demo Trading, testnet debe ser False y demo debe ser True
         self.session = HTTP(
             testnet=self.testnet,
             demo=self.demo,
             api_key=self.api_key,
             api_secret=self.api_secret,
         )
+        self.refresh_instruments_info()
         mode = "Demo Trading" if self.demo else ("Testnet" if self.testnet else "Mainnet")
         print(f"Conectado a Bybit {mode}")
-
+    def refresh_instruments_info(self):
+        try:
+            response = self.session.get_instruments_info(category="linear")
+            if response['retCode'] == 0:
+                for item in response['result']['list']:
+                    self.instruments_info[item['symbol']] = item
+        except Exception as e:
+            print(f"Error actualizando info de instrumentos: {e}")
     def get_balance(self, coin="USDT"):
         try:
             response = self.session.get_wallet_balance(
@@ -36,7 +42,6 @@ class BybitClient:
         except Exception as e:
             print(f"Excepción al obtener balance: {e}")
             return 0.0
-
     def get_kline(self, category="linear", symbol="BTCUSDT", interval="D", limit=100):
         try:
             response = self.session.get_kline(
@@ -53,7 +58,6 @@ class BybitClient:
         except Exception as e:
             print(f"Excepción al obtener kline: {e}")
             return []
-
     def place_order(self, symbol, side, order_type, qty, price=None, sl=None, tp=None):
         try:
             # Asegurar apalancamiento antes de operar
@@ -79,7 +83,6 @@ class BybitClient:
         except Exception as e:
             print(f"Excepción al colocar orden: {e}")
             return None
-
     def get_active_positions(self):
         try:
             response = self.session.get_positions(category="linear", settleCoin="USDT")
@@ -91,7 +94,6 @@ class BybitClient:
         except Exception as e:
             print(f"Error obteniendo posiciones: {e}")
             return []
-
     def set_leverage(self, symbol, leverage):
         try:
             self.session.set_leverage(
@@ -101,9 +103,9 @@ class BybitClient:
                 sellLeverage=str(leverage)
             )
         except Exception:
-            # A veces falla si ya tiene ese apalancamiento, lo ignoramos
             pass
-
+    def get_symbol_info(self, symbol):
+        return self.instruments_info.get(symbol)
     def get_all_symbols(self):
         try:
             response = self.session.get_instruments_info(category="linear")
