@@ -1,7 +1,9 @@
 estrategia:
   ema_lenta: 21
-  ema_rapida: 8
+  ema_rapida: 18
+  ema_tendencia: 200
   rsi_periodo: 14
+  adx_periodo: 14
   temporalidad_diaria: D
   temporalidad_ejecucion: '5'
   volumen_minimo: 1000000
@@ -18,10 +20,10 @@ riesgo:
   trailing_stop_activacion: 0.5
 trading:
   apalancamiento: 3
-  capital_total: 100
+  capital_total: 1000
   demo: true
-  max_operaciones_simultaneas: 5
-  monto_por_operacion: 10
+  max_operaciones_simultaneas: 3
+  monto_por_operacion: 15
   pares_permitidos:
   - BTCUSDT
   - ETHUSDT
@@ -31,4 +33,3 @@ trading:
   - DOTUSDT
   - MATICUSDT
   testnet: false
-
