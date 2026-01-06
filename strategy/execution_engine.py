@@ -1,5 +1,3 @@
-
-
 from strategy.indicators import Indicators
 from strategy.trend_analyzer import TrendAnalyzer
 from dashboard.app import send_log
@@ -61,7 +59,9 @@ class ExecutionEngine:
         Analiza: Diario (Tendencia), 30m (Estructura), 15m (Gatillo).
         """
         # 1. FILTRO BTC (Seguridad)
-        btc_trend = self.trend_analyzer.analyze_btc_filter()
+        try:
+            btc_trend = self.trend_analyzer.analyze_btc_filter()
+        except: btc_trend = "NEUTRAL"
         
         # 2. ANÁLISIS DIARIO (D) - Determina el SESGO
         klines_d = self.client.get_kline(symbol=symbol, interval="D", limit=50)
@@ -96,18 +96,14 @@ class ExecutionEngine:
         if last_15m['low'] <= last_15m['bb_lower'] and last_15m['rsi'] < 35:
             if tendencia_diaria == "ALCISTA":
                 signal_grid = "LONG (A favor de tendencia)"
-                motivo = "Rebote en Banda Inferior + Tendencia Diaria Alcista"
             else:
                 signal_grid = "LONG (Contra-tendencia / Rebote)"
-                motivo = "Sobreventa extrema (RSI < 35) en Zona de Soporte"
         # B) GRID SHORT
         elif last_15m['high'] >= last_15m['bb_upper'] and last_15m['rsi'] > 65:
             if tendencia_diaria == "BAJISTA":
                 signal_grid = "SHORT (A favor de tendencia)"
-                motivo = "Rebote en Banda Superior + Tendencia Diaria Bajista"
             else:
                 signal_grid = "SHORT (Contra-tendencia / Retroceso)"
-                motivo = "Sobrecompra extrema (RSI > 65) en Zona de Resistencia"
         if not signal_grid: return
         # --- FILTRO DE TIEMPO (Anti-Spam 4 Horas) ---
         last_time = self.last_grid_alert.get(symbol, 0)
