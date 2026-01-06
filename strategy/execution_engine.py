@@ -119,7 +119,6 @@ class ExecutionEngine:
         grid_low = last_15m['bb_lower']
         grid_high = last_15m['bb_upper']
         
-        # Calcular número de grillas sugerido (Basado en ATR)
         rango_precio = grid_high - grid_low
         espacio_minimo = atr * 0.5
         num_grillas = int(rango_precio / espacio_minimo)
