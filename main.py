@@ -1,6 +1,5 @@
 import eventlet
 eventlet.monkey_patch()
-
 import time
 import yaml
 from core.bybit_client import BybitClient
@@ -9,21 +8,25 @@ from core.risk_manager import RiskManager
 from core.memory_manager import MemoryManager
 from strategy.execution_engine import ExecutionEngine
 from dashboard.app import start_dashboard, update_ui, send_log, bot_data
-
+# --- CONFIGURACIÓN DE REPORTE ---
+HORAS_REPORTE = 4 # Cada cuántas horas envía mensaje
+# -------------------------------
 def load_config():
     with open("config/config.yaml", "r") as f:
         return yaml.safe_load(f)
-
 def bot_loop():
     config = load_config()
     print("--- INICIANDO BOT DE TRADING IA (BYBIT) ---")
     
-    # Variables de seguimiento de operaciones
-    prev_positions = {} # symbol -> position_data
+    # Variables de seguimiento
+    prev_positions = {} 
     total_pnl = 0.0
     win_count = 0
     loss_count = 0
     closed_trades = []
+    
+    # Control de tiempo para reportes
+    last_report_time = time.time()
     
     # Inicializar componentes
     client = BybitClient(
@@ -35,22 +38,35 @@ def bot_loop():
     memory_manager = MemoryManager()
     engine = ExecutionEngine(client, risk_manager, memory_manager, config, telegram)
     
-    telegram.send_message("🤖 *Bot de Trading Iniciado*\\nSincronizando con el mercado...")
+    telegram.send_message("🤖 *Bot de Trading Iniciado*\n\n✅ Estrategia Avanzada Activa\n✅ Reporte cada 4 horas")
     
     try:
         while True:
             if not bot_data["is_running"]:
-                print("Bot en pausa (esperando inicio desde Dashboard)...")
+                print("Bot en pausa...")
                 time.sleep(5)
                 continue
-
-            # Recargar configuración para aplicar cambios desde la UI
+            # 1. Verificar si toca enviar REPORTE "ESTOY VIVO"
+            if time.time() - last_report_time > (HORAS_REPORTE * 3600):
+                balance_now = client.get_balance()
+                pos_activas = len(client.get_active_positions())
+                msg = (
+                    f"👋 *Reporte de Estado*\n\n"
+                    f"🔋 *Bot Activo:* Sí\n"
+                    f"💰 *Balance:* {balance_now:.2f} USDT\n"
+                    f"📊 *Posiciones Abiertas:* {pos_activas}\n"
+                    f"📈 *PnL Sesión:* {total_pnl:.2f} USDT\n"
+                    f"⏳ *Próximo reporte en {HORAS_REPORTE}h*"
+                )
+                telegram.send_message(msg)
+                last_report_time = time.time()
+                send_log("Reporte periódico enviado a Telegram", "log-info")
+            # Recargar configuración
             with open("config/config.yaml", "r") as f:
                 config = yaml.safe_load(f)
             engine.config = config
             engine.risk_manager.config = config
             engine.trend_analyzer.config = config
-
             balance = client.get_balance()
             btc_trend = engine.trend_analyzer.analyze_btc_filter()
             posiciones = client.get_active_positions()
@@ -59,13 +75,10 @@ def bot_loop():
             current_symbols = {p['symbol'] for p in posiciones}
             for symbol, prev_p in list(prev_positions.items()):
                 if symbol not in current_symbols:
-                    # La posición se cerró. Intentamos obtener el PnL realizado.
-                    # Por ahora usamos el último PnL no realizado conocido o una estimación.
-                    # En una versión más avanzada, consultaríamos el historial de trades de Bybit.
                     raw_pnl = prev_p.get('unrealisedPnl', 0)
                     try:
-                        pnl = float(raw_pnl) if raw_pnl is not None and str(raw_pnl).strip() != "" else 0.0
-                    except (ValueError, TypeError):
+                        pnl = float(raw_pnl)
+                    except:
                         pnl = 0.0
                     
                     total_pnl += pnl
@@ -84,11 +97,9 @@ def bot_loop():
                     send_log(f"Operación CERRADA en {symbol}: PnL {pnl:.2f} USDT", "log-success" if pnl > 0 else "log-error")
                     del prev_positions[symbol]
             
-            # Actualizar posiciones previas
             for p in posiciones:
                 prev_positions[p['symbol']] = p
-
-            # Actualizar UI
+            # Actualizar Dashboard UI
             update_ui({
                 "balance": f"{balance:.2f}",
                 "points": memory_manager.data["puntos_aprendizaje"],
@@ -100,36 +111,25 @@ def bot_loop():
                 "closed_trades": closed_trades
             })
             
-            send_log(f"Sincronización completa. Balance: {balance} USDT | PnL Total: {total_pnl:.2f}")
-            
-            # Obtener todos los símbolos del mercado
+            # Escaneo de Mercado
             pares = client.get_all_symbols()
             if not pares:
-                send_log("No se encontraron pares USDT para escanear. Reintentando...", "log-error")
                 time.sleep(10)
                 continue
                 
-            send_log(f"🚀 ESCANEO INICIADO: {len(pares)} monedas encontradas", "log-success")
-            print(f"🚀 ESCANEO INICIADO: {len(pares)} monedas encontradas")
+            send_log(f"🚀 Escaneando {len(pares)} pares...", "log-info")
+            print(f"🚀 Escaneando {len(pares)} pares...")
             
             for par in pares:
                 if not bot_data["is_running"]: break
-                print(f"Analizando {par}...")
                 engine.execute_trade(par)
-                # No dormimos mucho aquí para escanear rápido, pero respetamos rate limit
                 time.sleep(0.5) 
                 
-            send_log("Escaneo completo. Esperando siguiente ciclo...", "log-warning")
-            time.sleep(60) # Escaneo cada minuto
+            time.sleep(60) 
             
     except KeyboardInterrupt:
-        print("\nBot detenido por el usuario.")
         telegram.send_message("⚠️ *Bot Detenido Manualmente*")
 if __name__ == "__main__":
-    # Iniciar el bucle del bot usando eventlet (mejor para SocketIO)
     eventlet.spawn(bot_loop)
-    
-    # Iniciar el Dashboard en el hilo principal
     from dashboard.app import run_server
-    print("Servidor iniciando en el hilo principal...")
     run_server()
