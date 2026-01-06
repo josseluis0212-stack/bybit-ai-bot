@@ -12,21 +12,23 @@ class Indicators:
         return ta.atr(df['high'], df['low'], df['close'], length=length)
     @staticmethod
     def calculate_adx(df, length=14):
-        try:
-            adx = ta.adx(df['high'], df['low'], df['close'], length=length)
-            if adx is not None and not adx.empty:
-                return adx[f'ADX_{length}']
-        except:
-            pass
-        return pd.Series([0]*len(df))
+        adx_df = ta.adx(df['high'], df['low'], df['close'], length=length)
+        if adx_df is not None and not adx_df.empty:
+            return adx_df[f'ADX_{length}']
+        return pd.Series([0] * len(df))
+    @staticmethod
+    def calculate_volume_sma(df, length=20):
+        return ta.sma(df['volume'], length=length)
     @staticmethod
     def add_indicators(df, config):
-        df['ema_fast'] = Indicators.calculate_ema(df, config['estrategia']['ema_rapida'])
-        df['ema_slow'] = Indicators.calculate_ema(df, config['estrategia']['ema_lenta'])
-        df['ema_trend'] = Indicators.calculate_ema(df, config['estrategia']['ema_tendencia'])
-        df['rsi'] = Indicators.calculate_rsi(df, config['estrategia']['rsi_periodo'])
+        strat = config['estrategia']
+        df['ema_fast'] = Indicators.calculate_ema(df, strat['ema_rapida'])
+        df['ema_slow'] = Indicators.calculate_ema(df, strat['ema_lenta'])
+        df['ema_trend'] = Indicators.calculate_ema(df, strat.get('ema_tendencia', 200))
+        df['rsi'] = Indicators.calculate_rsi(df, strat['rsi_periodo'])
         df['atr'] = Indicators.calculate_atr(df)
-        df['adx'] = Indicators.calculate_adx(df, config['estrategia']['adx_periodo'])
+        df['adx'] = Indicators.calculate_adx(df, strat.get('adx_periodo', 14))
+        df['vol_ma'] = Indicators.calculate_volume_sma(df, strat.get('volumen_ma', 20))
         return df
     @staticmethod
     def klines_to_df(klines):
