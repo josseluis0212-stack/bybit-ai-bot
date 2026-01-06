@@ -9,8 +9,8 @@ from core.memory_manager import MemoryManager
 from strategy.execution_engine import ExecutionEngine
 from dashboard.app import start_dashboard, update_ui, send_log, bot_data
 # CONFIGURACIÓN
-HORAS_STATUS = 4   # Mensaje "Estoy Vivo"
-HORAS_REPORTE = 24 # Resumen Financiero Completo
+HORAS_STATUS = 4   
+HORAS_REPORTE = 24 
 def load_config():
     with open("config/config.yaml", "r") as f:
         return yaml.safe_load(f)
@@ -34,7 +34,7 @@ def bot_loop():
     memory_manager = MemoryManager()
     engine = ExecutionEngine(client, risk_manager, memory_manager, config, telegram)
     
-    telegram.send_message("🤖 *Bot Reiniciado*\nSistema de Estadísticas Pro Activo 📊")
+    telegram.send_message("🤖 *Bot Live*\nReportes Detallados Activados 📝")
     
     try:
         while True:
@@ -42,70 +42,77 @@ def bot_loop():
                 time.sleep(5)
                 continue
             now = time.time()
-            # --- 1. REPORTE DIARIO DE ESTADÍSTICAS (Cada 24h) ---
+            # --- 1. REPORTE DIARIO ---
             if now - last_daily_report_time > (HORAS_REPORTE * 3600):
                 dia = memory_manager.get_estadisticas(1)
                 semana = memory_manager.get_estadisticas(7)
-                mes = memory_manager.get_estadisticas(30)
-                
                 msg = (
-                    f"📅 *RESUMEN DE RENDIMIENTO*\n\n"
-                    f"🟢 *Hoy (24h):* {dia['pnl']} USDT ({dia['wins']}/{dia['total']} Ops)\n"
-                    f"🗓️ *Semana:* {semana['pnl']} USDT\n"
-                    f"📆 *Mes:* {mes['pnl']} USDT\n\n"
-                    f"🤖 *WinRate Global:* {mes['winrate']}%\n"
-                    f"💰 *Balance Total:* {client.get_balance():.2f} USDT"
+                    f"📅 *RESUMEN DIARIO*\n"
+                    f"Hoy: {dia['pnl']} USDT ({dia['wins']} Wins)\n"
+                    f"Semana: {semana['pnl']} USDT\n"
+                    f"Balance: {client.get_balance():.2f} USDT"
                 )
                 telegram.send_message(msg)
                 last_daily_report_time = now
-            # --- 2. STATUS "ESTOY VIVO" (Cada 4h) ---
+            # --- 2. STATUS CHECK ---
             elif now - last_status_time > (HORAS_STATUS * 3600):
                 dia = memory_manager.get_estadisticas(1)
-                msg_status = (
-                    f"👋 *Status Check*\n"
-                    f"Bot Activo | PnL Hoy: {dia['pnl']} USDT\n"
-                    f"Analizando mercado..."
-                )
-                telegram.send_message(msg_status)
+                telegram.send_message(f"👋 *Status*: Activo | Hoy: {dia['pnl']} USDT")
                 last_status_time = now
-            # Recargar config
-            with open("config/config.yaml", "r") as f:
-                config = yaml.safe_load(f)
+            # Reload Config & Data
+            with open("config/config.yaml", "r") as f: config = yaml.safe_load(f)
             engine.config = config
             
-            # Lógica de Trading y Detección de Cierres
             balance = client.get_balance()
             posiciones = client.get_active_positions()
             
-            # Detectar cierres para guardar en memoria
+            # --- DETECCIÓN DE CIERRE DE OPERACIONES ---
             current_symbols = {p['symbol'] for p in posiciones}
             for symbol, prev_p in list(prev_positions.items()):
                 if symbol not in current_symbols:
-                    # Posición cerrada
-                    raw_pnl = prev_p.get('unrealisedPnl', 0)
-                    try: pnl = float(raw_pnl)
-                    except: pnl = 0.0
+                    # ¡Se cerró! Buscamos los detalles EXACTOS en Bybit
+                    time.sleep(2) # Esperar a que Bybit procese el cierre
+                    closed_trades = client.get_closed_pnl(symbol=symbol, limit=1)
                     
-                    # 💾 GUARDAR EN MEMORIA PERMANENTE
-                    win = pnl > 0
-                    memory_manager.update_coin_stats(symbol, win, pnl)
-                    memory_manager.registrar_trade(symbol, prev_p['side'], pnl)
+                    if closed_trades:
+                        trade = closed_trades[0]
+                        real_pnl = float(trade['closedPnl'])
+                        entry_price = float(trade['avgEntryPrice'])
+                        exit_price = float(trade['avgExitPrice'])
+                        side = trade['side'] # Buy/Sell
+                        qty = trade['qty']
+                        
+                        # Icono
+                        icon = "🟢 GANADA" if real_pnl > 0 else "🔴 PERDIDA"
+                        
+                        # Enviar REPORTE DETALLADO
+                        msg_cierre = (
+                            f"{icon} *Operación Cerrada*\n\n"
+                            f"🪙 *Moneda:* {symbol}\n"
+                            f"🔭 *Dirección:* {side}\n"
+                            f"📉 *Entrada:* {entry_price}\n"
+                            f"📈 *Salida:* {exit_price}\n"
+                            f"💵 *Tamaño:* {qty}\n"
+                            f"💰 *Resultado:* {real_pnl:.2f} USDT\n"
+                            f"------------------"
+                        )
+                        telegram.send_message(msg_cierre)
+                        
+                        # Guardar memoria
+                        memory_manager.update_coin_stats(symbol, real_pnl > 0, real_pnl)
+                        memory_manager.registrar_trade(symbol, side, real_pnl)
+                        send_log(f"Cierre {symbol}: {real_pnl} USDT", "log-success")
                     
-                    send_log(f"Cierre detectado {symbol}: {pnl:.2f} USDT", "log-info")
                     del prev_positions[symbol]
             
             for p in posiciones:
                 prev_positions[p['symbol']] = p
             
-            update_ui({
-                "balance": f"{balance:.2f}",
-                "positions": posiciones,
-            })
+            update_ui({"balance": f"{balance:.2f}","positions": posiciones})
             
             # Escaneo
             pares = client.get_all_symbols()
             if pares:
-                print(f"Escaneando {len(pares)} pares...")
                 for par in pares:
                     if not bot_data["is_running"]: break
                     engine.execute_trade(par)
