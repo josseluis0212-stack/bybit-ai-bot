@@ -33,8 +33,9 @@ def bot_loop():
     telegram = TelegramBot()
     risk_manager = RiskManager(config)
     memory_manager = MemoryManager()
-    engine = ExecutionEngine(client, risk_manager, memory_manager, config)
+    engine = ExecutionEngine(client, risk_manager, memory_manager, config, telegram)
     
+    telegram.send_message("🤖 *Bot de Trading Iniciado*\\nSincronizando con el mercado...")
     
     try:
         while True:

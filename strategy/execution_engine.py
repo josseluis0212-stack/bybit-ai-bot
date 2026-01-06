@@ -4,11 +4,12 @@ from dashboard.app import send_log
 import pandas as pd
 
 class ExecutionEngine:
-    def __init__(self, client, risk_manager, memory_manager, config):
+    def __init__(self, client, risk_manager, memory_manager, config, telegram=None):
         self.client = client
         self.risk_manager = risk_manager
         self.memory_manager = memory_manager
         self.config = config
+        self.telegram = telegram
         self.trend_analyzer = TrendAnalyzer(client, config)
 
     def check_signal(self, symbol):
@@ -74,6 +75,8 @@ class ExecutionEngine:
             return
             
         send_log(f"¡Señal detectada en {symbol}: {signal}!", "log-success")
+        if self.telegram:
+            self.telegram.send_message(f"🎯 *Señal Detectada*\n{symbol}: {signal}")
         
         # 2. Calcular tamaño y SL/TP
         balance = self.client.get_balance()
@@ -110,7 +113,18 @@ class ExecutionEngine:
         response = self.client.place_order(symbol, signal, "Market", qty, sl=sl, tp=tp)
         if response and response['retCode'] == 0:
             send_log(f"Orden ejecutada en {symbol}: {signal} a {entry_price}", "log-success")
+            if self.telegram:
+                self.telegram.send_message(
+                    f"✅ *Orden Ejecutada*\n"
+                    f"Par: {symbol}\n"
+                    f"Tipo: {signal}\n"
+                    f"Precio: {entry_price}\n"
+                    f"Cantidad: {qty}\n"
+                    f"SL: {sl:.2f} | TP: {tp:.2f}"
+                )
             return response
         else:
             send_log(f"Error al ejecutar orden en {symbol}: {response['retMsg'] if response else 'Error desconocido'}", "log-error")
+            if self.telegram:
+                self.telegram.send_message(f"❌ *Error en Orden*\n{symbol}: {response['retMsg'] if response else 'Error desconocido'}")
             return None
