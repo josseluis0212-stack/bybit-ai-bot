@@ -20,6 +20,9 @@ class Indicators:
     def calculate_volume_sma(df, length=20):
         return ta.sma(df['volume'], length=length)
     @staticmethod
+    def calculate_bbands(df, length=20, std=2):
+        return ta.bbands(df['close'], length=length, std=std)
+    @staticmethod
     def add_indicators(df, config):
         strat = config['estrategia']
         df['ema_fast'] = Indicators.calculate_ema(df, strat['ema_rapida'])
@@ -29,6 +32,16 @@ class Indicators:
         df['atr'] = Indicators.calculate_atr(df)
         df['adx'] = Indicators.calculate_adx(df, strat.get('adx_periodo', 14))
         df['vol_ma'] = Indicators.calculate_volume_sma(df, strat.get('volumen_ma', 20))
+        
+        # Bandas Bollinger (Para Grid)
+        bb = Indicators.calculate_bbands(df)
+        if bb is not None:
+            df = pd.concat([df, bb], axis=1)
+            cols = list(bb.columns)
+            if len(cols) >= 3:
+                df['bb_lower'] = bb[cols[0]]
+                df['bb_mid'] = bb[cols[1]]
+                df['bb_upper'] = bb[cols[2]]
         return df
     @staticmethod
     def klines_to_df(klines):
