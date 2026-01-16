@@ -1,10 +1,13 @@
 estrategia:
   ema_lenta: 21
   ema_rapida: 8
+  ema_tendencia: 200     # Filtro de tendencia mayor
+  adx_periodo: 14
+  adx_umbral: 20         # Mínimo ADX para operar
+  volumen_ma: 20
   rsi_periodo: 14
   temporalidad_diaria: D
   temporalidad_ejecucion: '5'
-  volumen_minimo: 1000000
 ia:
   exploracion_diaria: 2
   puntos_ganancia: 10
@@ -14,21 +17,13 @@ riesgo:
   filtro_btc_volatilidad: 2
   max_drawdown_diario: 5
   stop_loss_atr_multiplicador: 2
-  take_profit_ratio: 1.5
-  trailing_stop_activacion: 0.5
+  take_profit_ratio: 0            # 0 = INFINITO (Trailing Stop)
+  trailing_stop_activacion: 1.5   # Activar cuando gane 1.5 veces el riesgo
 trading:
-  apalancamiento: 3
+  apalancamiento: 5               # Potencia aumentada a 5x
   capital_total: 100
   demo: true
-  max_operaciones_simultaneas: 5
-  monto_por_operacion: 10
-  pares_permitidos:
-  - BTCUSDT
-  - ETHUSDT
-  - SOLUSDT
-  - LINKUSDT
-  - AVAXUSDT
-  - DOTUSDT
-  - MATICUSDT
+  max_operaciones_simultaneas: 5  # Máximo 5 trades a la vez
+  monto_por_operacion: 15         # 15 USDT x 5 = 75 USDT
+  pares_permitidos: []
   testnet: false
-
