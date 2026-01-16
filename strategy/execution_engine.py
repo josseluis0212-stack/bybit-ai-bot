@@ -16,16 +16,21 @@ class ExecutionEngine:
         """
         Verifica señales de entrada en 5m respetando la tendencia diaria.
         """
-        # 1. Obtener tendencia diaria
+        # 1. Obtener tendencia diaria y filtro BTC
         trend_diaria = self.trend_analyzer.get_market_trend(symbol)
-        btc_trend = self.trend_analyzer.analyze_btc_filter()
+        btc_trend, es_brusco_btc = self.trend_analyzer.analyze_btc_filter()
+        
+        # Filtrado por correlación con movimiento brusco de BTC
+        if es_brusco_btc:
+            if btc_trend == "ALCISTA" and trend_diaria != "ALCISTA":
+                return None # Bloquear si no correlaciona con subida brusca
+            if btc_trend == "BAJISTA" and trend_diaria != "BAJISTA":
+                return None # Bloquear si no correlaciona con bajada brusca
         
         if btc_trend == "BAJISTA" and trend_diaria != "BAJISTA":
-            send_log(f"Operación en {symbol} bloqueada por filtro BTC Bajista (>3%)", "log-warning")
             return None
         
         if btc_trend == "ALCISTA" and trend_diaria != "ALCISTA":
-            send_log(f"Operación en {symbol} bloqueada por filtro BTC Alcista (>3%)", "log-warning")
             return None
 
         # 2. Obtener datos de 5m
@@ -53,13 +58,39 @@ class ExecutionEngine:
         cruce_bajista = prev_row['ema_fast'] >= prev_row['ema_slow'] and last_row['ema_fast'] < last_row['ema_slow']
         
         if trend_diaria == "ALCISTA" and cruce_alcista and last_row['rsi'] > 50:
+            send_log(f"✅ SEÑAL COMPRA en {symbol} (Trend: {trend_diaria}, RSI: {last_row['rsi']:.1f})", "log-success")
             return "Buy"
         elif trend_diaria == "BAJISTA" and cruce_bajista and last_row['rsi'] < 50:
+            send_log(f"✅ SEÑAL VENTA en {symbol} (Trend: {trend_diaria}, RSI: {last_row['rsi']:.1f})", "log-success")
             return "Sell"
             
         return None
 
+    def emergency_close_contrary_positions(self, btc_trend):
+        """
+        Cierra posiciones que van en contra del movimiento fuerte de BTC.
+        """
+        posiciones = self.client.get_active_positions()
+        for p in posiciones:
+            symbol = p['symbol']
+            side = p['side'] # 'Buy' o 'Sell'
+            
+            # Si BTC sube fuerte (ALCISTA), se cierran los Shorts (Sell)
+            if btc_trend == "ALCISTA" and side == "Sell":
+                send_log(f"🚨 CIERRE DE EMERGENCIA (BTC Spike UP): Cerramos SHORT en {symbol}", "log-error")
+                self.client.place_order(symbol, "Buy", "Market", p['size'])
+            
+            # Si BTC baja fuerte (BAJISTA), se cierran los Longs (Buy)
+            elif btc_trend == "BAJISTA" and side == "Buy":
+                send_log(f"🚨 CIERRE DE EMERGENCIA (BTC Spike DOWN): Cerramos LONG en {symbol}", "log-error")
+                self.client.place_order(symbol, "Sell", "Market", p['size'])
+
     def execute_trade(self, symbol):
+        # 0. Verificar Filtro BTC Brusco antes de nada
+        btc_trend, es_brusco = self.trend_analyzer.analyze_btc_filter()
+        if es_brusco:
+            self.emergency_close_contrary_positions(btc_trend)
+
         # 1. Verificar límites operativos
         posiciones = self.client.get_active_positions()
         if len(posiciones) >= self.config['trading']['max_operaciones_simultaneas']:
@@ -110,21 +141,28 @@ class ExecutionEngine:
         sl, tp = self.risk_manager.calculate_sl_tp(signal, entry_price, atr)
         
         # 3. Colocar orden
+        qty_adj = self.client.adjust_qty(symbol, qty)
         response = self.client.place_order(symbol, signal, "Market", qty, sl=sl, tp=tp)
+        
         if response and response['retCode'] == 0:
             send_log(f"Orden ejecutada en {symbol}: {signal} a {entry_price}", "log-success")
             if self.telegram:
+                leverage = self.client.leverage_cache.get(symbol, 3)
                 self.telegram.send_message(
-                    f"✅ *Orden Ejecutada*\n"
-                    f"Par: {symbol}\n"
-                    f"Tipo: {signal}\n"
-                    f"Precio: {entry_price}\n"
-                    f"Cantidad: {qty}\n"
-                    f"SL: {sl:.2f} | TP: {tp:.2f}"
+                    f"🤖 *BOT IA: SEÑAL DETECTADA*\n"
+                    f"━━━━━━━━━━━━━━━━━━\n"
+                    f"🪙 *Moneda:* {symbol}\n"
+                    f"↕️ *Dirección:* {'COMPRA (Long)' if signal == 'Buy' else 'VENTA (Short)'}\n"
+                    f"💰 *Monto:* {monto:.2f} USDT\n"
+                    f"⚙️ *Apalancamiento:* {leverage}x\n"
+                    f"💵 *Precio Entrada:* {entry_price:.4f}\n"
+                    f"🛡️ *SL:* {sl:.4f} | 🎯 *TP:* {tp:.4f}\n"
+                    f"━━━━━━━━━━━━━━━━━━"
                 )
             return response
         else:
-            send_log(f"Error al ejecutar orden en {symbol}: {response['retMsg'] if response else 'Error desconocido'}", "log-error")
+            error_msg = response['retMsg'] if response and 'retMsg' in response else "Error de conexión o respuesta vacía"
+            send_log(f"Error al ejecutar orden en {symbol}: {error_msg}", "log-error")
             if self.telegram:
-                self.telegram.send_message(f"❌ *Error en Orden*\n{symbol}: {response['retMsg'] if response else 'Error desconocido'}")
+                self.telegram.send_message(f"❌ *Error en Orden*\n{symbol}: {error_msg}")
             return None

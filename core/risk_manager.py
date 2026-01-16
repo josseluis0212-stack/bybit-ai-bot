@@ -16,7 +16,7 @@ class RiskManager:
             sl = entry_price + sl_dist
             tp = entry_price - (sl_dist * self.config['riesgo']['take_profit_ratio'])
             
-        return round(sl, 4), round(tp, 4)
+        return sl, tp
 
     def check_daily_drawdown(self, current_balance, initial_balance):
         drawdown = ((initial_balance - current_balance) / initial_balance) * 100

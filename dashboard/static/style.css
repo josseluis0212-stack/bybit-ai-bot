@@ -1,13 +1,19 @@
 :root {
-    --primary: #00d2ff;
-    --secondary: #3a7bd5;
-    --bg: #0f172a;
-    --card-bg: rgba(30, 41, 59, 0.7);
-    --text: #f8fafc;
-    --success: #10b981;
-    --danger: #ef4444;
-    --warning: #f59e0b;
+    --primary: #fbbf24; /* Dorado/Amarillo Bybit */
+    --secondary: #fcd34d;
+    --primary-glow: rgba(251, 191, 36, 0.4);
+    --bg: #0b0e11; /* Color Bybit Dark */
+    --card-bg: #1e2329;
+    --card-hover: #2b3139;
+    --text: #eaecef;
+    --text-muted: #848e9c;
+    --success: #0ecb81;
+    --danger: #f6465d;
+    --warning: #f0b90b;
+    --info: #38bdf8;
 }
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono&display=swap');
 
 * {
     margin: 0;
@@ -17,10 +23,14 @@
 }
 
 body {
-    background: radial-gradient(circle at top right, #1e293b, #0f172a);
+    background-color: var(--bg);
+    background-image: 
+        radial-gradient(at 0% 0%, rgba(251, 191, 36, 0.05) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(56, 189, 248, 0.05) 0px, transparent 50%);
     color: var(--text);
     min-height: 100vh;
     padding: 2rem;
+    font-family: 'Outfit', sans-serif;
 }
 
 .container {
@@ -41,12 +51,26 @@ header {
 }
 
 .logo {
-    font-size: 1.5rem;
+    font-size: 1.75rem;
     font-weight: 800;
-    background: linear-gradient(to right, var(--primary), var(--secondary));
+    letter-spacing: -0.02em;
+    background: linear-gradient(to right, var(--primary), #fff);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.logo::before {
+    content: '';
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+    background: var(--primary);
+    border-radius: 6px;
+    box-shadow: 0 0 15px var(--primary-glow);
 }
 
 .status-badge {
@@ -74,36 +98,56 @@ header {
 
 .card {
     background: var(--card-bg);
-    backdrop-filter: blur(12px);
-    padding: 1.5rem;
-    border-radius: 1rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    transition: transform 0.3s ease;
+    padding: 1.75rem;
+    border-radius: 1.25rem;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, transparent 100%);
+    pointer-events: none;
 }
 
 .card:hover {
-    transform: translateY(-5px);
+    transform: translateY(-8px);
+    background: var(--card-hover);
+    border-color: rgba(251, 191, 36, 0.2);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
 }
 
 .card-title {
-    font-size: 0.875rem;
-    color: #94a3b8;
-    margin-bottom: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    font-weight: 600;
+    letter-spacing: 0.1em;
 }
 
 .card-value {
-    font-size: 2rem;
-    font-weight: 700;
+    font-size: 2.25rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
 }
 
 .card-value.positive {
     color: var(--success);
+    text-shadow: 0 0 20px rgba(14, 203, 129, 0.2);
 }
 
 .card-value.negative {
     color: var(--danger);
+    text-shadow: 0 0 20px rgba(246, 70, 93, 0.2);
 }
 
 .logs-container {

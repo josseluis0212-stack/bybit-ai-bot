@@ -11,7 +11,7 @@ class TrendAnalyzer:
         Analiza la tendencia diaria (1D) de un activo.
         Retorna: 'ALCISTA', 'BAJISTA' o 'LATERAL'
         """
-        klines = self.client.get_kline(symbol=symbol, interval="D", limit=100)
+        klines = self.client.get_kline(symbol=symbol, interval="D", limit=250)
         if not klines:
             return "DESCONOCIDO"
             
@@ -21,17 +21,24 @@ class TrendAnalyzer:
         last_row = df.iloc[-1]
         ema_fast = last_row.get('ema_fast')
         ema_slow = last_row.get('ema_slow')
+        ema_mid = last_row.get('ema_mid')
+        ema_200 = last_row.get('ema_200')
         rsi = last_row.get('rsi')
         close = last_row.get('close')
         
-        # Verificar que no sean NaN o None
-        if any(pd.isna(x) for x in [ema_fast, ema_slow, rsi, close]):
+        # Verificar que los indicadores no sean NaN o None
+        # Si EMA 200 no existe, usamos EMA 50 como referencia de tendencia macro
+        trend_ref = ema_200 if not pd.isna(ema_200) else ema_mid
+        
+        if any(pd.isna(x) for x in [ema_fast, ema_slow, trend_ref, close]):
             return "LATERAL"
             
-        # Lógica de tendencia basada en EMAs y RSI
-        if close > ema_fast > ema_slow and rsi > 50:
+        # Lógica de tendencia institucional (Relajada para capturar movimientos tempranos)
+        # Alcista: Precio > Referencia Macro y EMA 8 > EMA 21
+        if close > trend_ref and ema_fast > ema_slow:
             return "ALCISTA"
-        elif close < ema_fast < ema_slow and rsi < 50:
+        # Bajista: Precio < Referencia Macro y EMA 8 < EMA 21
+        elif close < trend_ref and ema_fast < ema_slow:
             return "BAJISTA"
         else:
             return "LATERAL"
@@ -61,9 +68,9 @@ class TrendAnalyzer:
     def analyze_btc_filter(self):
         """
         Analiza BTC como filtro global.
-        Solo bloquea si hay movimiento brusco (>3% en 15m).
+        Retorna: (tendencia, es_movimiento_brusco)
         """
         trend_15m, pct = self.analyze_btc_15m_filter()
+        es_brusco = abs(pct) >= 3.0
         
-        # Retornamos la tendencia de 15m (será NEUTRAL si < 3%)
-        return trend_15m
+        return trend_15m, es_brusco

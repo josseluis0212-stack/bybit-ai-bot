@@ -23,30 +23,38 @@
             <div class="card">
                 <div class="card-title">Balance Actual</div>
                 <div id="balance" class="card-value">0.00 USDT</div>
+                <div class="card-footer" style="font-size: 0.75rem; margin-top: 0.5rem; color: var(--text-muted);">Disponible en Bybit</div>
             </div>
             <div class="card">
                 <div class="card-title">PnL Total (Sesión)</div>
                 <div id="total-pnl" class="card-value">0.00 USDT</div>
             </div>
             <div class="card">
-                <div class="card-title">Tendencia BTC (1D/15m)</div>
+                <div class="card-title">Estado Bitcoin</div>
                 <div id="btc-trend" class="card-value">---</div>
+                <div id="btc-detail" style="font-size: 0.75rem; margin-top: 0.5rem; color: var(--text-muted);">Jefe del Mercado</div>
             </div>
         </div>
 
-        <!-- Fila 2: Estadísticas Detalladas -->
-        <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
-            <div class="card" style="padding: 1rem;">
-                <div class="card-title">Trades Ganados</div>
-                <div id="win-count" class="card-value" style="font-size: 1.5rem; color: var(--success);">0</div>
+        <!-- Fila 2: Estadísticas de Inteligencia y Rendimiento -->
+        <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
+            <div class="card stat-card">
+                <div class="card-title">Efectividad (Win Rate)</div>
+                <div id="win-rate" class="card-value" style="color: var(--info);">0%</div>
+                <div style="font-size: 0.75rem; margin-top: 0.5rem; color: var(--text-muted);">
+                    <span id="win-count" style="color: var(--success);">0 W</span> / 
+                    <span id="loss-count" style="color: var(--danger);">0 L</span>
+                </div>
             </div>
-            <div class="card" style="padding: 1rem;">
-                <div class="card-title">Trades Perdidos</div>
-                <div id="loss-count" class="card-value" style="font-size: 1.5rem; color: var(--danger);">0</div>
+            <div class="card stat-card">
+                <div class="card-title">Ranking de Aprendizaje</div>
+                <div id="learning-points" class="card-value" style="color: var(--primary);">0</div>
+                <div style="font-size: 0.75rem; margin-top: 0.5rem; color: var(--text-muted);">Módulo 8: IA Ligera</div>
             </div>
-            <div class="card" style="padding: 1rem;">
-                <div class="card-title">Puntos de Aprendizaje</div>
-                <div id="learning-points" class="card-value" style="font-size: 1.5rem;">0</div>
+            <div class="card stat-card">
+                <div class="card-title">Monedas Analizadas</div>
+                <div id="coins-count" class="card-value">0</div>
+                <div style="font-size: 0.75rem; margin-top: 0.5rem; color: var(--text-muted);">Scan Institutional</div>
             </div>
         </div>
 
@@ -152,19 +160,32 @@
                 el.innerText = data.total_pnl + ' USDT';
                 el.className = 'card-value ' + (parseFloat(data.total_pnl) >= 0 ? 'positive' : 'negative');
             }
-            if (data.win_count !== undefined) document.getElementById('win-count').innerText = data.win_count;
-            if (data.loss_count !== undefined) document.getElementById('loss-count').innerText = data.loss_count;
+            if (data.win_count !== undefined) {
+                document.getElementById('win-count').innerText = data.win_count + ' W';
+                updateWinRate(data.win_count, data.loss_count);
+            }
+            if (data.loss_count !== undefined) {
+                document.getElementById('loss-count').innerText = data.loss_count + ' L';
+                updateWinRate(data.win_count, data.loss_count);
+            }
             if (data.points !== undefined) document.getElementById('learning-points').innerText = data.points;
+            if (data.coins_count !== undefined) document.getElementById('coins-count').innerText = data.coins_count;
 
             if (data.btc_trend) {
                 const el = document.getElementById('btc-trend');
                 el.innerText = data.btc_trend;
-                el.className = 'card-value ' + (data.btc_trend === 'ALCISTA' ? 'positive' : (data.btc_trend === 'BAJISTA' ? 'negative' : ''));
+                el.className = 'card-value ' + (data.btc_trend.includes('ALCISTA') ? 'positive' : (data.btc_trend.includes('BAJISTA') ? 'negative' : ''));
             }
 
             if (data.positions) updatePositionsTable(data.positions);
             if (data.closed_trades) updateClosedTradesTable(data.closed_trades);
         });
+
+        function updateWinRate(w, l) {
+            const total = w + l;
+            const rate = total > 0 ? ((w / total) * 100).toFixed(1) : 0;
+            document.getElementById('win-rate').innerText = rate + '%';
+        }
 
         socket.on('new_log', function (data) {
             const logsDiv = document.getElementById('logs');
