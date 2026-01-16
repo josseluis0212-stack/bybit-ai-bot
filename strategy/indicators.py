@@ -32,14 +32,28 @@ class Indicators:
         df['atr'] = Indicators.calculate_atr(df)
         
         # Bollinger Bands
-        bb = Indicators.calculate_bbands(df)
-        df['bb_lower'] = bb['BBL_20_2.0']
-        df['bb_mid'] = bb['BBM_20_2.0']
-        df['bb_upper'] = bb['BBU_20_2.0']
+        try:
+            bb = Indicators.calculate_bbands(df)
+            if bb is not None and not bb.empty:
+                df['bb_lower'] = bb.iloc[:, 0]
+                df['bb_mid'] = bb.iloc[:, 1]
+                df['bb_upper'] = bb.iloc[:, 2]
+            else:
+                df['bb_lower'] = df['bb_mid'] = df['bb_upper'] = df['close']
+        except Exception as e:
+            print(f"Error calculando BBands: {e}")
+            df['bb_lower'] = df['bb_mid'] = df['bb_upper'] = df['close']
         
         # ADX
-        adx_data = Indicators.calculate_adx(df)
-        df['adx'] = adx_data['ADX_14']
+        try:
+            adx_data = Indicators.calculate_adx(df)
+            if adx_data is not None and not adx_data.empty:
+                df['adx'] = adx_data.iloc[:, 0]
+            else:
+                df['adx'] = 0
+        except Exception as e:
+            print(f"Error calculando ADX: {e}")
+            df['adx'] = 0
         
         return df
 
