@@ -86,6 +86,7 @@ def bot_loop():
 
             balance = client.get_balance()
             btc_trend = engine.trend_analyzer.analyze_btc_filter()
+                        btc_daily_trend = engine.trend_analyzer.get_market_trend("BTCUSDT")
             posiciones = client.get_active_positions()
             
             # Detectar operaciones cerradas
@@ -152,11 +153,7 @@ def bot_loop():
             # 1. MÓDULO BITCOIN (Módulo 4: Jefe del Mercado)
             btc_trend, es_brusco_btc = engine.trend_analyzer.analyze_btc_filter()
             
-            # 2. Análisis de Tendencia Diaria de BTC (Módulo 3)
-            btc_daily_trend = engine.trend_analyzer.get_market_trend("BTCUSDT")
-            
-            # Sincronización de UI preliminar
-            update_ui({
+        
                 "balance": f"{balance:.2f}",
                 "points": memory_manager.data["puntos_aprendizaje"],
                 "btc_trend": f"{btc_trend} ({btc_daily_trend})",
@@ -211,3 +208,4 @@ if __name__ == "__main__":
     from dashboard.app import run_server
     print("Servidor iniciando en el hilo principal...")
     run_server()
+
