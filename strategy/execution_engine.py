@@ -53,9 +53,19 @@ class ExecutionEngine:
            any(pd.isna(prev_row[col]) for col in ['ema_fast', 'ema_slow']):
             return None
 
-        # Lógica de cruce de EMAs
-        cruce_alcista = prev_row['ema_fast'] <= prev_row['ema_slow'] and last_row['ema_fast'] > last_row['ema_slow']
-        cruce_bajista = prev_row['ema_fast'] >= prev_row['ema_slow'] and last_row['ema_fast'] < last_row['ema_slow']
+        # Lógica de cruce de EMAs (window of 3 candles to catch recent moves)
+        # Check if crossover happened in the last 3 periods
+        cruce_alcista = False
+        cruce_bajista = False
+        
+        subset = df.tail(4) # Need 4 to check 3 transitions
+        for i in range(len(subset) - 1):
+            prev = subset.iloc[i]
+            curr = subset.iloc[i+1]
+            if prev['ema_fast'] <= prev['ema_slow'] and curr['ema_fast'] > curr['ema_slow']:
+                cruce_alcista = True
+            if prev['ema_fast'] >= prev['ema_slow'] and curr['ema_fast'] < curr['ema_slow']:
+                cruce_bajista = True
         
         if trend_diaria == "ALCISTA" and cruce_alcista and last_row['rsi'] > 50:
             send_log(f"✅ SEÑAL COMPRA en {symbol} (Trend: {trend_diaria}, RSI: {last_row['rsi']:.1f})", "log-success")

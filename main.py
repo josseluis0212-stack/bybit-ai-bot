@@ -184,14 +184,14 @@ def bot_loop():
                 if not bot_data["is_running"]: break
                 
                 # MÓDULO DE CORRELACIÓN (Módulo 5: Inteligencia)
-                # Omitimos actualización aquí para no saturar, se actualiza en cierres o por kline
-                # Solo analizamos si el bot IA no está en límite de operaciones
                 if len(posiciones) < config['trading']['max_operaciones_simultaneas']:
-                    print(f"Analizando IA para {par}...")
-                    engine.execute_trade(par)
+                    # print(f"Analizando IA para {par}...") # Demasiado spam en logs
+                    result_signal = engine.execute_trade(par)
+                    if result_signal: # Solo logueamos si hubo operacion/intento
+                         pass 
                 
                 # MÓDULO GRID DE TENDENCIA (Manual)
-                print(f"Analizando Grid para {par}...")
+                # print(f"Analizando Grid para {par}...")
                 grid_engine.analyze_grid(par)
                 
                 # Respetar Rate Limits
