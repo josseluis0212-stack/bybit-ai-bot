@@ -153,7 +153,8 @@ def bot_loop():
             # 1. MÓDULO BITCOIN (Módulo 4: Jefe del Mercado)
             btc_trend, es_brusco_btc = engine.trend_analyzer.analyze_btc_filter()
             
-        
+                    # Sincronizacion de UI preliminar
+                        update_ui({
                 "balance": f"{balance:.2f}",
                 "points": memory_manager.data["puntos_aprendizaje"],
                 "btc_trend": f"{btc_trend} ({btc_daily_trend})",
@@ -208,4 +209,5 @@ if __name__ == "__main__":
     from dashboard.app import run_server
     print("Servidor iniciando en el hilo principal...")
     run_server()
+
 
