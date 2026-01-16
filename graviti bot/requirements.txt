@@ -1,0 +1,10 @@
+pybit
+pandas
+pandas-ta
+python-dotenv
+requests
+Flask
+Flask-SocketIO
+PyYAML
+eventlet
+gunicorn
