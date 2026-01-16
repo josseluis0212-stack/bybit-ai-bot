@@ -53,21 +53,34 @@ class ExecutionEngine:
            any(pd.isna(prev_row[col]) for col in ['ema_fast', 'ema_slow']):
             return None
 
-        # Lógica de cruce de EMAs (window of 3 candles to catch recent moves)
-        # Check if crossover happened in the last 3 periods
-        cruce_alcista = False
-        cruce_bajista = False
+        # ESTRATEGIA: CONTINUIDAD DE TENDENCIA (Igual que Grid Bot)
+        # En lugar de esperar un cruce exacto (evento raro), entramos a favor de la tendencia (estado).
         
-        subset = df.tail(4) # Need 4 to check 3 transitions
-        for i in range(len(subset) - 1):
-            prev = subset.iloc[i]
-            curr = subset.iloc[i+1]
-            if prev['ema_fast'] <= prev['ema_slow'] and curr['ema_fast'] > curr['ema_slow']:
-                cruce_alcista = True
-            if prev['ema_fast'] >= prev['ema_slow'] and curr['ema_fast'] < curr['ema_slow']:
-                cruce_bajista = True
+        ema_fast_5m = last_row['ema_fast']
+        ema_slow_5m = last_row['ema_slow']
+        rsi = last_row['rsi']
         
-        if trend_diaria == "ALCISTA" and cruce_alcista and last_row['rsi'] > 50:
+        # 1. Definir Tendencia en 5m
+        trend_5m = "LATERAL"
+        if ema_fast_5m > ema_slow_5m: trend_5m = "ALCISTA"
+        elif ema_fast_5m < ema_slow_5m: trend_5m = "BAJISTA"
+        
+        # 2. Filtrar Entrada
+        # Long: 1D Alcista + 5m Alcista + RSI no sobrecomprado (< 70)
+        if trend_diaria == "ALCISTA" and trend_5m == "ALCISTA":
+            if rsi < 70:
+                send_log(f"✅ SEÑAL COMPRA (Tendencia) en {symbol} RSI:{rsi:.1f}", "log-success")
+                return "Buy"
+                
+        # Short: 1D Bajista + 5m Bajista + RSI no sobrevendido (> 30)
+        elif trend_diaria == "BAJISTA" and trend_5m == "BAJISTA":
+            if rsi > 30:
+                send_log(f"✅ SEÑAL VENTA (Tendencia) en {symbol} RSI:{rsi:.1f}", "log-success")
+                return "Sell"
+                
+        # Logica anterior de cruce (omitida para activar el bot ya)
+        """
+        cruce_alcista = ...
             send_log(f"✅ SEÑAL COMPRA en {symbol} (Trend: {trend_diaria}, RSI: {last_row['rsi']:.1f})", "log-success")
             return "Buy"
         elif trend_diaria == "BAJISTA" and cruce_bajista and last_row['rsi'] < 50:
