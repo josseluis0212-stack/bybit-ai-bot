@@ -3,6 +3,7 @@ eventlet.monkey_patch()
 
 import time
 import yaml
+import os
 from core.bybit_client import BybitClient
 from core.telegram_bot import TelegramBot
 from core.risk_manager import RiskManager
@@ -11,6 +12,13 @@ from strategy.execution_engine import ExecutionEngine
 from dashboard.app import start_dashboard, update_ui, send_log, bot_data
 
 def load_config():
+    if not os.path.exists("config/config.yaml"):
+        print("❌ ERROR CRÍTICO: No se encuentra config/config.yaml")
+        print("Asegúrate de que el archivo exista y no esté ignorado por git.")
+        # Retornar una config vacía o por defecto para evitar crash inmediato, 
+        # o dejar que falle pero con mensaje claro.
+        return {} 
+        
     with open("config/config.yaml", "r") as f:
         return yaml.safe_load(f)
 
