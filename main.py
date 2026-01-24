@@ -164,6 +164,7 @@ def bot_loop():
                 
                 if len(posiciones) < config['trading']['max_operaciones_simultaneas']:
                     print(f"Analizando IA para {par}...")
+                    send_log(f"🔎 Escaneando: {par}", "log-info")
                     engine.execute_trade(par)
                 
                 time.sleep(0.5) 

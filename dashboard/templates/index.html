@@ -4,299 +4,270 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bybit AI Bot Dashboard</title>
+    <title>Bybit AI Control Center</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
 </head>
 
 <body>
-    <div class="container">
-        <header>
-            <div class="logo">BYBIT AI TRADING BOT</div>
-            <div id="status" class="status-badge status-online">
-                <span class="dot"></span> SISTEMA ACTIVO
+    <div class="dashboard-wrapper">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="brand">
+                <span class="material-icons-round logo-icon">smart_toy</span>
+                <h2>AI TRADER</h2>
             </div>
-        </header>
-
-        <!-- Fila 1: Métricas Principales -->
-        <div class="grid">
-            <div class="card">
-                <div class="card-title">Balance Actual</div>
-                <div id="balance" class="card-value">0.00 USDT</div>
-                <div class="card-footer" style="font-size: 0.75rem; margin-top: 0.5rem; color: var(--text-muted);">Disponible en Bybit</div>
-            </div>
-            <div class="card">
-                <div class="card-title">PnL Total (Sesión)</div>
-                <div id="total-pnl" class="card-value">0.00 USDT</div>
-            </div>
-            <div class="card">
-                <div class="card-title">Estado Bitcoin</div>
-                <div id="btc-trend" class="card-value">---</div>
-                <div id="btc-detail" style="font-size: 0.75rem; margin-top: 0.5rem; color: var(--text-muted);">Jefe del Mercado</div>
-            </div>
-        </div>
-
-        <!-- Fila 2: Estadísticas de Inteligencia y Rendimiento -->
-        <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
-            <div class="card stat-card">
-                <div class="card-title">Efectividad (Win Rate)</div>
-                <div id="win-rate" class="card-value" style="color: var(--info);">0%</div>
-                <div style="font-size: 0.75rem; margin-top: 0.5rem; color: var(--text-muted);">
-                    <span id="win-count" style="color: var(--success);">0 W</span> / 
-                    <span id="loss-count" style="color: var(--danger);">0 L</span>
+            <div class="menu">
+                <div class="menu-item active">
+                    <span class="material-icons-round">dashboard</span> Panel Principal
+                </div>
+                <div class="menu-item">
+                    <span class="material-icons-round">settings</span> Configuración
+                </div>
+                <div class="menu-item">
+                    <span class="material-icons-round">history</span> Historial
                 </div>
             </div>
-            <div class="card stat-card">
-                <div class="card-title">Ranking de Aprendizaje</div>
-                <div id="learning-points" class="card-value" style="color: var(--primary);">0</div>
-                <div style="font-size: 0.75rem; margin-top: 0.5rem; color: var(--text-muted);">Módulo 8: IA Ligera</div>
+            <div class="status-box">
+                <div id="connection-status" class="status-indicator online">
+                    <span class="dot"></span> ONLINE
+                </div>
+                <div class="server-status">Render Cloud: ACTIVO</div>
             </div>
-            <div class="card stat-card">
-                <div class="card-title">Monedas Analizadas</div>
-                <div id="coins-count" class="card-value">0</div>
-                <div style="font-size: 0.75rem; margin-top: 0.5rem; color: var(--text-muted);">Scan Institutional</div>
-            </div>
-        </div>
+        </nav>
 
-        <!-- Fila 3: Configuración y Control -->
-        <div class="grid">
-            <div class="card">
-                <div class="card-title">Configuración de Trading</div>
-                <div class="config-form">
-                    <div class="form-group">
-                        <label>Monto por Operación (USDT)</label>
-                        <input type="number" id="cfg-monto" step="0.1">
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header Stats -->
+            <header class="top-bar">
+                <div class="welcome-text">
+                    <h1>Panel de Control</h1>
+                    <p>Monitoreo en Tiempo Real</p>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn btn-icon btn-start" onclick="startBot()">
+                        <span class="material-icons-round">play_arrow</span> INICIAR
+                    </button>
+                    <button class="btn btn-icon btn-stop" onclick="stopBot()">
+                        <span class="material-icons-round">stop</span> DETENER
+                    </button>
+                </div>
+            </header>
+
+            <!-- KPI Cards -->
+            <div class="kpi-grid">
+                <div class="card kpi-card glass">
+                    <div class="card-icon info-icon"><span class="material-icons-round">account_balance_wallet</span></div>
+                    <div class="card-info">
+                        <h3>Balance Total</h3>
+                        <div id="balance" class="value">0.00 USDT</div>
+                        <span class="sub-text">Cuenta Demo Bybit</span>
                     </div>
-                    <div class="form-group">
-                        <label>Apalancamiento</label>
-                        <input type="number" id="cfg-leverage" min="1" max="10">
+                </div>
+                <div class="card kpi-card glass">
+                    <div class="card-icon success-icon"><span class="material-icons-round">trending_up</span></div>
+                    <div class="card-info">
+                        <h3>PnL Sesión</h3>
+                        <div id="total-pnl" class="value">0.00 USDT</div>
+                        <span class="sub-text">Ganancia/Pérdida Neta</span>
                     </div>
-                    <div class="form-group">
-                        <label>EMA Rápida / Lenta</label>
-                        <div style="display: flex; gap: 0.5rem;">
-                            <input type="number" id="cfg-ema-fast" placeholder="8">
-                            <input type="number" id="cfg-ema-slow" placeholder="21">
+                </div>
+                <div class="card kpi-card glass">
+                    <div class="card-icon warning-icon"><span class="material-icons-round">insights</span></div>
+                    <div class="card-info">
+                        <h3>Tendencia BTC</h3>
+                        <div id="btc-trend" class="value text-sm">ESPERANDO...</div>
+                        <span class="sub-text">Sentimiento de Mercado</span>
+                    </div>
+                </div>
+                <div class="card kpi-card glass">
+                    <div class="card-icon primary-icon"><span class="material-icons-round">psychology</span></div>
+                    <div class="card-info">
+                        <h3>Aprendizaje IA</h3>
+                        <div id="learning-points" class="value">0 XP</div>
+                        <span class="sub-text">Nivel de Inteligencia</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Grid -->
+            <div class="content-grid">
+                <!-- Live Activity Feed -->
+                <div class="card glass large-card">
+                    <div class="card-header">
+                        <h3><span class="material-icons-round">radar</span> Radar de Mercado</h3>
+                        <div id="scanning-status" class="scanning-badge">Escaneando...</div>
+                    </div>
+                    <div id="logs" class="logs-console">
+                        <div class="log-entry log-system">Iniciando sistema de visualización...</div>
+                    </div>
+                </div>
+
+                <!-- Active Positions -->
+                <div class="card glass large-card">
+                    <div class="card-header">
+                        <h3><span class="material-icons-round">list_alt</span> Operaciones Abiertas</h3>
+                        <span id="active-count" class="badge">0</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="styled-table">
+                            <thead>
+                                <tr>
+                                    <th>Par</th>
+                                    <th>Tipo</th>
+                                    <th>Entrada</th>
+                                    <th>PnL (USDT)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="positions-body">
+                                <tr><td colspan="4" class="empty-state">Sin operaciones activas</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Quick Config -->
+                <div class="card glass">
+                    <div class="card-header">
+                        <h3><span class="material-icons-round">tune</span> Ajustes Rápidos</h3>
+                    </div>
+                    <div class="config-panel">
+                        <div class="input-group">
+                            <label>Monto Operación (USDT)</label>
+                            <input type="number" id="cfg-monto" class="glass-input">
                         </div>
+                        <div class="input-group">
+                            <label>Apalancamiento (x)</label>
+                            <input type="number" id="cfg-leverage" class="glass-input" max="10">
+                        </div>
+                         <div class="input-group">
+                            <label>Max. Operaciones</label>
+                            <input type="number" id="cfg-max-ops" class="glass-input" value="5">
+                        </div>
+                        <button class="btn btn-primary full-width" onclick="saveConfig()">
+                            <span class="material-icons-round">save</span> GUARDAR CAMBIOS
+                        </button>
                     </div>
-                    <div class="form-group">
-                        <label>RSI Periodo</label>
-                        <input type="number" id="cfg-rsi" placeholder="14">
-                    </div>
-                    <button class="btn btn-primary" style="width: 100%;" onclick="saveConfig()">GUARDAR CAMBIOS</button>
                 </div>
             </div>
-            <div class="card">
-                <div class="card-title">Modo de Operación</div>
-                <div class="mode-selector">
-                    <div id="mode-display" class="mode-status mode-demo">MODO DEMO (TESTNET)</div>
-                    <button class="btn btn-warning" style="width: 100%; margin-top: 1rem;"
-                        onclick="toggleMode()">CAMBIAR A REAL / DEMO</button>
-                </div>
-                <div style="margin-top: 2rem;">
-                    <button class="btn btn-primary" style="width: 100%; margin-bottom: 0.5rem;"
-                        onclick="startBot()">INICIAR BOT</button>
-                    <button class="btn btn-danger" style="width: 100%;" onclick="stopBot()">DETENER BOT</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Fila 4: Posiciones Abiertas -->
-        <div class="card" style="margin-bottom: 2rem;">
-            <div class="card-title">Posiciones Abiertas</div>
-            <div class="table-container">
-                <table id="positions-table">
-                    <thead>
-                        <tr>
-                            <th>Símbolo</th>
-                            <th>Lado</th>
-                            <th>Tamaño</th>
-                            <th>Precio Entrada</th>
-                            <th>PnL</th>
-                        </tr>
-                    </thead>
-                    <tbody id="positions-body">
-                        <!-- Se llena dinámicamente -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Fila 5: Historial de Operaciones Cerradas -->
-        <div class="card" style="margin-bottom: 2rem;">
-            <div class="card-title">Historial de Operaciones Cerradas</div>
-            <div class="table-container">
-                <table id="closed-trades-table">
-                    <thead>
-                        <tr>
-                            <th>Hora</th>
-                            <th>Símbolo</th>
-                            <th>Lado</th>
-                            <th>PnL Realizado</th>
-                        </tr>
-                    </thead>
-                    <tbody id="closed-trades-body">
-                        <!-- Se llena dinámicamente -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Fila 6: Logs -->
-        <div class="card" style="margin-bottom: 2rem;">
-            <div class="card-title">Registro de Actividad (Logs)</div>
-            <div id="logs" class="logs-container">
-                <div class="log-entry log-info">Esperando inicio del sistema...</div>
-            </div>
-        </div>
+        </main>
     </div>
 
     <script>
         const socket = io();
 
-        socket.on('update_data', function (data) {
-            if (data.balance) document.getElementById('balance').innerText = data.balance + ' USDT';
-            if (data.total_pnl) {
-                const el = document.getElementById('total-pnl');
-                el.innerText = data.total_pnl + ' USDT';
-                el.className = 'card-value ' + (parseFloat(data.total_pnl) >= 0 ? 'positive' : 'negative');
-            }
-            if (data.win_count !== undefined) {
-                document.getElementById('win-count').innerText = data.win_count + ' W';
-                updateWinRate(data.win_count, data.loss_count);
-            }
-            if (data.loss_count !== undefined) {
-                document.getElementById('loss-count').innerText = data.loss_count + ' L';
-                updateWinRate(data.win_count, data.loss_count);
-            }
-            if (data.points !== undefined) document.getElementById('learning-points').innerText = data.points;
-            if (data.coins_count !== undefined) document.getElementById('coins-count').innerText = data.coins_count;
+        socket.on('connect', () => {
+            document.getElementById('connection-status').innerHTML = '<span class="dot"></span> CONECTADO';
+            document.getElementById('connection-status').classList.add('online');
+            sendSystemLog("Conectado al servidor del bot.");
+        });
 
+        socket.on('disconnect', () => {
+            document.getElementById('connection-status').innerHTML = '<span class="dot red"></span> DESCONECTADO';
+            document.getElementById('connection-status').classList.remove('online');
+            sendSystemLog("Conexión perdida. Reintentando...");
+        });
+
+        socket.on('update_data', function (data) {
+            // Animación de números básica si cambian
+            updateText('balance', data.balance + ' USDT');
+            updatePnl('total-pnl', data.total_pnl);
+            
             if (data.btc_trend) {
                 const el = document.getElementById('btc-trend');
                 el.innerText = data.btc_trend;
-                el.className = 'card-value ' + (data.btc_trend.includes('ALCISTA') ? 'positive' : (data.btc_trend.includes('BAJISTA') ? 'negative' : ''));
+                el.style.color = data.btc_trend.includes('ALCISTA') ? '#34d399' : (data.btc_trend.includes('BAJISTA') ? '#f87171' : '#fff');
             }
-
+            
+            if (data.points !== undefined) document.getElementById('learning-points').innerText = data.points + " XP";
+            
             if (data.positions) updatePositionsTable(data.positions);
-            if (data.closed_trades) updateClosedTradesTable(data.closed_trades);
         });
-
-        function updateWinRate(w, l) {
-            const total = w + l;
-            const rate = total > 0 ? ((w / total) * 100).toFixed(1) : 0;
-            document.getElementById('win-rate').innerText = rate + '%';
-        }
 
         socket.on('new_log', function (data) {
             const logsDiv = document.getElementById('logs');
             const entry = document.createElement('div');
             entry.className = 'log-entry ' + (data.type || 'log-info');
-            entry.innerText = `[${new Date().toLocaleTimeString()}] ${data.message}`;
-            logsDiv.appendChild(entry);
-            logsDiv.scrollTop = logsDiv.scrollHeight;
+            
+            const time = new Date().toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+            entry.innerHTML = `<span class="log-time">[${time}]</span> ${data.message}`;
+            
+            logsDiv.insertBefore(entry, logsDiv.firstChild);
+            
+            if(logsDiv.children.length > 50) logsDiv.removeChild(logsDiv.lastChild);
         });
+
+        function updateText(id, newVal) {
+            const el = document.getElementById(id);
+            if (el.innerText !== newVal) el.innerText = newVal;
+        }
+
+        function updatePnl(id, val) {
+            const el = document.getElementById(id);
+            const num = parseFloat(val);
+            el.innerText = val + ' USDT';
+            el.className = 'value ' + (num >= 0 ? 'text-success' : 'text-danger');
+        }
 
         function updatePositionsTable(positions) {
             const body = document.getElementById('positions-body');
-            body.innerHTML = '';
+            document.getElementById('active-count').innerText = positions.length;
+            
             if (positions.length === 0) {
-                body.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#64748b;">No hay posiciones abiertas</td></tr>';
+                body.innerHTML = '<tr><td colspan="4" class="empty-state">Sin operaciones activas</td></tr>';
                 return;
             }
+            
+            body.innerHTML = '';
             positions.forEach(p => {
                 const pnl = parseFloat(p.unrealisedPnl || 0);
                 const row = `<tr>
-                    <td>${p.symbol}</td>
-                    <td class="${p.side === 'Buy' ? 'positive' : 'negative'}">${p.side === 'Buy' ? 'LONG' : 'SHORT'}</td>
-                    <td>${p.size}</td>
+                    <td class="font-bold">${p.symbol}</td>
+                    <td class="${p.side === 'Buy' ? 'text-success' : 'text-danger'}">${p.side === 'Buy' ? 'LONG' : 'SHORT'}</td>
                     <td>${p.avgPrice}</td>
-                    <td class="${pnl >= 0 ? 'positive' : 'negative'}">${pnl.toFixed(2)} USDT</td>
+                    <td class="${pnl >= 0 ? 'text-success' : 'text-danger'} font-bold">${pnl.toFixed(2)}</td>
                 </tr>`;
                 body.innerHTML += row;
             });
         }
 
-        function updateClosedTradesTable(trades) {
-            const body = document.getElementById('closed-trades-body');
-            body.innerHTML = '';
-            if (trades.length === 0) {
-                body.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#64748b;">No hay operaciones cerradas</td></tr>';
-                return;
-            }
-            trades.forEach(t => {
-                const pnl = parseFloat(t.pnl);
-                const row = `<tr>
-                    <td>${t.time}</td>
-                    <td>${t.symbol}</td>
-                    <td class="${t.side === 'Buy' ? 'positive' : 'negative'}">${t.side === 'Buy' ? 'LONG' : 'SHORT'}</td>
-                    <td class="${pnl >= 0 ? 'positive' : 'negative'}">${pnl.toFixed(2)} USDT</td>
-                </tr>`;
-                body.innerHTML += row;
-            });
+        function sendSystemLog(msg) {
+            const logsDiv = document.getElementById('logs');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry log-system';
+            entry.innerText = `> ${msg}`;
+            logsDiv.insertBefore(entry, logsDiv.firstChild);
         }
 
         function startBot() {
-            fetch('/start').then(r => console.log('Bot iniciado'));
+            fetch('/start').then(() => sendSystemLog("Comando INICIAR enviado"));
         }
 
         function stopBot() {
-            fetch('/stop').then(r => console.log('Bot detenido'));
+            fetch('/stop').then(() => sendSystemLog("Comando DETENER enviado"));
         }
 
-        function loadConfig() {
-            fetch('/config').then(r => r.json()).then(config => {
-                document.getElementById('cfg-monto').value = config.trading.monto_por_operacion;
-                document.getElementById('cfg-leverage').value = config.trading.apalancamiento;
-                document.getElementById('cfg-ema-fast').value = config.estrategia.ema_rapida;
-                document.getElementById('cfg-ema-slow').value = config.estrategia.ema_lenta;
-                document.getElementById('cfg-rsi').value = config.estrategia.rsi_periodo;
-                updateModeUI(config.trading.testnet);
-            });
-        }
+        // Cargar Configuración
+        fetch('/config').then(r => r.json()).then(config => {
+            document.getElementById('cfg-monto').value = config.trading.monto_por_operacion;
+            document.getElementById('cfg-leverage').value = config.trading.apalancamiento;
+            document.getElementById('cfg-max-ops').value = config.trading.max_operaciones_simultaneas || 5;
+        });
 
         function saveConfig() {
-            const monto = parseFloat(document.getElementById('cfg-monto').value);
-            const leverage = parseInt(document.getElementById('cfg-leverage').value);
-            const ema_fast = parseInt(document.getElementById('cfg-ema-fast').value);
-            const ema_slow = parseInt(document.getElementById('cfg-ema-slow').value);
-            const rsi = parseInt(document.getElementById('cfg-rsi').value);
-
             fetch('/config').then(r => r.json()).then(config => {
-                config.trading.monto_por_operacion = monto;
-                config.trading.apalancamiento = leverage;
-                config.estrategia.ema_rapida = ema_fast;
-                config.estrategia.ema_lenta = ema_slow;
-                config.estrategia.rsi_periodo = rsi;
+                config.trading.monto_por_operacion = parseFloat(document.getElementById('cfg-monto').value);
+                config.trading.apalancamiento = parseInt(document.getElementById('cfg-leverage').value);
+                config.trading.max_operaciones_simultaneas = parseInt(document.getElementById('cfg-max-ops').value);
 
                 fetch('/config', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(config)
-                }).then(() => alert('Configuración guardada. Reinicia el bot para aplicar.'));
+                }).then(() => alert('Configuración guardada.'));
             });
         }
-
-        function toggleMode() {
-            if (confirm('¿Estás seguro de cambiar el modo? Esto afectará a las próximas operaciones.')) {
-                fetch('/toggle_mode').then(r => r.json()).then(data => {
-                    updateModeUI(data.testnet);
-                });
-            }
-        }
-
-        function updateModeUI(isTestnet) {
-            const el = document.getElementById('mode-display');
-            if (isTestnet) {
-                el.innerText = 'MODO DEMO (TESTNET)';
-                el.className = 'mode-status mode-demo';
-            } else {
-                el.innerText = 'MODO REAL (MAINNET)';
-                el.className = 'mode-status mode-real';
-            }
-        }
-
-        loadConfig();
     </script>
 </body>
-
 </html>
