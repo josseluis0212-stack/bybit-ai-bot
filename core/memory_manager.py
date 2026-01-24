@@ -1,4 +1,5 @@
 import os
+import json
 from datetime import datetime, timedelta
 
 class MemoryManager:
@@ -147,3 +148,4 @@ class MemoryManager:
             "win_rate": win_rate,
             "pnl": pnl
         }
+
