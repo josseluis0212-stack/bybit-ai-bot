@@ -20,14 +20,7 @@ trading:
   apalancamiento: 3
   capital_total: 1000
   demo: true
-  max_operaciones_simultaneas: 3
+  max_operaciones_simultaneas: 5
   monto_por_operacion: 15
-  pares_permitidos:
-  - BTCUSDT
-  - ETHUSDT
-  - SOLUSDT
-  - LINKUSDT
-  - AVAXUSDT
-  - DOTUSDT
-  - MATICUSDT
+  pares_permitidos: [] # Lista vacía = Todas las monedas disponibles
   testnet: false
