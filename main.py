@@ -9,7 +9,6 @@ from core.telegram_bot import TelegramBot
 from core.risk_manager import RiskManager
 from core.memory_manager import MemoryManager
 from strategy.execution_engine import ExecutionEngine
-from strategy.grid_analyzer import GridAnalyzer
 from dashboard.app import start_dashboard, update_ui, send_log, bot_data
 
 def send_combined_stats(memory_manager, telegram):
@@ -57,13 +56,11 @@ def bot_loop():
     risk_manager = RiskManager(config)
     memory_manager = MemoryManager()
     engine = ExecutionEngine(client, risk_manager, memory_manager, config, telegram)
-    grid_engine = GridAnalyzer(client, config, telegram)
     
     balance = client.get_balance()
     mode = "Demo Trading" if config['trading'].get('demo', True) else "Cuenta REAL"
     
     telegram.send_message(f"🚀 *BOT IA {VERSION} OPERATIVO*\n💰 Balance: {balance:.2f} USDT\n⚙️ Modo: {mode}")
-    telegram.send_message(f"✅ *BOT GRID {VERSION} OPERATIVO*")
     telegram.send_message("🤖 *Sincronización completa.* Iniciando análisis de mercado...")
     
     try:
@@ -168,9 +165,6 @@ def bot_loop():
                 if len(posiciones) < config['trading']['max_operaciones_simultaneas']:
                     print(f"Analizando IA para {par}...")
                     engine.execute_trade(par)
-                
-                print(f"Analizando Grid para {par}...")
-                grid_engine.analyze_grid(par)
                 
                 time.sleep(0.5) 
                 
