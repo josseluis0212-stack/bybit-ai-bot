@@ -77,6 +77,8 @@ def start_dashboard():
     print("Dashboard iniciado en http://localhost:5000")
 
 def update_ui(data):
+    # Actualizar el estado global para que las nuevas conexiones reciban datos frescos
+    bot_data.update(data)
     socketio.emit('update_data', data)
 
 def send_log(message, type="log-info"):
