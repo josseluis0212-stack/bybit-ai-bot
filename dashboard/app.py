@@ -8,6 +8,10 @@ import os
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
+@socketio.on('connect')
+def handle_connect():
+    emit('update_data', bot_data)
+
 # Estado global compartido
 bot_data = {
     "balance": "0.00",

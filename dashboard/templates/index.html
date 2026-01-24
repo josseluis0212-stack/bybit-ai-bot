@@ -58,7 +58,8 @@
             <!-- KPI Cards -->
             <div class="kpi-grid">
                 <div class="card kpi-card glass">
-                    <div class="card-icon info-icon"><span class="material-icons-round">account_balance_wallet</span></div>
+                    <div class="card-icon info-icon"><span class="material-icons-round">account_balance_wallet</span>
+                    </div>
                     <div class="card-info">
                         <h3>Balance Total</h3>
                         <div id="balance" class="value">0.00 USDT</div>
@@ -121,7 +122,9 @@
                                 </tr>
                             </thead>
                             <tbody id="positions-body">
-                                <tr><td colspan="4" class="empty-state">Sin operaciones activas</td></tr>
+                                <tr>
+                                    <td colspan="4" class="empty-state">Sin operaciones activas</td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -141,9 +144,20 @@
                             <label>Apalancamiento (x)</label>
                             <input type="number" id="cfg-leverage" class="glass-input" max="10">
                         </div>
-                         <div class="input-group">
+                        <div class="input-group">
                             <label>Max. Operaciones</label>
                             <input type="number" id="cfg-max-ops" class="glass-input" value="5">
+                        </div>
+                        <div class="input-group">
+                            <label>Estrategia (EMA Rápida / Lenta)</label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="number" id="cfg-ema-fast" class="glass-input" placeholder="8">
+                                <input type="number" id="cfg-ema-slow" class="glass-input" placeholder="21">
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Periodo RSI</label>
+                            <input type="number" id="cfg-rsi" class="glass-input" placeholder="14">
                         </div>
                         <button class="btn btn-primary full-width" onclick="saveConfig()">
                             <span class="material-icons-round">save</span> GUARDAR CAMBIOS
@@ -173,15 +187,15 @@
             // Animación de números básica si cambian
             updateText('balance', data.balance + ' USDT');
             updatePnl('total-pnl', data.total_pnl);
-            
+
             if (data.btc_trend) {
                 const el = document.getElementById('btc-trend');
                 el.innerText = data.btc_trend;
                 el.style.color = data.btc_trend.includes('ALCISTA') ? '#34d399' : (data.btc_trend.includes('BAJISTA') ? '#f87171' : '#fff');
             }
-            
+
             if (data.points !== undefined) document.getElementById('learning-points').innerText = data.points + " XP";
-            
+
             if (data.positions) updatePositionsTable(data.positions);
         });
 
@@ -189,13 +203,13 @@
             const logsDiv = document.getElementById('logs');
             const entry = document.createElement('div');
             entry.className = 'log-entry ' + (data.type || 'log-info');
-            
-            const time = new Date().toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+
+            const time = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             entry.innerHTML = `<span class="log-time">[${time}]</span> ${data.message}`;
-            
+
             logsDiv.insertBefore(entry, logsDiv.firstChild);
-            
-            if(logsDiv.children.length > 50) logsDiv.removeChild(logsDiv.lastChild);
+
+            if (logsDiv.children.length > 50) logsDiv.removeChild(logsDiv.lastChild);
         });
 
         function updateText(id, newVal) {
@@ -213,12 +227,12 @@
         function updatePositionsTable(positions) {
             const body = document.getElementById('positions-body');
             document.getElementById('active-count').innerText = positions.length;
-            
+
             if (positions.length === 0) {
                 body.innerHTML = '<tr><td colspan="4" class="empty-state">Sin operaciones activas</td></tr>';
                 return;
             }
-            
+
             body.innerHTML = '';
             positions.forEach(p => {
                 const pnl = parseFloat(p.unrealisedPnl || 0);
@@ -253,6 +267,12 @@
             document.getElementById('cfg-monto').value = config.trading.monto_por_operacion;
             document.getElementById('cfg-leverage').value = config.trading.apalancamiento;
             document.getElementById('cfg-max-ops').value = config.trading.max_operaciones_simultaneas || 5;
+
+            if (config.estrategia) {
+                document.getElementById('cfg-ema-fast').value = config.estrategia.ema_rapida;
+                document.getElementById('cfg-ema-slow').value = config.estrategia.ema_lenta;
+                document.getElementById('cfg-rsi').value = config.estrategia.rsi_periodo;
+            }
         });
 
         function saveConfig() {
@@ -260,6 +280,11 @@
                 config.trading.monto_por_operacion = parseFloat(document.getElementById('cfg-monto').value);
                 config.trading.apalancamiento = parseInt(document.getElementById('cfg-leverage').value);
                 config.trading.max_operaciones_simultaneas = parseInt(document.getElementById('cfg-max-ops').value);
+
+                // Estrategia
+                config.estrategia.ema_rapida = parseInt(document.getElementById('cfg-ema-fast').value);
+                config.estrategia.ema_lenta = parseInt(document.getElementById('cfg-ema-slow').value);
+                config.estrategia.rsi_periodo = parseInt(document.getElementById('cfg-rsi').value);
 
                 fetch('/config', {
                     method: 'POST',
@@ -270,4 +295,5 @@
         }
     </script>
 </body>
+
 </html>
