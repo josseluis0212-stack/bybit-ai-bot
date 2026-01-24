@@ -3,7 +3,7 @@ estrategia:
   ema_rapida: 8
   rsi_periodo: 14
   temporalidad_diaria: D
-  temporalidad_ejecucion: '5'
+  temporalidad_ejecucion: '15'
   volumen_minimo: 1000000
 ia:
   exploracion_diaria: 2

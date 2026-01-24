@@ -30,6 +30,7 @@ class Indicators:
         df['ema_200'] = Indicators.calculate_ema(df, 200)
         df['rsi'] = Indicators.calculate_rsi(df, config['estrategia']['rsi_periodo'])
         df['atr'] = Indicators.calculate_atr(df)
+        df['vol_ma'] = ta.sma(df['volume'], length=20)
         
         # Bollinger Bands
         try:

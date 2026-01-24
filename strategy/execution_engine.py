@@ -14,54 +14,64 @@ class ExecutionEngine:
 
     def check_signal(self, symbol):
         """
-        Verifica señales de entrada en 5m respetando la tendencia diaria.
+        ESTRATEGIA ÚLTIMA GENERACIÓN (Triple Alineación + Volumen)
+        1. Tendencia Macro (Diario): Precio > EMA 50
+        2. Tendencia Táctica (1H): Precio > EMA 50
+        3. Clasificación (15m): Precio > EMA 50
+        4. Gatillo (15m): Cruce EMA 8/21 + Confirmación Volumen
         """
-        # 1. Obtener tendencia diaria y filtro BTC
-        trend_diaria = self.trend_analyzer.get_market_trend(symbol)
-        btc_trend, es_brusco_btc = self.trend_analyzer.analyze_btc_filter()
+        # --- 1. Obtener Datos Multi-Temporalidad ---
+        # Diario (D)
+        klines_d = self.client.get_kline(symbol=symbol, interval="D", limit=55)
+        if not klines_d: return None
+        df_d = Indicators.klines_to_df(klines_d)
+        df_d = Indicators.add_indicators(df_d, self.config)
         
-        # Filtrado por correlación con movimiento brusco de BTC
-        if es_brusco_btc:
-            if btc_trend == "ALCISTA" and trend_diaria != "ALCISTA":
-                return None # Bloquear si no correlaciona con subida brusca
-            if btc_trend == "BAJISTA" and trend_diaria != "BAJISTA":
-                return None # Bloquear si no correlaciona con bajada brusca
+        # 1 Hora (60)
+        klines_1h = self.client.get_kline(symbol=symbol, interval="60", limit=55)
+        if not klines_1h: return None
+        df_1h = Indicators.klines_to_df(klines_1h)
+        df_1h = Indicators.add_indicators(df_1h, self.config)
         
-        if btc_trend == "BAJISTA" and trend_diaria != "BAJISTA":
-            return None
+        # 15 Minutos (15)
+        klines_15m = self.client.get_kline(symbol=symbol, interval="15", limit=55)
+        if not klines_15m: return None
+        df_15m = Indicators.klines_to_df(klines_15m)
+        df_15m = Indicators.add_indicators(df_15m, self.config)
         
-        if btc_trend == "ALCISTA" and trend_diaria != "ALCISTA":
-            return None
+        if len(df_d) < 50 or len(df_1h) < 50 or len(df_15m) < 50: return None
 
-        # 2. Obtener datos de 5m
-        klines_5m = self.client.get_kline(symbol=symbol, interval="5", limit=100)
-        if not klines_5m:
+        # --- 2. Análisis de Alineación (EMA 50) ---
+        last_d = df_d.iloc[-1]
+        last_1h = df_1h.iloc[-1]
+        last_15m = df_15m.iloc[-1]
+        prev_15m = df_15m.iloc[-2]
+        
+        trend_d = "ALCISTA" if last_d['close'] > last_d['ema_mid'] else "BAJISTA"
+        trend_1h = "ALCISTA" if last_1h['close'] > last_1h['ema_mid'] else "BAJISTA"
+        trend_15m = "ALCISTA" if last_15m['close'] > last_15m['ema_mid'] else "BAJISTA"
+        
+        # Filtro de Alineación Estricta
+        if not (trend_d == trend_1h == trend_15m):
             return None
             
-        df = Indicators.klines_to_df(klines_5m)
-        df = Indicators.add_indicators(df, self.config)
-        
-        if len(df) < 2:
-            return None
-            
-        last_row = df.iloc[-1]
-        prev_row = df.iloc[-2]
-        
-        # Verificar que los indicadores no sean NaN
-        required_cols = ['ema_fast', 'ema_slow', 'rsi']
-        if any(pd.isna(last_row[col]) for col in required_cols) or \
-           any(pd.isna(prev_row[col]) for col in ['ema_fast', 'ema_slow']):
-            return None
+        tendencia_general = trend_d # "ALCISTA" o "BAJISTA"
 
-        # Lógica de cruce de EMAs
-        cruce_alcista = prev_row['ema_fast'] <= prev_row['ema_slow'] and last_row['ema_fast'] > last_row['ema_slow']
-        cruce_bajista = prev_row['ema_fast'] >= prev_row['ema_slow'] and last_row['ema_fast'] < last_row['ema_slow']
+        # --- 3. Gatillo de Entrada (15m) ---
+        # Cruce de EMAs Configurable (Default 8 y 21)
+        cruce_buy = prev_15m['ema_fast'] <= prev_15m['ema_slow'] and last_15m['ema_fast'] > last_15m['ema_slow']
+        cruce_sell = prev_15m['ema_fast'] >= prev_15m['ema_slow'] and last_15m['ema_fast'] < last_15m['ema_slow']
         
-        if trend_diaria == "ALCISTA" and cruce_alcista and last_row['rsi'] > 50:
-            send_log(f"✅ SEÑAL COMPRA en {symbol} (Trend: {trend_diaria}, RSI: {last_row['rsi']:.1f})", "log-success")
+        # Confirmación de Volumen (Volumen actual > Media de 20 periodos)
+        vol_ok = last_15m['volume'] > last_15m['vol_ma']
+        
+        # --- 4. Decisión Final ---
+        if tendencia_general == "ALCISTA" and cruce_buy and vol_ok:
+            send_log(f"💎 SEÑAL CONFIRMADA (3 TF + Vol): {symbol} LONG", "log-success")
             return "Buy"
-        elif trend_diaria == "BAJISTA" and cruce_bajista and last_row['rsi'] < 50:
-            send_log(f"✅ SEÑAL VENTA en {symbol} (Trend: {trend_diaria}, RSI: {last_row['rsi']:.1f})", "log-success")
+            
+        if tendencia_general == "BAJISTA" and cruce_sell and vol_ok:
+            send_log(f"💎 SEÑAL CONFIRMADA (3 TF + Vol): {symbol} SHORT", "log-success")
             return "Sell"
             
         return None
@@ -122,7 +132,7 @@ class ExecutionEngine:
             send_log(f"Operación de EXPLORACIÓN en {symbol}", "log-info")
 
         # Obtener datos para SL/TP y Qty
-        klines = self.client.get_kline(symbol=symbol, interval="5", limit=20)
+        klines = self.client.get_kline(symbol=symbol, interval="15", limit=20)
         if not klines: return
         df = Indicators.klines_to_df(klines)
         df = Indicators.add_indicators(df, self.config)
