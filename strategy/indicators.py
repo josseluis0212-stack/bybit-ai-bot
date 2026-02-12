@@ -45,16 +45,22 @@ class Indicators:
             print(f"Error calculando BBands: {e}")
             df['bb_lower'] = df['bb_mid'] = df['bb_upper'] = df['close']
         
-        # ADX
-        try:
-            adx_data = Indicators.calculate_adx(df)
-            if adx_data is not None and not adx_data.empty:
-                df['adx'] = adx_data.iloc[:, 0]
-            else:
-                df['adx'] = 0
-        except Exception as e:
-            print(f"Error calculando ADX: {e}")
-            df['adx'] = 0
+       # ADX con DI+ y DI- para medir fuerza y dirección real
+try:
+    adx_data = ta.adx(df['high'], df['low'], df['close'], length=14)
+    if adx_data is not None and not adx_data.empty:
+        df['adx'] = adx_data['ADX_14']
+        df['di_plus'] = adx_data['DMP_14']
+        df['di_minus'] = adx_data['DMN_14']
+    else:
+        df['adx'] = 0
+        df['di_plus'] = 0
+        df['di_minus'] = 0
+except Exception as e:
+    print(f"Error calculando ADX: {e}")
+    df['adx'] = 0
+    df['di_plus'] = 0
+    df['di_minus'] = 0    
         
         return df
 
@@ -67,3 +73,4 @@ class Indicators:
             df[col] = df[col].astype(float)
         # Bybit returns klines in descending order (newest first), we need ascending for TA
         return df.sort_values('timestamp').reset_index(drop=True)
+
