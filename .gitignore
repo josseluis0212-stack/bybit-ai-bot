@@ -1,0 +1,40 @@
+# Variables de entorno (NUNCA subir al repositorio)
+.env
+
+# Archivos de base de datos
+*.db
+*.sqlite
+database/trading_bot.db
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+.Python
+*.pyc
+
+# Entorno virtual
+venv/
+env/
+.venv/
+ENV/
+
+# Logs
+*.log
+logs/
+
+# IDEs y editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Datos temporales
+*.tmp
+*.bak
