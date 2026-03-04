@@ -16,7 +16,7 @@ class Settings:
     
     # Parámetros de Riesgo Base
     LEVERAGE = int(os.getenv("LEVERAGE", 5))
-    TRADE_AMOUNT_USDT = float(os.getenv("TRADE_AMOUNT_USDT", 50.0))
+    TRADE_AMOUNT_USDT = float(os.getenv("TRADE_AMOUNT_USDT", 100.0))
     MAX_CONCURRENT_TRADES = int(os.getenv("MAX_CONCURRENT_TRADES", 10))
 
 settings = Settings()
