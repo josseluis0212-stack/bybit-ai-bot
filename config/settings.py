@@ -15,8 +15,8 @@ class Settings:
     TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
     
     # Parámetros de Riesgo Base
-    LEVERAGE = int(os.getenv("LEVERAGE", 5))
-    TRADE_AMOUNT_USDT = float(os.getenv("TRADE_AMOUNT_USDT", 100.0))
-    MAX_CONCURRENT_TRADES = int(os.getenv("MAX_CONCURRENT_TRADES", 10))
+    LEVERAGE = int(os.getenv("LEVERAGE") or 5)
+    TRADE_AMOUNT_USDT = float(os.getenv("TRADE_AMOUNT_USDT") or 100.0)
+    MAX_CONCURRENT_TRADES = int(os.getenv("MAX_CONCURRENT_TRADES") or 10)
 
 settings = Settings()
