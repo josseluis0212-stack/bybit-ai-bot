@@ -1,11 +1,17 @@
 # Deployment Guide for Render / GitHub
 
+> **🔥 INSTANT DEPLOYMENT 🔥**
+> The bot's `render.yaml` has been configured to automatically avoid Bybit's USA block by deploying in Frankfurt. Just click this button:
+> [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/josseluis0212-stack/bybit-ai-bot)
+
+---
+
 1. **Commit and Push:**
    Push this entire `trading-bot-pro` repository to your GitHub account (private repo recommended).
 
-2. **Render Setup:**
+2. **Render Setup (Manual method - if you didn't use the button above):**
    - Go to [dashboard.render.com](https://dashboard.render.com/)
-   - Click "New" -> "Background Worker"
+   - Click "New" -> "Blueprint" (This will automatically configure everything from `render.yaml`)
    - Connect your GitHub account and select your `trading-bot-pro` repository.
    
 3. **Configuration in Render:**
