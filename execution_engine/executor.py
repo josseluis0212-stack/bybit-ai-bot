@@ -54,7 +54,7 @@ class ExecutionEngine:
         qty = risk_manager.calculate_position_size(entry_price)
         
         # Ajustar lote mínimo sugerido por Bybit mediante instruments_info
-        instruments_info = bybit_client.get_instruments_info()
+        instruments_info = bybit_client.get_instruments_info(symbol=symbol)
         qty_str = f"{qty:.3f}"
         tp_str = f"{tp_price:.4f}"
         sl_str = f"{sl_price:.4f}"
@@ -64,12 +64,26 @@ class ExecutionEngine:
             qty_str = self._format_step(qty, info["qtyStep"], round_down=True)
             tp_str = self._format_step(tp_price, info["tickSize"])
             sl_str = self._format_step(sl_price, info["tickSize"])
+            
+            # Additional safety check vs Bybit minimum order size
+            min_qty = float(info.get("minOrderQty", "0"))
+            if float(qty_str) < min_qty:
+                logger.warning(f"Omitiendo señal {symbol} - Cantidad {qty_str} es menor al mínimo de Bybit {min_qty}.")
+                return False
+        else:
+            logger.warning(f"Info de instrumento no encontrada para {symbol}. Usando default_step 3 decimales.")
+            qty_str = f"{qty:.3f}"
+            tp_str = f"{tp_price:.4f}"
+            sl_str = f"{sl_price:.4f}"
         
         if float(qty_str) <= 0:
             logger.warning(f"Omitiendo señal {symbol} - Cantidad muy pequeña tras ajustar a lote mínimo.")
             return False
 
         side = "Buy" if signal == "LONG" else "Sell"
+        
+        # 3.5 Establecer Apalancamiento para la moneda antes de la primera orden
+        bybit_client.set_leverage(symbol, settings.LEVERAGE)
         
         logger.info(f"🚀 Ejecutando {signal} en {symbol} | Qty: {qty_str} | SL: {sl_str} | TP: {tp_str}")
         

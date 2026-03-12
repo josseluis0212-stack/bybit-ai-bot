@@ -51,25 +51,41 @@ class BybitClient:
             logger.error(f"Error obteniendo posiciones: {e}")
             return None
 
-    def get_instruments_info(self, category="linear"):
-        if hasattr(self, '_instruments_info') and getattr(self, '_instruments_info_category', None) == category:
-            return self._instruments_info
-            
+    def get_instruments_info(self, category="linear", symbol=None):
         try:
-            response = self.session.get_instruments_info(category=category)
-            if response.get("retCode") == 0:
-                self._instruments_info = {}
-                self._instruments_info_category = category
+            params = {"category": category}
+            if symbol:
+                params["symbol"] = symbol
+                
+            response = self.session.get_instruments_info(**params)
+            if response.get("retCode") == 0 and response["result"]["list"]:
+                # Build an open dictionary
+                info_dict = {}
                 for item in response["result"]["list"]:
-                    if item['symbol'].endswith('USDT'):
-                        self._instruments_info[item['symbol']] = {
-                            "qtyStep": item["lotSizeFilter"]["qtyStep"],
-                            "tickSize": item["priceFilter"]["tickSize"]
-                        }
-                return self._instruments_info
+                    info_dict[item['symbol']] = {
+                        "qtyStep": item["lotSizeFilter"]["qtyStep"],
+                        "tickSize": item["priceFilter"]["tickSize"],
+                        "minOrderQty": item["lotSizeFilter"]["minOrderQty"]
+                    }
+                return info_dict
             return None
         except Exception as e:
             logger.error(f"Error obteniendo instruments info: {e}")
+            return None
+
+    def set_leverage(self, symbol, leverage):
+        try:
+            response = self.session.set_leverage(
+                category="linear",
+                symbol=symbol,
+                buyLeverage=str(leverage),
+                sellLeverage=str(leverage)
+            )
+            return response
+        except Exception as e:
+            # Error 110043 means leverage not modified (already set to this)
+            if "110043" not in str(e):
+                logger.error(f"Error configurando apalancamiento en {symbol}: {e}")
             return None
 
     def place_order(self, symbol, side, order_type, qty, price=None, take_profit=None, stop_loss=None):
