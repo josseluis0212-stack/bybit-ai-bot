@@ -51,6 +51,27 @@ class BybitClient:
             logger.error(f"Error obteniendo posiciones: {e}")
             return None
 
+    def get_instruments_info(self, category="linear"):
+        if hasattr(self, '_instruments_info') and getattr(self, '_instruments_info_category', None) == category:
+            return self._instruments_info
+            
+        try:
+            response = self.session.get_instruments_info(category=category)
+            if response.get("retCode") == 0:
+                self._instruments_info = {}
+                self._instruments_info_category = category
+                for item in response["result"]["list"]:
+                    if item['symbol'].endswith('USDT'):
+                        self._instruments_info[item['symbol']] = {
+                            "qtyStep": item["lotSizeFilter"]["qtyStep"],
+                            "tickSize": item["priceFilter"]["tickSize"]
+                        }
+                return self._instruments_info
+            return None
+        except Exception as e:
+            logger.error(f"Error obteniendo instruments info: {e}")
+            return None
+
     def place_order(self, symbol, side, order_type, qty, price=None, take_profit=None, stop_loss=None):
         try:
             order_params = {

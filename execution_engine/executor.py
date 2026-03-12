@@ -1,5 +1,7 @@
 import logging
 import asyncio
+import math
+from decimal import Decimal
 from api.bybit_client import bybit_client
 from database.db_manager import db_manager
 from risk_management.risk_manager import risk_manager
@@ -9,6 +11,16 @@ from notifications.telegram_bot import telegram_notifier
 logger = logging.getLogger(__name__)
 
 class ExecutionEngine:
+    def _format_step(self, value, step_string, round_down=False):
+        step_dec = Decimal(str(step_string))
+        val_dec = Decimal(str(value))
+        if round_down:
+            rounded = math.floor(val_dec / step_dec) * step_dec
+        else:
+            rounded = round(val_dec / step_dec) * step_dec
+            
+        decimals = abs(step_dec.as_tuple().exponent)
+        return f"{float(rounded):.{decimals}f}"
     async def try_execute_signal(self, signal_data):
         """
         Intenta transformar una señal de la estrategia en una orden real,
@@ -41,22 +53,33 @@ class ExecutionEngine:
         # 3. Calcular cantidad e instruir la orden
         qty = risk_manager.calculate_position_size(entry_price)
         
-        # Ajustar lote mínimo sugerido por Bybit (esto es complejo en general pero 
-        # para propósitos de Demo y prototipo usamos redondeo a 3 decimales usualmente estándar)
-        # Nota: En desarrollo PRO, habría que consultar el 'lotSizeFilter' del instrumento.
+        # Ajustar lote mínimo sugerido por Bybit mediante instruments_info
+        instruments_info = bybit_client.get_instruments_info()
         qty_str = f"{qty:.3f}"
+        tp_str = f"{tp_price:.4f}"
+        sl_str = f"{sl_price:.4f}"
         
+        if instruments_info and symbol in instruments_info:
+            info = instruments_info[symbol]
+            qty_str = self._format_step(qty, info["qtyStep"], round_down=True)
+            tp_str = self._format_step(tp_price, info["tickSize"])
+            sl_str = self._format_step(sl_price, info["tickSize"])
+        
+        if float(qty_str) <= 0:
+            logger.warning(f"Omitiendo señal {symbol} - Cantidad muy pequeña tras ajustar a lote mínimo.")
+            return False
+
         side = "Buy" if signal == "LONG" else "Sell"
         
-        logger.info(f"🚀 Ejecutando {signal} en {symbol} | Qty: {qty_str} | SL: {sl_price:.4f} | TP: {tp_price:.4f}")
+        logger.info(f"🚀 Ejecutando {signal} en {symbol} | Qty: {qty_str} | SL: {sl_str} | TP: {tp_str}")
         
         response = bybit_client.place_order(
             symbol=symbol,
             side=side,
             order_type="Market", # Entramos Market porque la vela ya cerró confirmando señal
             qty=qty_str,
-            take_profit=tp_price,
-            stop_loss=sl_price
+            take_profit=tp_str,
+            stop_loss=sl_str
         )
 
         if response and response.get("retCode") == 0:
