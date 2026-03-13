@@ -27,8 +27,8 @@ class TrendPullbackStrategy:
         self.ema_fast = 21
         self.ema_slow = 200
         self.rsi_period = 14
-        self.rsi_oversold = 35
-        self.rsi_overbought = 65
+        self.rsi_oversold = 40
+        self.rsi_overbought = 60
         self.atr_period = 14
         self.atr_sl_multiplier = 1.5
         self.atr_tp_multiplier = 3.0

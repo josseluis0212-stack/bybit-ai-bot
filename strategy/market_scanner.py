@@ -46,6 +46,7 @@ class MarketScanner:
         Rastrea todos los pares buscando señales.
         """
         logger.info("Iniciando escaneo completo del mercado...")
+        valid_signals = []
         
         tickers = bybit_client.get_tickers()
         if not tickers:
