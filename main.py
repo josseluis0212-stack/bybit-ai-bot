@@ -17,6 +17,10 @@ async def bot_loop():
     logger.info("Iniciando Trading Bot Profesional Demo (Loop Principal)...")
     logger.info(f"Parámetros: {settings.LEVERAGE}x | Capital/Trade: {settings.TRADE_AMOUNT_USDT} USDT | Max Trades: {settings.MAX_CONCURRENT_TRADES}")
     
+    # Sincronización forzada al inicio: cerrar trades "fantasma" de runs anteriores
+    logger.info("Ejecutando sincronización inicial con Bybit...")
+    await executor.force_sync_at_startup()
+    
     while True:
         try:
             logger.info("--- Iniciando ciclo de escaneo ---")

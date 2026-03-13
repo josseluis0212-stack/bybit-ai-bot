@@ -131,7 +131,8 @@ class ExecutionEngine:
     async def check_open_positions(self):
         """
         Revisa las posiciones abiertas en la BD y las sincroniza con Bybit para ver si tocaron SL o TP.
-        En una versión PRO real esto se hace vía WebSockets, pero por API REST verificamos el estado.
+        Esta función también actúa como sincronizador: si la DB tiene trades OPEN que Bybit no tiene,
+        los cierra automáticamente (trade cerrado por SL/TP mientras el bot no estaba corriendo).
         """
         open_trades = db_manager.get_open_trades()
         if not open_trades:
@@ -148,44 +149,50 @@ class ExecutionEngine:
                 # pos['size'] > 0 indica que la posición sigue abierta
                 if float(pos['size']) > 0:
                     real_positions[pos['symbol']] = pos
+        else:
+            logger.warning("No se pudo obtener posiciones de Bybit. Saltando sincronización este ciclo.")
+            return
 
         # Comparar nuestra BD con Bybit
+        tickers = bybit_client.get_tickers()
+        ticker_map = {t['symbol']: t for t in tickers} if tickers else {}
+
         for trade in open_trades:
             symbol = trade.symbol
             
             # Si el trade está en nuestra DB pero NO en Bybit con size > 0, significa que se cerró (SL o TP tocado)
             if symbol not in real_positions:
-                logger.info(f"El trade {symbol} ya no está activo en Bybit. Procesando cierre...")
+                logger.info(f"El trade {symbol} (ID:{trade.id}) ya no está activo en Bybit. Procesando cierre...")
                 
-                # Obtenemos historia de órdenes cerradas para ver por qué se cerró
-                # Para simplificar, obtenemos el precio actual de ticker como exit price aproximado
-                # En PRO: Se busca el PnL exacto en el endpoint de 'closed-pnl'
-                tickers = bybit_client.get_tickers()
-                if not tickers: continue
-                    
-                ticker_info = next((t for t in tickers if t['symbol'] == symbol), None)
-                if not ticker_info: continue
-                
-                exit_price = float(ticker_info['lastPrice'])
+                ticker_info = ticker_map.get(symbol)
+                if not ticker_info:
+                    # Si no hay ticker, cerrar como "CERRADA" al último precio conocido (entry)
+                    exit_price = trade.entry_price
+                else:
+                    exit_price = float(ticker_info['lastPrice'])
                 
                 # Aproximación de pnl (LONG vs SHORT)
                 if trade.side == "LONG":
                     pnl_usdt = (exit_price - trade.entry_price) * trade.qty
-                    reason = "TAKE PROFIT" if exit_price >= trade.take_profit else ("STOP LOSS" if exit_price <= trade.stop_loss else "CERRADA")
+                    reason = "TAKE PROFIT" if exit_price >= trade.take_profit else ("STOP LOSS" if exit_price <= trade.stop_loss else "SINCRONIZADA")
                 else:
                     pnl_usdt = (trade.entry_price - exit_price) * trade.qty
-                    reason = "TAKE PROFIT" if exit_price <= trade.take_profit else ("STOP LOSS" if exit_price >= trade.stop_loss else "CERRADA")
+                    reason = "TAKE PROFIT" if exit_price <= trade.take_profit else ("STOP LOSS" if exit_price >= trade.stop_loss else "SINCRONIZADA")
                 
-                pnl_pct = (pnl_usdt / (trade.entry_price * trade.qty)) * 100 * trade.leverage
+                pnl_pct = (pnl_usdt / (trade.entry_price * trade.qty)) * 100 * trade.leverage if (trade.entry_price * trade.qty) != 0 else 0.0
                 
                 # Actualizar DB
                 db_manager.close_trade(trade.id, exit_price, pnl_usdt, pnl_pct, reason)
+                logger.info(f"Trade {symbol} cerrado en DB. Razón: {reason} | PnL: {pnl_usdt:.2f} USDT")
                 
                 # Consultar balance para Telegram
                 balance_info = bybit_client.get_wallet_balance()
                 current_balance = 0.0
                 if balance_info and balance_info.get('retCode') == 0:
-                     current_balance = float(balance_info['result']['list'][0]['coin'][0]['walletBalance'])
+                    coin_list = balance_info['result']['list'][0].get('coin', [])
+                    usdt_info = next((c for c in coin_list if c['coin'] == 'USDT'), None)
+                    if usdt_info:
+                        current_balance = float(usdt_info['walletBalance'])
                 
                 # Notificar a Telegram
                 await telegram_notifier.notify_order_closed(
@@ -195,9 +202,58 @@ class ExecutionEngine:
                     exit_price=f"{exit_price:.4f}",
                     pnl_usdt=pnl_usdt,
                     pnl_pct=pnl_pct,
-                    duration="N/A", # Simplificación
+                    duration="N/A",
                     reason=reason,
                     balance=current_balance
                 )
+
+    async def force_sync_at_startup(self):
+        """
+        Sincronización forzada al inicio del bot.
+        Cierra en la DB local todos los trades marcados como OPEN que ya no existen en Bybit.
+        Esto evita que trades 'fantasma' bloqueen nuevas operaciones al reiniciar el bot en Render.
+        """
+        open_trades = db_manager.get_open_trades()
+        if not open_trades:
+            logger.info("Startup sync: No hay trades abiertos en DB. Todo limpio.")
+            return
+
+        logger.info(f"Startup sync: Verificando {len(open_trades)} trades en DB contra Bybit...")
+        positions_response = bybit_client.get_positions()
+        
+        real_positions = {}
+        if positions_response and positions_response.get('retCode') == 0:
+            for pos in positions_response['result']['list']:
+                if float(pos['size']) > 0:
+                    real_positions[pos['symbol']] = pos
+        else:
+            logger.warning("Startup sync: No se pudo obtener posiciones de Bybit. Abortando sync.")
+            return
+
+        tickers = bybit_client.get_tickers()
+        ticker_map = {t['symbol']: t for t in tickers} if tickers else {}
+
+        closed_count = 0
+        for trade in open_trades:
+            symbol = trade.symbol
+            if symbol not in real_positions:
+                ticker_info = ticker_map.get(symbol)
+                exit_price = float(ticker_info['lastPrice']) if ticker_info else trade.entry_price
+
+                if trade.side == "LONG":
+                    pnl_usdt = (exit_price - trade.entry_price) * trade.qty
+                    reason = "TAKE PROFIT" if exit_price >= trade.take_profit else ("STOP LOSS" if exit_price <= trade.stop_loss else "SINCRONIZADA")
+                else:
+                    pnl_usdt = (trade.entry_price - exit_price) * trade.qty
+                    reason = "TAKE PROFIT" if exit_price <= trade.take_profit else ("STOP LOSS" if exit_price >= trade.stop_loss else "SINCRONIZADA")
+
+                pnl_pct = (pnl_usdt / (trade.entry_price * trade.qty)) * 100 * trade.leverage if (trade.entry_price * trade.qty) != 0 else 0.0
+                db_manager.close_trade(trade.id, exit_price, pnl_usdt, pnl_pct, reason)
+                logger.info(f"Startup sync: Trade {symbol} (ID:{trade.id}) cerrado. Razón: {reason}")
+                closed_count += 1
+            else:
+                logger.info(f"Startup sync: Trade {symbol} sigue activo en Bybit. OK.")
+
+        logger.info(f"Startup sync completado: {closed_count} trades fantasma eliminados de DB.")
 
 executor = ExecutionEngine()
