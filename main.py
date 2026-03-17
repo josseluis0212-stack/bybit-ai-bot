@@ -30,18 +30,21 @@ async def bot_loop():
             # 0. Sincronizar y cerrar posiciones abiertas que hayan tocado SL/TP
             await executor.check_open_positions()
             
-            # 1. Escanear el mercado (TOP 50 en volumen para optimizar API)
+            # 1. Escanear el mercado (GLOBAL - Todas las monedas)
             signals = await market_scanner.scan_market()
             
-            # 2. Procesar señales encontradas
+            # 2. Procesar señales encontradas de inmediato
             if signals:
-                logger.info(f"Procesando {len(signals)} señales generadas...")
+                logger.info(f"Procesando {len(signals)} señales detectadas...")
                 for sig in signals:
+                    # Intentar ejecutar cada señal. El ejecutor filtrará por límites y balance.
                     await executor.try_execute_signal(sig)
+                    # Pequeño respiro para no saturar la API de Bybit en ráfagas
+                    await asyncio.sleep(0.5)
             else:
-                logger.info("Sin señales en este ciclo.")
+                logger.info("Sin señales institucionales válidas en este ciclo.")
             
-            logger.info("Ciclo completado. Pausando por 5 minutos...")
+            logger.info("Ciclo de escaneo global completado. Pausando por 5 minutos...")
             await asyncio.sleep(300) 
             
         except Exception as e:
