@@ -55,19 +55,21 @@ class TelegramNotifier:
         return await self.send_message(message)
 
     async def notify_order_closed(self, symbol, side, entry_price, exit_price, pnl_usdt, pnl_pct, duration, reason, balance):
-        emoji = "✅" if pnl_usdt > 0 else "❌"
-        message = f"""
-{emoji} <b>OPERACIÓN CERRADA</b>
+        is_win = pnl_usdt > 0
+        status_label = "GANADORA 💰" if is_win else "PERDEDORA 🔻"
+        emoji = "✅" if is_win else "❌"
         
+        message = f"""
+{emoji} <b>OPERACIÓN {status_label}</b>
+
 <b>Par:</b> {symbol}
 <b>Tipo:</b> {side.upper()}
+<b>Resultado:</b> {pnl_usdt:.2f} USDT ({pnl_pct:.2f}%)
+
 <b>Entrada:</b> {entry_price}
 <b>Salida:</b> {exit_price}
 <b>Motivo:</b> {reason}
-<b>Duración:</b> {duration}
-
-<b>Resultado:</b> {pnl_usdt:.2f} USDT ({pnl_pct:.2f}%)
-<b>Balance Actualizado:</b> {balance:.2f} USDT
+<b>Balance Actual:</b> {balance:.2f} USDT
 """
         return await self.send_message(message)
 
