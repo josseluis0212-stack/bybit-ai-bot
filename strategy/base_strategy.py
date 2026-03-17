@@ -36,16 +36,25 @@ class InstitutionalSMCStrategy:
         
         return bull_fvg, bear_fvg
 
+    def calculate_rsi(self, df, period=14):
+        delta = df['close'].diff()
+        gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
+        rs = gain / loss
+        return 100 - (100 / (1 + rs))
+
     def analyze(self, symbol: str, df: pd.DataFrame):
-        if len(df) < 50:
+        if len(df) < 200: # Necesitamos 200 para la EMA
             return None
 
         # Asegurar tipos numéricos
         for col in ['open', 'high', 'low', 'close', 'volume']:
             df[col] = pd.to_numeric(df[col], errors='coerce')
 
-        # Media de volumen para validación institucional
+        # Indicadores de Confluencia
         df['vol_ma'] = df['volume'].rolling(window=20).mean()
+        df['ema_200'] = df['close'].ewm(span=200, adjust=False).mean()
+        df['rsi'] = self.calculate_rsi(df)
 
         # 1. Identificar fractales (Swing Points)
         df['high_fractal'] = df['high'].rolling(window=self.swing_period*2+1, center=True).apply(
@@ -63,16 +72,13 @@ class InstitutionalSMCStrategy:
         last_high, last_low = None, None
 
         for i in range(self.swing_period + 1, len(df)):
-            # Actualizar fractales de referencia
             if df.iloc[i - self.swing_period]['high_fractal'] == 1:
                 last_high = df.iloc[i - self.swing_period]['high']
             if df.iloc[i - self.swing_period]['low_fractal'] == 1:
                 last_low = df.iloc[i - self.swing_period]['low']
 
-            # Filtro de Volumen Institucional (Volumen > 1.2x media)
             is_institutional = df.iloc[i]['volume'] > (df.iloc[i]['vol_ma'] * 1.2)
             
-            # CHoCH/BOS Alcista
             if last_high and df.iloc[i]['close'] > last_high:
                 for j in range(i-1, max(0, i-20), -1):
                     if df.iloc[j]['close'] < df.iloc[j]['open']:
@@ -89,7 +95,6 @@ class InstitutionalSMCStrategy:
                         last_high = None
                         break
 
-            # CHoCH/BOS Bajista
             if last_low and df.iloc[i]['close'] < last_low:
                 for j in range(i-1, max(0, i-20), -1):
                     if df.iloc[j]['close'] > df.iloc[j]['open']:
@@ -109,40 +114,44 @@ class InstitutionalSMCStrategy:
         # 3. FILTRADO FINAL DE SEÑAL
         current = df.iloc[-1]
         c_price = current['close']
+        c_ema = current['ema_200']
+        c_rsi = current['rsi']
 
-        # LONG (Mitigación de OB Bull validado)
+        # LONG (Mitigación de OB Bull validado + Filtro Tendencia)
         for ob in reversed(bull_obs[-self.ob_limit:]):
-            if not ob['valid']:
-                continue
+            if not ob['valid']: continue
             
-            if current['low'] <= ob['high'] and c_price > ob['low']:
-                sl = ob['low'] - (ob['high'] - ob['low']) * 0.15
-                tp = c_price + (c_price - sl) * self.rr_ratio
-                return {
-                    "symbol": symbol,
-                    "signal": "LONG",
-                    "entry_price": c_price,
-                    "sl": sl,
-                    "tp": tp,
-                    "info": f"OB Institucional + FVG + Volumen Alto (Index {ob['index']})"
-                }
+            # Confluencia: Sobre EMA 200 y RSI no sobrecomprado
+            if c_price > c_ema and c_rsi < 70:
+                if current['low'] <= ob['high'] and c_price > ob['low']:
+                    sl = ob['low'] - (ob['high'] - ob['low']) * 0.15
+                    tp = c_price + (c_price - sl) * self.rr_ratio
+                    return {
+                        "symbol": symbol,
+                        "signal": "LONG",
+                        "entry_price": c_price,
+                        "sl": sl,
+                        "tp": tp,
+                        "info": f"SMC LONG: OB + FVG + Vol + EMA (+)"
+                    }
 
-        # SHORT (Mitigación de OB Bear validado)
+        # SHORT (Mitigación de OB Bear validado + Filtro Tendencia)
         for ob in reversed(bear_obs[-self.ob_limit:]):
-            if not ob['valid']:
-                continue
+            if not ob['valid']: continue
             
-            if current['high'] >= ob['low'] and c_price < ob['high']:
-                sl = ob['high'] + (ob['high'] - ob['low']) * 0.15
-                tp = c_price - (sl - c_price) * self.rr_ratio
-                return {
-                    "symbol": symbol,
-                    "signal": "SHORT",
-                    "entry_price": c_price,
-                    "sl": sl,
-                    "tp": tp,
-                    "info": f"OB Institucional + FVG + Volumen Alto (Index {ob['index']})"
-                }
+            # Confluencia: Bajo EMA 200 y RSI no sobrevendido
+            if c_price < c_ema and c_rsi > 30:
+                if current['high'] >= ob['low'] and c_price < ob['high']:
+                    sl = ob['high'] + (ob['high'] - ob['low']) * 0.15
+                    tp = c_price - (sl - c_price) * self.rr_ratio
+                    return {
+                        "symbol": symbol,
+                        "signal": "SHORT",
+                        "entry_price": c_price,
+                        "sl": sl,
+                        "tp": tp,
+                        "info": f"SMC SHORT: OB + FVG + Vol + EMA (-)"
+                    }
 
         return None
 
