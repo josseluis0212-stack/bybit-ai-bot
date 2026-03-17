@@ -109,11 +109,27 @@ async def init_web_server():
     await site.start()
     logger.info(f"Servidor web con API iniciado en el puerto {port}")
 
+async def daily_report_task():
+    """Envía un reporte de rendimiento cada 24 horas"""
+    from analytics.stats_calculator import stats_calculator
+    from notifications.telegram_bot import telegram_notifier
+    
+    while True:
+        # Esperar 24 horas antes del primer reporte o entre reportes
+        await asyncio.sleep(86400) 
+        
+        logger.info("Generando reporte de rendimiento diario...")
+        stats = stats_calculator.get_summary_stats(days=1)
+        if stats:
+            message = stats_calculator.format_stats_message(stats)
+            await telegram_notifier.send_message(message)
+
 async def main():
-    # Iniciamos el servidor web y el bot concurrentemente
+    # Iniciamos el servidor web, el bot y la tarea de reportes concurrentemente
     await asyncio.gather(
         init_web_server(),
-        bot_loop()
+        bot_loop(),
+        daily_report_task()
     )
 
 if __name__ == '__main__':
