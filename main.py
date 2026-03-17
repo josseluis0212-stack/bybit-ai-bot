@@ -42,7 +42,6 @@ async def bot_loop():
                 logger.info("Sin señales en este ciclo.")
             
             logger.info("Ciclo completado. Pausando por 5 minutos...")
-            # En producción puede ser cada 1, 5 o 15 minutos exactos usando un scheduler
             await asyncio.sleep(300) 
             
         except Exception as e:
@@ -65,8 +64,6 @@ async def handle_status(request):
 
 async def handle_trades(request):
     """Devuelve el historial y trades abiertos desde la DB"""
-    open_trades = db_manager.get_open_trades()
-    # Para fines de simplificación, tomamos los últimos 50 trades totales
     session = db_manager.Session()
     from database.models import Trade
     all_trades = session.query(Trade).order_by(Trade.id.desc()).limit(50).all()
@@ -88,13 +85,15 @@ async def handle_trades(request):
     session.close()
     return web.json_response(trades_list)
 
+async def handle_health_check(request):
+    return web.Response(text="Bot is running! 🚀")
+
 async def init_web_server():
     """Inicia un servidor web con API y health check"""
     app = web.Application()
     
     dashboard_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dashboard')
     
-    # Manejador específico para index.html para evitar 404
     async def serve_index(request):
         if os.path.exists(os.path.join(dashboard_path, 'index.html')):
             return web.FileResponse(os.path.join(dashboard_path, 'index.html'))
@@ -105,13 +104,11 @@ async def init_web_server():
     app.router.add_get('/api/status', handle_status)
     app.router.add_get('/api/trades', handle_trades)
     
-    # Rutas del Dashboard
     app.router.add_get('/app', serve_index)
     app.router.add_get('/app/', serve_index)
     app.router.add_get('/app/index.html', serve_index)
     
     if os.path.exists(dashboard_path):
-        # Servir el resto de archivos (manifest.json, etc.)
         app.router.add_static('/app', dashboard_path)
         logger.info(f"Dashboard servido desde: {dashboard_path}")
     
@@ -122,16 +119,14 @@ async def init_web_server():
     site = web.TCPSite(runner, '0.0.0.0', port)
     await site.start()
     logger.info(f"Servidor web iniciado en el puerto {port}")
- Riverside
+
 async def daily_report_task():
     """Envía un reporte de rendimiento cada 24 horas"""
     from analytics.stats_calculator import stats_calculator
     from notifications.telegram_bot import telegram_notifier
     
     while True:
-        # Esperar 24 horas antes del primer reporte o entre reportes
         await asyncio.sleep(86400) 
-        
         logger.info("Generando reporte de rendimiento diario...")
         stats = stats_calculator.get_summary_stats(days=1)
         if stats:
@@ -139,7 +134,6 @@ async def daily_report_task():
             await telegram_notifier.send_message(message)
 
 async def main():
-    # Iniciamos el servidor web, el bot y la tarea de reportes concurrentemente
     await asyncio.gather(
         init_web_server(),
         bot_loop(),
