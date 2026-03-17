@@ -50,13 +50,14 @@ class InstitutionalSMCStrategy:
                         'bottom': df.iloc[i]['high'],
                         'index': i-1
                     })
-        return bull_fvg, bear_fvg
-
-    def analyze(self, symbol: str, df: pd.DataFrame):
+        return bull_fvg, bear_fv    def analyze(self, symbol: str, df: pd.DataFrame):
         if len(df) < 50: return None
 
-        for col in ['open', 'high', 'low', 'close']:
+        for col in ['open', 'high', 'low', 'close', 'volume']:
             df[col] = pd.to_numeric(df[col], errors='coerce')
+
+        # Calcular media de volumen para validación institucional
+        df['vol_ma'] = df['volume'].rolling(window=20).mean()
 
         # 1. Identificar fractales (Swing Points)
         df['high_fractal'] = df['high'].rolling(window=self.swing_period*2+1, center=True).apply(
@@ -72,7 +73,6 @@ class InstitutionalSMCStrategy:
 
         bull_obs, bear_obs = [], []
         last_high, last_low = None, None
-        trend = "Neutral"
 
         for i in range(self.swing_period + 1, len(df)):
             # Actualizar fractales de referencia
@@ -81,22 +81,19 @@ class InstitutionalSMCStrategy:
             if df.iloc[i - self.swing_period]['low_fractal'] == 1:
                 last_low = df.iloc[i - self.swing_period]['low']
 
-            # Verificación de Liquidez (Sweep)
-            # El precio supera el fractal anterior momentáneamente (mecha) pero cierra dentro o rompe fuerte
+            # Filtro de Volumen: OB debe tener volumen > 1.2x la media (interés institucional)
+            is_institutional = df.iloc[i]['volume'] > (df.iloc[i]['vol_ma'] * 1.2)
             
             # CHoCH/BOS Alcista
             if last_high and df.iloc[i]['close'] > last_high:
-                # Si veníamos de tendencia bajista, esto es un CHoCH
-                # Buscamos si hay un OB validado por un FVG cercano
                 for j in range(i-1, max(0, i-20), -1):
                     if df.iloc[j]['close'] < df.iloc[j]['open']:
-                        # Validar si este OB tiene un FVG justo después (desplazamiento institucional)
                         has_fvg = any(idx == j or idx == j+1 for idx in fvg_indices)
                         ob = {
                             'low': df.iloc[j]['low'],
                             'high': df.iloc[j]['high'],
                             'index': j,
-                            'valid': has_fvg,
+                            'valid': has_fvg and is_institutional,
                             'type': 'BULLISH'
                         }
                         if not bull_obs or bull_obs[-1]['index'] != j:
@@ -113,7 +110,7 @@ class InstitutionalSMCStrategy:
                             'low': df.iloc[j]['low'],
                             'high': df.iloc[j]['high'],
                             'index': j,
-                            'valid': has_fvg,
+                            'valid': has_fvg and is_institutional,
                             'type': 'BEARISH'
                         }
                         if not bear_obs or bear_obs[-1]['index'] != j:
@@ -125,14 +122,14 @@ class InstitutionalSMCStrategy:
         current = df.iloc[-1]
         c_price = current['close']
 
-        # Entrar solo en OBs validados por FVG (Institutional Displacement)
-        # LONG
+        # LONG (Mitigación de OB Bull validado)
         for ob in reversed(bull_obs[-self.ob_limit:]):
-            if not ob['valid']: continue # Saltar si no tiene FVG (débil)
+            if not ob['valid']: continue
             
-            # Condición de entrada: El precio regresa a la zona alta del OB (Mitigación)
+            # El precio entra en la zona del OB y rebota
             if current['low'] <= ob['high'] and c_price > ob['low']:
-                sl = ob['low'] - (ob['high'] - ob['low']) * 0.1
+                # Calcular SL con un pequeño buffer debajo del OB
+                sl = ob['low'] - (ob['high'] - ob['low']) * 0.15
                 tp = c_price + (c_price - sl) * self.rr_ratio
                 return {
                     "symbol": symbol,
@@ -140,15 +137,15 @@ class InstitutionalSMCStrategy:
                     "entry_price": c_price,
                     "sl": sl,
                     "tp": tp,
-                    "info": f"OB Institucional validado con FVG (Index {ob['index']})"
+                    "info": f"OB Institucional + FVG + Volumen Alto (Index {ob['index']})"
                 }
 
-        # SHORT
+        # SHORT (Mitigación de OB Bear validado)
         for ob in reversed(bear_obs[-self.ob_limit:]):
             if not ob['valid']: continue
             
             if current['high'] >= ob['low'] and c_price < ob['high']:
-                sl = ob['high'] + (ob['high'] - ob['low']) * 0.1
+                sl = ob['high'] + (ob['high'] - ob['low']) * 0.15
                 tp = c_price - (sl - c_price) * self.rr_ratio
                 return {
                     "symbol": symbol,
@@ -156,8 +153,11 @@ class InstitutionalSMCStrategy:
                     "entry_price": c_price,
                     "sl": sl,
                     "tp": tp,
-                    "info": f"OB Institucional validado con FVG (Index {ob['index']})"
+                    "info": f"OB Institucional + FVG + Volumen Alto (Index {ob['index']})"
                 }
+
+        return None
+         }
 
         return None
 

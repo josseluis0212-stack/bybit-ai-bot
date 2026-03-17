@@ -91,15 +91,24 @@ async def handle_trades(request):
 async def init_web_server():
     """Inicia un servidor web con API y health check"""
     app = web.Application()
+    
+    # Redirección de /app a /app/index.html para mayor comodidad
+    async def redirect_to_index(request):
+        return web.HTTPFound('/app/index.html')
+    
     app.router.add_get('/', handle_health_check)
     app.router.add_get('/health', handle_health_check)
     app.router.add_get('/api/status', handle_status)
     app.router.add_get('/api/trades', handle_trades)
+    app.router.add_get('/app', redirect_to_index)
     
-    # Servir archivos estáticos (para el dashboard que construiremos)
-    if os.path.exists('dashboard'):
-        app.router.add_static('/app', 'dashboard')
-        logger.info("Ruta /app habilitada para el dashboard móvil.")
+    # Servir archivos estáticos con ruta absoluta para evitar 404 en Render
+    dashboard_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dashboard')
+    if os.path.exists(dashboard_path):
+        app.router.add_static('/app/', dashboard_path, show_index=True)
+        logger.info(f"Ruta /app habilitada para el dashboard móvil en: {dashboard_path}")
+    else:
+        logger.error(f"Error: No se encontró la carpeta dashboard en {dashboard_path}")
     
     runner = web.AppRunner(app)
     await runner.setup()
