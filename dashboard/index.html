@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SMC AI Bot Terminal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="manifest" href="/app/manifest.json">
+    <meta name="theme-color" content="#0a0a0a">
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #060606;
+            color: #e0e0e0;
+            overflow-x: hidden;
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 24px;
+        }
+        .accent-glow {
+            box-shadow: 0 0 20px rgba(0, 255, 157, 0.15);
+        }
+        .neon-text-green { color: #00ff9d; text-shadow: 0 0 10px rgba(0, 255, 157, 0.3); }
+        .neon-text-red { color: #ff4d4d; text-shadow: 0 0 10px rgba(255, 77, 77, 0.3); }
+        .pulse { animation: pulse 2s infinite; }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+    </style>
+</head>
+<body class="p-4 md:p-8 max-w-lg mx-auto pb-24">
+    
+    <!-- Header -->
+    <header class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight">SMC AI <span class="neon-text-green">Bot</span></h1>
+            <p class="text-xs text-gray-500 uppercase tracking-widest font-semibold flex items-center">
+                <span class="w-1.5 h-1.5 bg-green-500 rounded-full mr-2 pulse"></span> En Vivo • Bybit Cloud
+            </p>
+        </div>
+        <div class="glass p-3">
+            <i data-lucide="shield-check" class="w-6 h-6 text-green-400"></i>
+        </div>
+    </header>
+
+    <!-- Balance Card -->
+    <section class="glass p-6 mb-6 accent-glow relative overflow-hidden">
+        <div class="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-green-500/10 rounded-full blur-3xl"></div>
+        <div class="flex justify-between items-start mb-4">
+            <span class="text-gray-400 text-sm font-medium">Balance Total (USDT)</span>
+            <span class="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full font-bold">+2.4% hoy</span>
+        </div>
+        <div class="text-4xl font-bold mb-2" id="wallet-balance">---</div>
+        <div class="flex items-center text-gray-500 text-sm">
+            <i data-lucide="trending-up" class="w-4 h-4 mr-1 text-green-500"></i>
+            Apalancamiento: <span class="ml-1 text-gray-300 font-semibold" id="leverage-val">--</span>x
+        </div>
+    </section>
+
+    <!-- Trading Mode -->
+    <div class="flex gap-4 mb-8">
+        <div class="glass flex-1 p-4 flex flex-col items-center justify-center text-center">
+            <span class="text-gray-500 text-[10px] uppercase font-bold mb-1">Estrategia</span>
+            <span class="text-sm font-semibold text-gray-200" id="strategy-name">Institucional</span>
+        </div>
+        <div class="glass flex-1 p-4 flex flex-col items-center justify-center text-center">
+            <span class="text-gray-500 text-[10px] uppercase font-bold mb-1">Trades Activos</span>
+            <span class="text-sm font-semibold text-gray-200" id="active-count">0</span>
+        </div>
+    </div>
+
+    <!-- Active Trades Section -->
+    <div class="mb-4 flex justify-between items-center">
+        <h2 class="text-lg font-bold">Monitor de Mercado</h2>
+        <span class="text-xs text-gray-500" id="last-update">Sincronizando...</span>
+    </div>
+
+    <div id="trades-container" class="space-y-4 mb-8">
+        <!-- Trades dynamic content -->
+        <div class="glass p-4 animate-pulse h-20"></div>
+        <div class="glass p-4 animate-pulse h-20"></div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="fixed bottom-6 left-4 right-4 glass p-2 flex justify-around items-center z-50 accent-glow">
+        <button class="p-3 text-green-400"><i data-lucide="layout-grid"></i></button>
+        <button class="p-3 text-gray-500"><i data-lucide="activity"></i></button>
+        <button class="p-3 text-gray-500"><i data-lucide="history"></i></button>
+        <button class="p-3 text-gray-500"><i data-lucide="settings"></i></button>
+    </nav>
+
+    <script>
+        async function updateDashboard() {
+            try {
+                // Status Update
+                const statusRes = await fetch('/api/status');
+                const statusData = await statusRes.json();
+                
+                document.getElementById('wallet-balance').innerText = statusData.balance.length > 0 ? 
+                    parseFloat(statusData.balance[0].walletBalance).toFixed(2) : '0.00';
+                document.getElementById('leverage-val').innerText = statusData.leverage;
+                document.getElementById('active-count').innerText = statusData.active_trades_count;
+                document.getElementById('strategy-name').innerText = 'SMC/ICT';
+                
+                // Trades Update
+                const tradesRes = await fetch('/api/trades');
+                const tradesData = await tradesRes.json();
+                
+                const container = document.getElementById('trades-container');
+                container.innerHTML = '';
+                
+                if (tradesData.length === 0) {
+                    container.innerHTML = '<div class="glass p-6 text-center text-gray-500">Esperando señales institucionales...</div>';
+                }
+
+                tradesData.forEach(trade => {
+                    const isProfit = (trade.pnl_usdt || 0) >= 0;
+                    const statusColor = trade.status === 'OPEN' ? 'text-green-400' : 'text-gray-500';
+                    const pnlColor = isProfit ? 'neon-text-green' : 'neon-text-red';
+                    
+                    const card = `
+                        <div class="glass p-5 border-l-4 ${trade.status === 'OPEN' ? 'border-green-500' : 'border-gray-700'} relative overflow-hidden">
+                            <div class="flex justify-between items-start relative z-10">
+                                <div>
+                                    <div class="flex items-center mb-1">
+                                        <span class="font-bold text-lg">${trade.symbol}</span>
+                                        <span class="ml-2 text-[10px] bg-gray-800 px-2 py-0.5 rounded uppercase font-bold text-gray-400">${trade.side}</span>
+                                    </div>
+                                    <div class="text-xs text-gray-500">${trade.status === 'OPEN' ? '⚡ Ejecutando' : '✓ Cerrada'}</div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="font-bold text-lg ${trade.status === 'CLOSED' ? pnlColor : 'text-white'}">
+                                        ${trade.status === 'CLOSED' ? (trade.pnl_usdt > 0 ? '+' : '') + trade.pnl_usdt.toFixed(2) + ' USDT' : trade.entry.toFixed(4)}
+                                    </div>
+                                    <div class="text-[10px] font-bold ${trade.status === 'CLOSED' ? pnlColor : 'text-gray-500'}">
+                                        ${trade.status === 'CLOSED' ? trade.pnl_pct.toFixed(2) + '%' : 'Precio de Entrada'}
+                                    </div>
+                                </div>
+                            </div>
+                            ${trade.status === 'OPEN' ? '<div class="mt-4 h-1 w-full bg-gray-800 rounded-full overflow-hidden"><div class="h-full bg-green-500 w-2/3 animate-pulse"></div></div>' : ''}
+                        </div>
+                    `;
+                    container.innerHTML += card;
+                });
+
+                document.getElementById('last-update').innerText = 'Actualizado: ' + new Date().toLocaleTimeString();
+                lucide.createIcons();
+            } catch (error) {
+                console.error('Error actualizando dashboard:', error);
+            }
+        }
+
+        setInterval(updateDashboard, 5000);
+        updateDashboard();
+        lucide.createIcons();
+    </script>
+</body>
+</html>

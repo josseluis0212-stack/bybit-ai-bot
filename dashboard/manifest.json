@@ -1,0 +1,16 @@
+{
+  "name": "SMC AI Trading Bot",
+  "short_name": "SMC Bot",
+  "start_url": "/app/index.html",
+  "display": "standalone",
+  "background_color": "#060606",
+  "theme_color": "#00ff9d",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2091/2091665.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

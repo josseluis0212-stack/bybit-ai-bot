@@ -97,9 +97,9 @@ async def init_web_server():
     app.router.add_get('/api/trades', handle_trades)
     
     # Servir archivos estáticos (para el dashboard que construiremos)
-    if os.path.exists('dashboard/dist'):
-        app.router.add_static('/app', 'dashboard/dist')
-        logger.info("Ruta /app habilitada para el dashboard estático.")
+    if os.path.exists('dashboard'):
+        app.router.add_static('/app', 'dashboard')
+        logger.info("Ruta /app habilitada para el dashboard móvil.")
     
     runner = web.AppRunner(app)
     await runner.setup()
