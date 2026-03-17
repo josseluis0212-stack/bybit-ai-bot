@@ -92,23 +92,28 @@ async def init_web_server():
     """Inicia un servidor web con API y health check"""
     app = web.Application()
     
-    # Redirección de /app a /app/index.html para mayor comodidad
-    async def redirect_to_index(request):
-        return web.HTTPFound('/app/index.html')
+    dashboard_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dashboard')
     
+    # Manejador específico para index.html para evitar 404
+    async def serve_index(request):
+        if os.path.exists(os.path.join(dashboard_path, 'index.html')):
+            return web.FileResponse(os.path.join(dashboard_path, 'index.html'))
+        return web.Response(text="Dashboard index.html no encontrado.", status=404)
+
     app.router.add_get('/', handle_health_check)
     app.router.add_get('/health', handle_health_check)
     app.router.add_get('/api/status', handle_status)
     app.router.add_get('/api/trades', handle_trades)
-    app.router.add_get('/app', redirect_to_index)
     
-    # Servir archivos estáticos con ruta absoluta para evitar 404 en Render
-    dashboard_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dashboard')
+    # Rutas del Dashboard
+    app.router.add_get('/app', serve_index)
+    app.router.add_get('/app/', serve_index)
+    app.router.add_get('/app/index.html', serve_index)
+    
     if os.path.exists(dashboard_path):
-        app.router.add_static('/app/', dashboard_path, show_index=True)
-        logger.info(f"Ruta /app habilitada para el dashboard móvil en: {dashboard_path}")
-    else:
-        logger.error(f"Error: No se encontró la carpeta dashboard en {dashboard_path}")
+        # Servir el resto de archivos (manifest.json, etc.)
+        app.router.add_static('/app', dashboard_path)
+        logger.info(f"Dashboard servido desde: {dashboard_path}")
     
     runner = web.AppRunner(app)
     await runner.setup()
@@ -116,8 +121,8 @@ async def init_web_server():
     port = int(os.environ.get("PORT", "10000"))
     site = web.TCPSite(runner, '0.0.0.0', port)
     await site.start()
-    logger.info(f"Servidor web con API iniciado en el puerto {port}")
-
+    logger.info(f"Servidor web iniciado en el puerto {port}")
+ Riverside
 async def daily_report_task():
     """Envía un reporte de rendimiento cada 24 horas"""
     from analytics.stats_calculator import stats_calculator
