@@ -32,11 +32,18 @@ class ExecutionEngine:
         sl_price = signal_data['sl']
         tp_price = signal_data['tp']
         
-        # 1. Chequeo de límites concurrentes
-        open_count = db_manager.get_open_trades_count()
+        # 1. Chequeo de límites concurrentes (USANDO DATA EN VIVO DE BYBIT)
+        active_positions = bybit_client.get_active_positions()
+        open_count = len(active_positions)
+        
         if open_count >= settings.MAX_CONCURRENT_TRADES:
-            logger.info(f"Omitiendo señal {symbol} - Límite de trades abierto alcanzado.")
+            logger.info(f"Omitiendo señal {symbol} - Límite de trades abierto alcanzado en Bybit ({open_count}).")
             return False
+
+        # Sincronizar conteo con DB por si acaso (opcional pero recomendado)
+        db_count = db_manager.get_open_trades_count()
+        if db_count > open_count:
+             logger.warning(f"Discrepancia detectada: DB dice {db_count} trades, Bybit dice {open_count}. Priorizando Bybit.")
 
         # 2. Chequeo de capital en Bybit
         balance_info = bybit_client.get_wallet_balance()
@@ -141,17 +148,11 @@ class ExecutionEngine:
         logger.info(f"Monitorizando {len(open_trades)} operaciones abiertas...")
         
         # Obtenemos las posiciones reales de Bybit
-        positions_response = bybit_client.get_positions()
+        active_positions = bybit_client.get_active_positions()
+        real_positions = {p['symbol']: p for p in active_positions}
         
-        real_positions = {}
-        if positions_response and positions_response.get('retCode') == 0:
-            for pos in positions_response['result']['list']:
-                # pos['size'] > 0 indica que la posición sigue abierta
-                if float(pos['size']) > 0:
-                    real_positions[pos['symbol']] = pos
-        else:
-            logger.warning("No se pudo obtener posiciones de Bybit. Saltando sincronización este ciclo.")
-            return
+        if not active_positions and open_trades:
+            logger.info("Bybit no reporta posiciones abiertas, pero la DB sí. Forzando limpieza de trades fantasma...")
 
         # Comparar nuestra BD con Bybit
         tickers = bybit_client.get_tickers()
