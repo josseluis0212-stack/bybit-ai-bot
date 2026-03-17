@@ -3,6 +3,8 @@ import logging
 import os
 from aiohttp import web
 from config.settings import settings
+from api.bybit_client import bybit_client
+from database.db_manager import db_manager
 from strategy.market_scanner import market_scanner
 from execution_engine.executor import executor
 
@@ -47,15 +49,57 @@ async def bot_loop():
             logger.error(f"Error crítico en el bucle principal: {e}")
             await asyncio.sleep(60)
 
-async def handle_health_check(request):
-    """Responde 200 OK para que Render sepa que la app está viva"""
-    return web.Response(text="Bot is running! 🚀")
+async def handle_status(request):
+    """Devuelve el estado general del bot y balance"""
+    balance_info = bybit_client.get_wallet_balance()
+    active_positions = bybit_client.get_active_positions()
+    
+    data = {
+        "status": "Running",
+        "balance": balance_info['result']['list'][0]['coin'] if balance_info.get('retCode') == 0 else [],
+        "active_trades_count": len(active_positions),
+        "leverage": settings.LEVERAGE,
+        "strategy": "Institutional SMC (OB + FVG)"
+    }
+    return web.json_response(data)
+
+async def handle_trades(request):
+    """Devuelve el historial y trades abiertos desde la DB"""
+    open_trades = db_manager.get_open_trades()
+    # Para fines de simplificación, tomamos los últimos 50 trades totales
+    session = db_manager.Session()
+    from database.models import Trade
+    all_trades = session.query(Trade).order_by(Trade.id.desc()).limit(50).all()
+    
+    trades_list = []
+    for t in all_trades:
+        trades_list.append({
+            "id": t.id,
+            "symbol": t.symbol,
+            "side": t.side,
+            "status": t.status,
+            "entry": t.entry_price,
+            "exit": t.exit_price,
+            "pnl_usdt": t.pnl_usdt,
+            "pnl_pct": t.pnl_pct,
+            "reason": t.close_reason,
+            "time": t.close_time.isoformat() if t.close_time else None
+        })
+    session.close()
+    return web.json_response(trades_list)
 
 async def init_web_server():
-    """Inicia un servidor web dummy para cumplir con los requisitos de Render (Web Service Free)"""
+    """Inicia un servidor web con API y health check"""
     app = web.Application()
     app.router.add_get('/', handle_health_check)
     app.router.add_get('/health', handle_health_check)
+    app.router.add_get('/api/status', handle_status)
+    app.router.add_get('/api/trades', handle_trades)
+    
+    # Servir archivos estáticos (para el dashboard que construiremos)
+    if os.path.exists('dashboard/dist'):
+        app.router.add_static('/app', 'dashboard/dist')
+        logger.info("Ruta /app habilitada para el dashboard estático.")
     
     runner = web.AppRunner(app)
     await runner.setup()
@@ -63,7 +107,7 @@ async def init_web_server():
     port = int(os.environ.get("PORT", "10000"))
     site = web.TCPSite(runner, '0.0.0.0', port)
     await site.start()
-    logger.info(f"Servidor web dummy iniciado en el puerto {port}")
+    logger.info(f"Servidor web con API iniciado en el puerto {port}")
 
 async def main():
     # Iniciamos el servidor web y el bot concurrentemente
