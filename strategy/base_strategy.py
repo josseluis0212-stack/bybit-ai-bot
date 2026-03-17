@@ -8,55 +8,43 @@ class InstitutionalSMCStrategy:
     """
     Estrategia de Conceptos de Smart Money (SMC) de Nivel Institucional.
     Basada en metodologías ICT (Inner Circle Trader).
-    
-    Componentes:
-    1. Liquidity Sweep: Tomar liquidez de altos/bajos previos.
-    2. CHoCH (Change of Character): Cambio de tendencia estructural.
-    3. FVG (Fair Value Gap): Desequilibrio que valida el movimiento.
-    4. Order Block (OB): Zona de entrada institucional.
     """
 
     def __init__(self):
         self.swing_period = 5
-        self.fvg_min_size_pct = 0.05 # Tamaño mínimo del FVG relativo al precio
+        self.fvg_min_size_pct = 0.05
         self.rr_ratio = 3.0
         self.ob_limit = 3
 
     def identify_fvg(self, df):
-        """Identifica Fair Value Gaps (FVG) en el DataFrame"""
+        """Identifica Fair Value Gaps (FVG) en el DataFrame."""
         bull_fvg = []
         bear_fvg = []
         
-        # Un FVG es un hueco entre la mecha de la vela 1 y la vela 3
         for i in range(2, len(df)):
-            # Bullish FVG (Gap al alza)
-            # El bajo de la vela i es mayor que el alto de la vela i-2
+            # Bullish FVG
             if df.iloc[i]['low'] > df.iloc[i-2]['high']:
                 gap = df.iloc[i]['low'] - df.iloc[i-2]['high']
                 if gap > (df.iloc[i]['close'] * self.fvg_min_size_pct / 100):
-                    bull_fvg.append({
-                        'top': df.iloc[i]['low'],
-                        'bottom': df.iloc[i-2]['high'],
-                        'index': i-1
-                    })
+                    bull_fvg.append({'top': df.iloc[i]['low'], 'bottom': df.iloc[i-2]['high'], 'index': i-1})
             
-            # Bearish FVG (Gap a la baja)
-            # El alto de la vela i es menor que el bajo de la vela i-2
+            # Bearish FVG
             if df.iloc[i]['high'] < df.iloc[i-2]['low']:
                 gap = df.iloc[i-2]['low'] - df.iloc[i]['high']
                 if gap > (df.iloc[i]['close'] * self.fvg_min_size_pct / 100):
-                    bear_fvg.append({
-                        'top': df.iloc[i-2]['low'],
-                        'bottom': df.iloc[i]['high'],
-                        'index': i-1
-                    })
-        return bull_fvg, bear_fv    def analyze(self, symbol: str, df: pd.DataFrame):
-        if len(df) < 50: return None
+                    bear_fvg.append({'top': df.iloc[i-2]['low'], 'bottom': df.iloc[i]['high'], 'index': i-1})
+        
+        return bull_fvg, bear_fvg
 
+    def analyze(self, symbol: str, df: pd.DataFrame):
+        if len(df) < 50:
+            return None
+
+        # Asegurar tipos numéricos
         for col in ['open', 'high', 'low', 'close', 'volume']:
             df[col] = pd.to_numeric(df[col], errors='coerce')
 
-        # Calcular media de volumen para validación institucional
+        # Media de volumen para validación institucional
         df['vol_ma'] = df['volume'].rolling(window=20).mean()
 
         # 1. Identificar fractales (Swing Points)
@@ -81,7 +69,7 @@ class InstitutionalSMCStrategy:
             if df.iloc[i - self.swing_period]['low_fractal'] == 1:
                 last_low = df.iloc[i - self.swing_period]['low']
 
-            # Filtro de Volumen: OB debe tener volumen > 1.2x la media (interés institucional)
+            # Filtro de Volumen Institucional (Volumen > 1.2x media)
             is_institutional = df.iloc[i]['volume'] > (df.iloc[i]['vol_ma'] * 1.2)
             
             # CHoCH/BOS Alcista
@@ -124,11 +112,10 @@ class InstitutionalSMCStrategy:
 
         # LONG (Mitigación de OB Bull validado)
         for ob in reversed(bull_obs[-self.ob_limit:]):
-            if not ob['valid']: continue
+            if not ob['valid']:
+                continue
             
-            # El precio entra en la zona del OB y rebota
             if current['low'] <= ob['high'] and c_price > ob['low']:
-                # Calcular SL con un pequeño buffer debajo del OB
                 sl = ob['low'] - (ob['high'] - ob['low']) * 0.15
                 tp = c_price + (c_price - sl) * self.rr_ratio
                 return {
@@ -142,7 +129,8 @@ class InstitutionalSMCStrategy:
 
         # SHORT (Mitigación de OB Bear validado)
         for ob in reversed(bear_obs[-self.ob_limit:]):
-            if not ob['valid']: continue
+            if not ob['valid']:
+                continue
             
             if current['high'] >= ob['low'] and c_price < ob['high']:
                 sl = ob['high'] + (ob['high'] - ob['low']) * 0.15
@@ -155,9 +143,6 @@ class InstitutionalSMCStrategy:
                     "tp": tp,
                     "info": f"OB Institucional + FVG + Volumen Alto (Index {ob['index']})"
                 }
-
-        return None
-         }
 
         return None
 
