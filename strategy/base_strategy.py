@@ -1,109 +1,129 @@
 import pandas as pd
-import ta
+import numpy as np
 import logging
 
 logger = logging.getLogger(__name__)
 
-class TrendPullbackStrategy:
+class OrderBlockStrategy:
     """
-    Estrategia Cuantitativa de Tendencia y Retroceso (Trend-Pullback).
+    Estrategia basada en Conceptos de Smart Money (SMC).
+    Identifica Quiebres de Estructura (BOS) y Order Blocks (OB).
     
-    Lógica de Compra (LONG):
-    1. Filtro Macro: Precio actual > EMA 200 (Tendencia alcista mayor).
-    2. Filtro Micro: EMA 21 > EMA 200.
-    3. Gatillo: RSI (14) < 35 (Sobrevendido en una tendencia alcista).
-    
-    Lógica de Venta (SHORT):
-    1. Filtro Macro: Precio actual < EMA 200 (Tendencia bajista mayor).
-    2. Filtro Micro: EMA 21 < EMA 200.
-    3. Gatillo: RSI (14) > 65 (Sobrecomprado en una tendencia bajista).
-    
-    Gestión de Riesgo:
-    - Stop Loss temporal: 1.5 * ATR(14) para calcular riesgo.
-    - Take Profit temporal: 3.0 * ATR(14) (Risk/Reward 1:2).
+    Lógica:
+    1. Identifica Fractales (máximos y mínimos locales).
+    2. Detecta el quiebre de estos fractales (BOS).
+    3. Identifica el Order Block (la última vela contraria al movimiento que causó el BOS).
+    4. Entra cuando el precio 'mitiga' (regresa a) la zona del OB.
     """
 
     def __init__(self):
-        self.ema_fast = 21
-        self.ema_slow = 200
-        self.rsi_period = 14
-        self.rsi_oversold = 40
-        self.rsi_overbought = 60
-        self.atr_period = 14
-        self.atr_sl_multiplier = 1.5
-        self.atr_tp_multiplier = 3.0
+        self.swing_period = 5  # Ventana para fractales
+        self.rr_ratio = 3.0     # Ratio Riesgo/Beneficio
+        self.ob_limit = 3       # Máximo de OBs activos por dirección
 
     def analyze(self, symbol: str, df: pd.DataFrame):
         """
-        Analiza un DataFrame de klines (velas) y devuelve una señal.
-        Se espera que el df tenga al menos las columnas: ['open', 'high', 'low', 'close']
+        Analiza klines y busca señales basadas en Order Blocks.
         """
-        if len(df) < self.ema_slow + 1:
-            # No hay suficientes datos para calcular la EMA 200
+        if len(df) < 50:
             return None
 
-        # Convertir a numérico si no lo están
+        # Asegurar tipos numéricos
         for col in ['open', 'high', 'low', 'close']:
             df[col] = pd.to_numeric(df[col], errors='coerce')
 
-        # Calcular indicadores
-        try:
-            df['ema21'] = ta.trend.ema_indicator(close=df['close'], window=self.ema_fast)
-            df['ema200'] = ta.trend.ema_indicator(close=df['close'], window=self.ema_slow)
-            df['rsi'] = ta.momentum.rsi(close=df['close'], window=self.rsi_period)
-            
-            # True Range y ATR
-            atr_indicator = ta.volatility.AverageTrueRange(
-                high=df['high'], low=df['low'], close=df['close'], window=self.atr_period
-            )
-            df['atr'] = atr_indicator.average_true_range()
-            
-        except Exception as e:
-            logger.error(f"Error calculando indicadores para {symbol}: {e}")
-            return None
+        # 1. Identificar fractales para determinar BOS
+        # fractal = máximo/mínimo mayor que los 'n' anteriores y posteriores
+        df['high_fractal'] = df['high'].rolling(window=self.swing_period*2+1, center=True).apply(
+            lambda x: 1 if x.iloc[self.swing_period] == x.max() else 0, raw=False
+        )
+        df['low_fractal'] = df['low'].rolling(window=self.swing_period*2+1, center=True).apply(
+            lambda x: 1 if x.iloc[self.swing_period] == x.min() else 0, raw=False
+        )
 
-        # Obtener la vela más reciente y la anterior (para evitar repintado se usa la reciente cerrada, pero aquí tomamos la última disponible)
-        # Usamos iloc[-1] como la actual o iloc[-2] si queremos solo la vela cerrada.
+        bull_obs = []
+        bear_obs = []
+        last_high = None
+        last_low = None
+
+        # Procesar histórica para encontrar OBs vigentes
+        # (Se podría optimizar, pero para 250 velas es rápido)
+        for i in range(self.swing_period + 1, len(df)):
+            # Actualizar fractales confirmados
+            if df.iloc[i - self.swing_period]['high_fractal'] == 1:
+                last_high = df.iloc[i - self.swing_period]['high']
+            if df.iloc[i - self.swing_period]['low_fractal'] == 1:
+                last_low = df.iloc[i - self.swing_period]['low']
+
+            # Detectar BOS Alcista -> Crea Bullish OB (Zonas de Compra)
+            if last_high and df.iloc[i]['close'] > last_high:
+                # Buscar la última vela bajista (OB) antes del inicio del movimiento fuerte
+                for j in range(i-1, max(0, i-20), -1):
+                    if df.iloc[j]['close'] < df.iloc[j]['open']:
+                        ob = {
+                            'low': df.iloc[j]['low'],
+                            'high': df.iloc[j]['high'],
+                            'index': j,
+                            'type': 'BULLISH'
+                        }
+                        if not bull_obs or bull_obs[-1]['index'] != j:
+                            bull_obs.append(ob)
+                        last_high = None # BOS consumido
+                        break
+
+            # Detectar BOS Bajista -> Crea Bearish OB (Zonas de Venta)
+            if last_low and df.iloc[i]['close'] < last_low:
+                for j in range(i-1, max(0, i-20), -1):
+                    if df.iloc[j]['close'] > df.iloc[j]['open']:
+                        ob = {
+                            'low': df.iloc[j]['low'],
+                            'high': df.iloc[j]['high'],
+                            'index': j,
+                            'type': 'BEARISH'
+                        }
+                        if not bear_obs or bear_obs[-1]['index'] != j:
+                            bear_obs.append(ob)
+                        last_low = None
+                        break
+
+        # 2. EVALUACIÓN DE SEÑAL ACTUAL (Mitigación)
         current = df.iloc[-1]
-        
-        # Saltamos si hay NaNs en los indicadores críticos
-        if pd.isna(current['ema200']) or pd.isna(current['atr']):
-            return None
-
-        signal = None
-        tp_price = None
-        sl_price = None
-        
         c_price = current['close']
-        c_ema21 = current['ema21']
-        c_ema200 = current['ema200']
-        c_rsi = current['rsi']
-        c_atr = current['atr']
 
-        # Evaluar LONG
-        if c_price > c_ema200 and c_ema21 > c_ema200:
-            if c_rsi < self.rsi_oversold:
-                signal = "LONG"
-                sl_price = c_price - (c_atr * self.atr_sl_multiplier)
-                tp_price = c_price + (c_atr * self.atr_tp_multiplier)
+        # Evaluar LONG: El precio regresa a un Bullish OB reciente
+        for ob in reversed(bull_obs[-self.ob_limit:]):
+            # Condición: El precio toca la zona alta del OB y se mantiene arriba del bajo
+            if current['low'] <= ob['high'] and c_price > ob['low']:
+                # Calcular SL/TP profesional
+                sl = ob['low'] - (ob['high'] - ob['low']) * 0.1 # Un poco debajo del OB
+                diff = c_price - sl
+                tp = c_price + (diff * self.rr_ratio)
+                
+                return {
+                    "symbol": symbol,
+                    "signal": "LONG",
+                    "entry_price": c_price,
+                    "sl": sl,
+                    "tp": tp,
+                    "info": f"OB Bullish Mitigado (Index {ob['index']})"
+                }
 
-        # Evaluar SHORT
-        elif c_price < c_ema200 and c_ema21 < c_ema200:
-            if c_rsi > self.rsi_overbought:
-                signal = "SHORT"
-                sl_price = c_price + (c_atr * self.atr_sl_multiplier)
-                tp_price = c_price - (c_atr * self.atr_tp_multiplier)
+        # Evaluar SHORT: El precio regresa a un Bearish OB reciente
+        for ob in reversed(bear_obs[-self.ob_limit:]):
+            if current['high'] >= ob['low'] and c_price < ob['high']:
+                sl = ob['high'] + (ob['high'] - ob['low']) * 0.1
+                diff = sl - c_price
+                tp = c_price - (diff * self.rr_ratio)
 
-        if signal:
-            return {
-                "symbol": symbol,
-                "signal": signal,
-                "entry_price": c_price,
-                "sl": sl_price,
-                "tp": tp_price,
-                "atr": c_atr
-            }
-        
+                return {
+                    "symbol": symbol,
+                    "signal": "SHORT",
+                    "entry_price": c_price,
+                    "sl": sl,
+                    "tp": tp,
+                    "info": f"OB Bearish Mitigado (Index {ob['index']})"
+                }
+
         return None
 
-strategy = TrendPullbackStrategy()
+strategy = OrderBlockStrategy()
