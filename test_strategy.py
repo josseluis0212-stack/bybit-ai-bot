@@ -13,8 +13,8 @@ async def main():
     else:
         print("[ERROR] No se obtuvieron datos.")
         
-    # 2. Probar el Scanner Completo (limitado por tiempo en demo)
-    print("\n2. Escaneando el Top 50 de mercados en busca de señales...")
+    # 2. Probar el Scanner Completo (Escaneo GLOBAL)
+    print("\n2. Iniciando Escaneo GLOBAL de todos los pares USDT de Bybit...")
     signals = await market_scanner.scan_market()
     
     if signals:

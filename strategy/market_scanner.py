@@ -11,24 +11,21 @@ class MarketScanner:
     def __init__(self):
         self.timeframe = "15" # 15 minutos por defecto para intradía
         self.limit = 250 # Necesitamos al menos 200 velas para la EMA 200
-        self.semaphore = asyncio.Semaphore(15) # Escaneo paralelo de 15 monedas a la vez
+        self.semaphore = asyncio.Semaphore(25) # Escaneo paralelo de 25 monedas a la vez (asíncrono)
         
     async def get_klines_as_df(self, symbol):
         """
         Obtiene velas históricas de Bybit y las convierte a Pandas DataFrame.
         """
         try:
-            # Usar ruteo asíncrono si el cliente lo soportara, pero pybit http es síncrono.
-            # Sin embargo, lo envolvemos en wait para no bloquear el loop.
-            response = await asyncio.to_thread(
-                bybit_client.session.get_kline,
-                category="linear",
+            # Usar el nuevo método asíncrono para no saturar el pool de conexiones
+            response = await bybit_client.get_klines_async(
                 symbol=symbol,
                 interval=self.timeframe,
                 limit=self.limit
             )
             
-            if response.get("retCode") == 0:
+            if response and response.get("retCode") == 0:
                 list_data = response["result"]["list"]
                 if not list_data: return None
                 

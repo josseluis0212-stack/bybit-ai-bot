@@ -121,7 +121,11 @@ async def init_web_server():
     port = int(os.environ.get("PORT", "10000"))
     site = web.TCPSite(runner, '0.0.0.0', port)
     await site.start()
-    logger.info(f"Servidor web iniciado en el puerto {port}")
+    logger.info(f"✅ Servidor web activo en el puerto {port}")
+    
+    # Mantener el servidor funcionando indefinidamente
+    while True:
+        await asyncio.sleep(3600)
 
 async def daily_report_task():
     """Envía un reporte de rendimiento cada 24 horas"""

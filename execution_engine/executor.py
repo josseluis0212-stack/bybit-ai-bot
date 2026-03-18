@@ -132,7 +132,11 @@ class ExecutionEngine:
             )
             return True
         else:
-            logger.error(f"Fallo al ejecutar orden en Bybit: {response}")
+            ret_msg = response.get("retMsg") if response else "Sin respuesta"
+            ret_code = response.get("retCode") if response else "N/A"
+            logger.error(f"❌ Fallo al ejecutar orden en {symbol}: [{ret_code}] {ret_msg}")
+            # Opcional: Notificar fallo crítico a Telegram
+            await telegram_notifier.send_message(f"⚠️ <b>ERROR CRÍTICO</b>\nNo se pudo ejecutar {signal} en {symbol}\nError: {ret_msg}")
             return False
 
     async def check_open_positions(self):

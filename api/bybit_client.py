@@ -1,5 +1,6 @@
 import logging
 import json
+import aiohttp
 from pybit.unified_trading import HTTP
 from config.settings import settings
 
@@ -41,6 +42,32 @@ class BybitClient:
             return None
         except Exception as e:
             logger.error(f"Error obteniendo tickers: {e}")
+            return None
+
+    async def get_klines_async(self, symbol, interval, limit=200):
+        """Obtiene velas de forma asíncrona usando aiohttp para evitar agotar el pool de conexiones"""
+        url = "https://api.bybit.com/v5/market/kline"
+        if settings.BYBIT_DEMO:
+            url = "https://api-demo.bybit.com/v5/market/kline"
+            
+        params = {
+            "category": "linear",
+            "symbol": symbol,
+            "interval": interval,
+            "limit": limit
+        }
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, params=params, timeout=10) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        return data
+                    else:
+                        # logger.warning(f"Error HTTP {response.status} en klines para {symbol}")
+                        return None
+        except Exception as e:
+            # logger.error(f"Excepción en get_klines_async para {symbol}: {e}")
             return None
             
     def get_positions(self, category="linear", settleCoin="USDT"):
@@ -112,10 +139,13 @@ class BybitClient:
                 order_params["stopLoss"] = str(stop_loss)
 
             response = self.session.place_order(**order_params)
-            logger.info(f"Orden ejecutada: {symbol} {side} {qty}")
+            if response and response.get("retCode") == 0:
+                logger.info(f"Orden ejecutada: {symbol} {side} {qty}")
+            else:
+                logger.error(f"Error de Bybit al colocar orden en {symbol}: {response}")
             return response
         except Exception as e:
-            logger.error(f"Error al colocar orden en {symbol}: {e}")
-            return None
+            logger.error(f"Excepción crítica al colocar orden en {symbol}: {e}")
+            return {"retCode": -1, "retMsg": str(e), "result": {}}
 
 bybit_client = BybitClient()
