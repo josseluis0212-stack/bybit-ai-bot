@@ -1,4 +1,6 @@
 import os
+import aiohttp
+import asyncio
 from pybit.unified_trading import HTTP
 from dotenv import load_dotenv
 
@@ -63,6 +65,28 @@ class BybitClient:
         except Exception as e:
             print(f"Excepción al obtener kline: {e}")
             return []
+
+    async def get_klines_async(self, symbol, interval, limit=100):
+        """Obtiene velas de forma asíncrona usando aiohttp (Optimizado para 24/7)"""
+        url = "https://api.bybit.com/v5/market/kline"
+        if self.demo:
+            url = "https://api-demo.bybit.com/v5/market/kline"
+            
+        params = {
+            "category": "linear",
+            "symbol": symbol,
+            "interval": interval,
+            "limit": limit
+        }
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, params=params, timeout=10) as response:
+                    if response.status == 200:
+                        return await response.json()
+                    return None
+        except Exception:
+            return None
 
     def place_order(self, symbol, side, order_type, qty, price=None, sl=None, tp=None):
         try:

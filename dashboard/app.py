@@ -25,6 +25,10 @@ bot_data = {
 def index():
     return render_template('index.html')
 
+@app.route('/health')
+def health_check():
+    return "OK", 200
+
 @app.route('/start')
 def start_bot():
     bot_data["is_running"] = True

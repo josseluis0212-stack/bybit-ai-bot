@@ -1,7 +1,6 @@
-import eventlet
-eventlet.monkey_patch()
-
 import time
+import asyncio
+import threading
 import yaml
 from core.bybit_client import BybitClient
 from core.telegram_bot import TelegramBot
@@ -14,7 +13,7 @@ def load_config():
     with open("config/config.yaml", "r") as f:
         return yaml.safe_load(f)
 
-def bot_loop():
+async def bot_loop():
     config = load_config()
     print("--- INICIANDO BOT DE TRADING IA (BYBIT) ---")
     
@@ -35,20 +34,25 @@ def bot_loop():
     memory_manager = MemoryManager()
     engine = ExecutionEngine(client, risk_manager, memory_manager, config, telegram)
     
-    telegram.send_message(
+    await telegram.send_message(
         "🚀 *SISTEMA IA INICIADO* 🚀\n\n"
-        "✅ *BOT IA:* Triple Pantalla (1D/1H/5m)\n"
-        "📡 *Conexión Telegram:* ESTABLE\n"
-        "🐺 *El lobo está cazando...*\n\n"
-        "🔔 *PRUEBA DE ALERTA: Si lees esto, el sistema funciona.*"
+        "✅ *BOT IA:* Optimización 24/7 Activa\n"
+        "📡 *Escaneo:* Paralelo Asíncrono\n"
+        "🐺 *Cazando en Hugging Face...*"
     )
     
+    semaphore = asyncio.Semaphore(15)
+
+    async def analyze_and_execute(symbol):
+        async with semaphore:
+            if not bot_data["is_running"]: return
+            await engine.execute_trade(symbol)
     
     try:
         while True:
             if not bot_data["is_running"]:
                 print("Bot en pausa (esperando inicio desde Dashboard)...")
-                time.sleep(5)
+                await asyncio.sleep(5)
                 continue
 
             # Recargar configuración para aplicar cambios desde la UI
@@ -107,34 +111,38 @@ def bot_loop():
                 "closed_trades": closed_trades
             })
             
-            send_log(f"Sincronización completa. Balance: {balance} USDT | PnL Total: {total_pnl:.2f}")
+            send_log(f"Sincronización completa. Balance: {balance} USDT")
             
             # Obtener todos los símbolos del mercado
             pares = client.get_all_symbols()
             if not pares:
-                send_log("No se encontraron pares USDT para escanear. Reintentando...", "log-error")
-                time.sleep(10)
+                send_log("No se encontraron pares USDT. Reintentando...", "log-error")
+                await asyncio.sleep(10)
                 continue
                 
-            send_log(f"🚀 ESCANEO INICIADO: {len(pares)} monedas encontradas", "log-success")
-            print(f"🚀 ESCANEO INICIADO: {len(pares)} monedas encontradas")
+            send_log(f"🚀 ESCANEO GLOBAL: {len(pares)} monedas en paralelo", "log-success")
             
-            for par in pares:
-                if not bot_data["is_running"]: break
-                print(f"Analizando {par}...")
-                engine.execute_trade(par)
-                # No dormimos mucho aquí para escanear rápido, pero respetamos rate limit
-                time.sleep(0.5) 
-                
-            send_log("Escaneo completo. Esperando siguiente ciclo...", "log-warning")
-            time.sleep(60) # Escaneo cada minuto
+            # Ejecutar escaneo paralelo
+            tasks = [analyze_and_execute(par) for par in pares]
+            await asyncio.gather(*tasks)
+            
+            send_log("Ciclo de escaneo completado. Esperando 1 minuto...", "log-warning")
+            await asyncio.sleep(60)
             
     except KeyboardInterrupt:
         print("\nBot detenido por el usuario.")
         telegram.send_message("⚠️ *Bot Detenido Manualmente*")
+    except Exception as e:
+        print(f"Error crítico en bot_loop: {e}")
+        await telegram.send_message(f"⚠️ *ERROR CRÍTICO:* {e}")
+        await asyncio.sleep(10)
+
+def start_bot_thread():
+    asyncio.run(bot_loop())
+
 if __name__ == "__main__":
-    # Iniciar el bucle del bot usando eventlet (mejor para SocketIO)
-    eventlet.spawn(bot_loop)
+    # Iniciar bot en hilo separado
+    threading.Thread(target=start_bot_thread, daemon=True).start()
     
     # Iniciar el Dashboard en el hilo principal
     from dashboard.app import run_server
