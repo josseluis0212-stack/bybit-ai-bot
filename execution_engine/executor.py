@@ -232,13 +232,13 @@ class ExecutionEngine:
                 
                 is_long = trade.side == "LONG"
                 
-                # Condición de Breakeven: Precio alcanzó 1:1 RR
+                # Condición de Breakeven: Precio alcanzó 1.5:1 RR (más conservador)
                 should_be_be = False
                 if is_long:
-                    if cur_price >= (entry + risk) and current_sl_bybit < entry:
+                    if cur_price >= (entry + risk * 1.5) and current_sl_bybit < entry:
                         should_be_be = True
                 else: # SHORT
-                    if cur_price <= (entry - risk) and (current_sl_bybit > entry or current_sl_bybit == 0):
+                    if cur_price <= (entry - risk * 1.5) and (current_sl_bybit > entry or current_sl_bybit == 0):
                         should_be_be = True
 
                 if should_be_be:

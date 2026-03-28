@@ -17,25 +17,26 @@ class InstitutionalSMCStrategy:
     def __init__(self):
         self.swing_period = 5
         self.fvg_min_size_pct = 0.05
-        self.min_rr_ratio = 1.5
-        self.max_rr_ratio = 6.0 # Aumentado para mayor potencial institucional
+        self.min_rr_ratio = 1.6 # Un poco más exigente para filtrar ruido
+        self.max_rr_ratio = 3.5 # Reducido de 6.0 para mayor consistencia
         self.ob_limit = 5
-        self.min_iss_long = 75.0
-        self.min_iss_short = 85.0 # Filtro más estricto para evitar shorts débiles
+        self.min_iss_long = 80.0 # Subido de 75 para filtrar señales débiles
+        self.min_iss_short = 90.0 # Subido de 85 para filtrar señales débiles
+        self.min_adx = 22.0 # Filtro de tendencia: Solo operamos con tendencia clara (> 22)
 
     def calculate_iss(self, candle_ob, impulse_candle, volume_ma):
         """
         ISS = (Desplazamiento * 0.60) + (Volumen Relativo * 0.40)
         """
-        # 1. DESPLAZAMIENTO (60%)
+        # 1. DESPLAZAMIENTO (60%) - Aumentamos exigencia (de 25 a 35)
         displacement = abs(impulse_candle['close'] - candle_ob['close'])
         ob_range = candle_ob['high'] - candle_ob['low']
         displacement_ratio = displacement / ob_range if ob_range > 0 else 0
-        displacement_score = min(displacement_ratio * 25, 100) # 4x OB range = 100 pts
+        displacement_score = min(displacement_ratio * 35, 100) # Más difícil llegar a 100
         
-        # 2. VOLUMEN RELATIVO (40%)
+        # 2. VOLUMEN RELATIVO (40%) - Aumentamos exigencia (de 50 a 60)
         relative_volume = impulse_candle['volume'] / volume_ma if volume_ma > 0 else 1
-        volume_score = min((relative_volume - 1) * 50, 100) # 3x vol = 100 pts
+        volume_score = min((relative_volume - 1) * 60, 100)
         
         return (displacement_score * 0.6) + (volume_score * 0.4)
 
@@ -116,6 +117,15 @@ class InstitutionalSMCStrategy:
         df['vol_ma'] = df['volume'].rolling(window=20).mean()
         df['ema_200'] = df['close'].ewm(span=200, adjust=False).mean()
         df['atr'] = self.calculate_atr(df)
+        # 0. CALCULAR INDICADORES ADICIONALES (VOLATILIDAD Y TENDENCIA)
+        from ta.trend import ADXIndicator
+        adx_ind = ADXIndicator(df['high'], df['low'], df['close'], window=14)
+        df['adx'] = adx_ind.adx()
+        
+        current_adx = df['adx'].iloc[-1]
+        if current_adx < self.min_adx:
+            # logger.info(f"Omitiendo {symbol} - Baja volatilidad (ADX: {current_adx:.1f})")
+            return None
 
         # 1. Identificar fractales (Swing Points)
         df['high_fractal'] = df['high'].rolling(window=self.swing_period*2+1, center=True).apply(
@@ -191,7 +201,8 @@ class InstitutionalSMCStrategy:
                     htf_ok = (htf_trend == "BULLISH") if settings.HTF_CONFLUENCE else True
 
                     if (liquidity_sweep or mss) and is_discount and htf_ok:
-                        sl = min(ob['low'], current['low']) - (current['atr'] * 0.3)
+                        # SL SEGURO: 0.8 * ATR para evitar sweeps prematuros
+                        sl = min(ob['low'], current['low']) - (current['atr'] * 0.8)
                         target_tp = market_range_high
                         rr = (target_tp - c_price) / (c_price - sl) if (c_price - sl) > 0 else 0
                         
@@ -199,7 +210,7 @@ class InstitutionalSMCStrategy:
                             final_tp = min(target_tp, c_price + (c_price - sl) * self.max_rr_ratio)
                             return {
                                 "symbol": symbol, "signal": "LONG", "entry_price": c_price, "sl": sl, "tp": final_tp,
-                                "info": f"HUNTER Sniper (ISS: {ob['iss']:.1f}). HTF: {htf_trend}. PD: Discount"
+                                "info": f"HUNTER v2 (ISS: {ob['iss']:.1f}). ADX: {current_adx:.1f}"
                             }
 
         # --- SHORT (Cazador) ---
@@ -218,7 +229,8 @@ class InstitutionalSMCStrategy:
                     htf_ok = (htf_trend == "BEARISH") if settings.HTF_CONFLUENCE else True
 
                     if (liquidity_sweep or mss) and is_premium and htf_ok:
-                        sl = max(ob['high'], current['high']) + (current['atr'] * 0.3)
+                        # SL SEGURO: 0.8 * ATR
+                        sl = max(ob['high'], current['high']) + (current['atr'] * 0.8)
                         target_tp = market_range_low
                         rr = (c_price - target_tp) / (sl - c_price) if (sl - c_price) > 0 else 0
                         
@@ -226,7 +238,7 @@ class InstitutionalSMCStrategy:
                             final_tp = max(target_tp, c_price - (sl - c_price) * self.max_rr_ratio)
                             return {
                                 "symbol": symbol, "signal": "SHORT", "entry_price": c_price, "sl": sl, "tp": final_tp,
-                                "info": f"HUNTER Sniper (ISS: {ob['iss']:.1f}). HTF: {htf_trend}. PD: Premium"
+                                "info": f"HUNTER v2 (ISS: {ob['iss']:.1f}). ADX: {current_adx:.1f}"
                             }
 
         return None
