@@ -15,6 +15,24 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+async def keep_alive_ping():
+    """
+    Auto-ping para mantener activa la instancia de Render (plan gratuito).
+    """
+    import aiohttp
+    app_url = os.getenv("RENDER_EXTERNAL_URL") or "http://localhost:10000"
+    logger.info(f"Monitor 24/7 activado. Ping a: {app_url}")
+    
+    while True:
+        try:
+            await asyncio.sleep(600) # Cada 10 minutos
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f"{app_url}/api/status") as resp:
+                    if resp.status == 200:
+                        logger.info("Auto-ping 24/7: Instancia despierta.")
+        except Exception as e:
+            logger.warning(f"Auto-ping fallido: {e}")
+
 async def bot_loop():
     logger.info("Iniciando Trading Bot Profesional Demo (Loop Principal)...")
     logger.info(f"Parámetros: {settings.LEVERAGE}x | Capital/Trade: {settings.TRADE_AMOUNT_USDT} USDT | Max Trades: {settings.MAX_CONCURRENT_TRADES}")
@@ -204,9 +222,11 @@ async def report_task():
             logger.error(f"Error en report_task: {e}")
 
 async def main():
+    loop = asyncio.get_running_loop()
+    loop.create_task(bot_loop())
+    loop.create_task(keep_alive_ping())
     await asyncio.gather(
         init_web_server(),
-        bot_loop(),
         report_task()
     )
 

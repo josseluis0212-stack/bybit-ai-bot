@@ -60,6 +60,29 @@ class InstitutionalSMCStrategy:
         tr = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
         return tr.rolling(window=period).mean()
 
+    def identify_eqh_eql(self, df, threshold=0.03):
+        """
+        Identifica máximos y mínimos iguales (EQH/EQL) que actúan como imanes de liquidez.
+        threshold: % de diferencia permitida para considerar 'iguales'.
+        """
+        eqh, eql = [], []
+        highs = df[df['high_fractal'] == 1].tail(10)
+        lows  = df[df['low_fractal'] == 1].tail(10)
+        
+        if len(highs) >= 2:
+            for i in range(len(highs)):
+                for j in range(i+1, len(highs)):
+                    diff = abs(highs.iloc[i]['high'] - highs.iloc[j]['high']) / highs.iloc[i]['high'] * 100
+                    if diff < threshold:
+                        eqh.append({'price': (highs.iloc[i]['high'] + highs.iloc[j]['high'])/2})
+        if len(lows) >= 2:
+            for i in range(len(lows)):
+                for j in range(i+1, len(lows)):
+                    diff = abs(lows.iloc[i]['low'] - lows.iloc[j]['low']) / lows.iloc[i]['low'] * 100
+                    if diff < threshold:
+                        eql.append({'price': (lows.iloc[i]['low'] + lows.iloc[j]['low'])/2})
+        return eqh, eql
+
     def is_killzone(self):
         """
         Verifica si la hora actual está dentro de una Killzone Institucional (EST).
@@ -146,6 +169,9 @@ class InstitutionalSMCStrategy:
             if df.iloc[i]['low_fractal'] == 1: last_lows.append(df.iloc[i]['low'])
 
         if not last_highs or not last_lows: return None
+
+        # Identificar Liquidez EQH/EQL (Imanes)
+        eqh, eql = self.identify_eqh_eql(df)
         
         # TP MÁS PRECISO: Usamos el fractal más reciente (liquidez inmediata) 
         # en lugar del máximo de los últimos 5 ciclos (que suele ser inalcanzable).
@@ -182,6 +208,15 @@ class InstitutionalSMCStrategy:
                             if not bear_obs or bear_obs[-1]['index'] != j: bear_obs.append(ob)
                         break
 
+        # --- LÓGICA DE BREAKER BLOCKS (NUEVO v3.0) ---
+        breakers = []
+        for ob in bull_obs[-3:]: # Revisar OB alcistas rotos (Bearish Breakers)
+            if c_price < ob['low']:
+                breakers.append({'price': (ob['low']+ob['high'])/2, 'type': 'BEARISH_BREAKER', 'iss': ob['iss']})
+        for ob in bear_obs[-3:]: # Revisar OB bajistas rotos (Bullish Breakers)
+            if c_price > ob['high']:
+                breakers.append({'price': (ob['low']+ob['high'])/2, 'type': 'BULLISH_BREAKER', 'iss': ob['iss']})
+
         # 3. LÓGICA DE SNIPER (Inducement + OTE)
         current = df.iloc[-1]
         c_price = current['close']
@@ -205,21 +240,27 @@ class InstitutionalSMCStrategy:
                     htf_ok = (htf_trend == "BULLISH") if settings.HTF_CONFLUENCE else True
 
                     if (liquidity_sweep or mss) and is_discount and htf_ok:
-                        # SL SEGURO: 0.8 * ATR para evitar sweeps prematuros
+                        # OTE 70.5% Refinement: Ajustar entrada si estamos cerca del nivel OTE
+                        ote_705 = ob['high'] - (ob['high'] - ob['low']) * 0.705
+                        entry_price = min(c_price, ote_705) if c_price > ote_705 else c_price
+
+                        # SL SEGURO: 0.8 * ATR
                         sl = min(ob['low'], current['low']) - (current['atr'] * 0.8)
-                        target_tp = market_range_high
-                        rr = (target_tp - c_price) / (c_price - sl) if (c_price - sl) > 0 else 0
+                        
+                        # TP IMÁN: Si hay EQH arriba, ese es nuestro objetivo primario
+                        target_tp = eqh[0]['price'] if eqh else market_range_high
+                        
+                        rr = (target_tp - entry_price) / (entry_price - sl) if (entry_price - sl) > 0 else 0
                         
                         if rr >= self.min_rr_ratio:
-                            # TP PRECISIÓN: 95% de la distancia al objetivo para asegurar ejecución
-                            dist = target_tp - c_price
-                            final_tp = min(target_tp, c_price + dist * 0.95)
-                            
-                            max_tp = c_price + (c_price - sl) * self.max_rr_ratio
+                            dist = target_tp - entry_price
+                            final_tp = min(target_tp, entry_price + dist * 0.95)
+                            max_tp = entry_price + (entry_price - sl) * self.max_rr_ratio
                             final_tp = min(final_tp, max_tp)
+                            
                             return {
-                                "symbol": symbol, "signal": "LONG", "entry_price": c_price, "sl": sl, "tp": final_tp,
-                                "info": f"HUNTER v2 (ISS: {ob['iss']:.1f}). ADX: {current_adx:.1f}"
+                                "symbol": symbol, "signal": "LONG", "entry_price": entry_price, "sl": sl, "tp": final_tp,
+                                "info": f"HUNTER v3.0 (ISS: {ob['iss']:.1f}). OTE 70.5% + EQH Magnet"
                             }
 
         # --- SHORT (Cazador) ---
@@ -238,22 +279,52 @@ class InstitutionalSMCStrategy:
                     htf_ok = (htf_trend == "BEARISH") if settings.HTF_CONFLUENCE else True
 
                     if (liquidity_sweep or mss) and is_premium and htf_ok:
+                        # OTE 70.5% Refinement
+                        ote_705 = ob['low'] + (ob['high'] - ob['low']) * 0.705
+                        entry_price = max(c_price, ote_705) if c_price < ote_705 else c_price
+
                         # SL SEGURO: 0.8 * ATR
                         sl = max(ob['high'], current['high']) + (current['atr'] * 0.8)
-                        target_tp = market_range_low
-                        rr = (c_price - target_tp) / (sl - c_price) if (sl - c_price) > 0 else 0
+                        
+                        # TP IMÁN: Si hay EQL abajo, ese es nuestro objetivo
+                        target_tp = eql[0]['price'] if eql else market_range_low
+                        
+                        rr = (entry_price - target_tp) / (sl - entry_price) if (sl - entry_price) > 0 else 0
                         
                         if rr >= self.min_rr_ratio:
-                            # TP PRECISIÓN: 95% de la distancia al objetivo
-                            dist = c_price - target_tp
-                            final_tp = max(target_tp, c_price - dist * 0.95)
-                            
-                            max_tp = c_price - (sl - c_price) * self.max_rr_ratio
+                            dist = entry_price - target_tp
+                            final_tp = max(target_tp, entry_price - dist * 0.95)
+                            max_tp = entry_price - (sl - entry_price) * self.max_rr_ratio
                             final_tp = max(final_tp, max_tp)
+                            
                             return {
-                                "symbol": symbol, "signal": "SHORT", "entry_price": c_price, "sl": sl, "tp": final_tp,
-                                "info": f"HUNTER v2 (ISS: {ob['iss']:.1f}). ADX: {current_adx:.1f}"
+                                "symbol": symbol, "signal": "SHORT", "entry_price": entry_price, "sl": sl, "tp": final_tp,
+                                "info": f"HUNTER v3.0 (ISS: {ob['iss']:.1f}). OTE 70.5% + EQL Magnet"
                             }
+
+        # --- LÓGICA DE BREAKER ENTRIES (NUEVO v3.0) ---
+        for brk in breakers:
+            if brk['type'] == 'BULLISH_BREAKER':
+                # El precio debe estar en retesteo del Breaker
+                if current['low'] <= brk['price'] * 1.001 and c_price > brk['price']:
+                    sl = current['low'] - (current['atr'] * 0.8)
+                    target_tp = eqh[0]['price'] if eqh else market_range_high
+                    rr = (target_tp - c_price) / (c_price - sl) if (c_price - sl) > 0 else 0
+                    if rr >= self.min_rr_ratio:
+                        return {
+                            "symbol": symbol, "signal": "LONG", "entry_price": c_price, "sl": sl, "tp": target_tp,
+                            "info": f"HUNTER v3.0 BREAKER (ISS: {brk['iss']:.1f})"
+                        }
+            elif brk['type'] == 'BEARISH_BREAKER':
+                if current['high'] >= brk['price'] * 0.999 and c_price < brk['price']:
+                    sl = current['high'] + (current['atr'] * 0.8)
+                    target_tp = eql[0]['price'] if eql else market_range_low
+                    rr = (c_price - target_tp) / (sl - c_price) if (sl - c_price) > 0 else 0
+                    if rr >= self.min_rr_ratio:
+                        return {
+                            "symbol": symbol, "signal": "SHORT", "entry_price": c_price, "sl": sl, "tp": target_tp,
+                            "info": f"HUNTER v3.0 BREAKER (ISS: {brk['iss']:.1f})"
+                        }
 
         return None
 

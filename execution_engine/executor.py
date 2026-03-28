@@ -256,6 +256,32 @@ class ExecutionEngine:
                         await telegram_notifier.send_message(f"🛡️ <b>BREAKEVEN ACTIVADO</b>\nLa operación en <b>{symbol}</b> ya es segura. SL movido a entrada ({new_sl_str}).")
                     else:
                         logger.error(f"Error al aplicar Breakeven en {symbol}: {resp}")
+                
+                # --- LÓGICA DE TRAILING STOP ESTRUCTURAL (NUEVO v3.0) ---
+                # Si ya estamos en Breakeven y el precio sigue avanzando, intentamos asegurar más ganancias
+                elif is_long and current_sl_bybit >= entry and cur_price >= (entry + risk * 2.5):
+                     # Buscar el último fractal alcista cercano para mover el SL
+                     df = await bybit_client.get_klines_async(symbol=symbol, interval="15", limit=20)
+                     if df and df.get('result') and df['result']['list']:
+                         # Convertir a DF y buscar el último Low Fractal
+                         prices = [float(x[3]) for x in df['result']['list'][::-1]] # Lows
+                         new_structural_sl = min(prices[:5]) # Mínimo de las últimas 5 velas 15m
+                         if new_structural_sl > current_sl_bybit:
+                             new_sl_str = self._format_step(new_structural_sl, inst_info[symbol]["tickSize"]) if inst_info else f"{new_structural_sl:.4f}"
+                             resp = bybit_client.set_trading_stop(symbol, stop_loss=new_sl_str)
+                             if resp and resp.get('retCode') == 0:
+                                 await telegram_notifier.send_message(f"📈 <b>TRAILING ESTRUCTURAL</b>\nProtegiendo beneficios en <b>{symbol}</b>. Nuevo SL: {new_sl_str}")
+
+                elif not is_long and current_sl_bybit <= entry and current_sl_bybit > 0 and cur_price <= (entry - risk * 2.5):
+                     df = await bybit_client.get_klines_async(symbol=symbol, interval="15", limit=20)
+                     if df and df.get('result') and df['result']['list']:
+                         prices = [float(x[2]) for x in df['result']['list'][::-1]] # Highs
+                         new_structural_sl = max(prices[:5]) # Máximo de las últimas 5 velas
+                         if new_structural_sl < current_sl_bybit:
+                             new_sl_str = self._format_step(new_structural_sl, inst_info[symbol]["tickSize"]) if inst_info else f"{new_structural_sl:.4f}"
+                             resp = bybit_client.set_trading_stop(symbol, stop_loss=new_sl_str)
+                             if resp and resp.get('retCode') == 0:
+                                 await telegram_notifier.send_message(f"📉 <b>TRAILING ESTRUCTURAL</b>\nProtegiendo beneficios en <b>{symbol}</b>. Nuevo SL: {new_sl_str}")
             
             # REPORTE CADA 10 OPERACIONES (Enviamos el pack completo: Diario, Semanal y Mensual)
             closed_count = db_manager.get_closed_trades_count()
