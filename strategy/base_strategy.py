@@ -147,9 +147,13 @@ class InstitutionalSMCStrategy:
 
         if not last_highs or not last_lows: return None
         
-        market_range_high = max(last_highs[-5:])
-        market_range_low = min(last_lows[-5:])
-        equilibrium = (market_range_high + market_range_low) / 2
+        # TP MÁS PRECISO: Usamos el fractal más reciente (liquidez inmediata) 
+        # en lugar del máximo de los últimos 5 ciclos (que suele ser inalcanzable).
+        market_range_high = last_highs[-1] 
+        market_range_low = last_lows[-1]
+        
+        # El equilibrio se calcula sobre un rango un poco mayor para filtrar zonas Premium/Discount reales
+        equilibrium = (max(last_highs[-5:]) + min(last_lows[-5:])) / 2
 
         # 2. IDENTIFICAR ORDER BLOCKS INSTITUCIONALES (ISS > 70)
         for i in range(self.swing_period + 1, len(df)):
@@ -207,7 +211,12 @@ class InstitutionalSMCStrategy:
                         rr = (target_tp - c_price) / (c_price - sl) if (c_price - sl) > 0 else 0
                         
                         if rr >= self.min_rr_ratio:
-                            final_tp = min(target_tp, c_price + (c_price - sl) * self.max_rr_ratio)
+                            # TP PRECISIÓN: 95% de la distancia al objetivo para asegurar ejecución
+                            dist = target_tp - c_price
+                            final_tp = min(target_tp, c_price + dist * 0.95)
+                            
+                            max_tp = c_price + (c_price - sl) * self.max_rr_ratio
+                            final_tp = min(final_tp, max_tp)
                             return {
                                 "symbol": symbol, "signal": "LONG", "entry_price": c_price, "sl": sl, "tp": final_tp,
                                 "info": f"HUNTER v2 (ISS: {ob['iss']:.1f}). ADX: {current_adx:.1f}"
@@ -235,7 +244,12 @@ class InstitutionalSMCStrategy:
                         rr = (c_price - target_tp) / (sl - c_price) if (sl - c_price) > 0 else 0
                         
                         if rr >= self.min_rr_ratio:
-                            final_tp = max(target_tp, c_price - (sl - c_price) * self.max_rr_ratio)
+                            # TP PRECISIÓN: 95% de la distancia al objetivo
+                            dist = c_price - target_tp
+                            final_tp = max(target_tp, c_price - dist * 0.95)
+                            
+                            max_tp = c_price - (sl - c_price) * self.max_rr_ratio
+                            final_tp = max(final_tp, max_tp)
                             return {
                                 "symbol": symbol, "signal": "SHORT", "entry_price": c_price, "sl": sl, "tp": final_tp,
                                 "info": f"HUNTER v2 (ISS: {ob['iss']:.1f}). ADX: {current_adx:.1f}"
