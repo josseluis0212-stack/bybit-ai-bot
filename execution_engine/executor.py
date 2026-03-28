@@ -341,4 +341,39 @@ class ExecutionEngine:
 
         logger.info(f"Startup sync completado: {closed_count} trades fantasma eliminados de DB.")
 
+    async def emergency_close_all(self):
+        """
+        BOTÓN DE PÁNICO: Cierra todas las posiciones y cancela todas las órdenes inmediatamente.
+        """
+        logger.warning("🚨 BOTÓN DE PÁNICO ACTIVADO: Iniciando cierre de emergencia...")
+        
+        # 1. Cancelar todas las órdenes abiertas
+        bybit_client.session.cancel_all_orders(category="linear", settleCoin="USDT")
+        logger.info("Panic: Todas las órdenes abiertas han sido canceladas.")
+
+        # 2. Obtener posiciones activas
+        pos_res = bybit_client.get_positions()
+        if not pos_res or pos_res.get('retCode') != 0:
+            logger.error("Panic: No se pudieron obtener las posiciones para cerrar.")
+            return False
+
+        active_positions = [p for p in pos_res['result']['list'] if float(p['size']) > 0]
+        
+        # 3. Cerrar cada posición a mercado
+        closed_count = 0
+        for pos in active_positions:
+            symbol = pos['symbol']
+            side = "Sell" if pos['side'] == "Buy" else "Buy"
+            qty = pos['size']
+            
+            logger.info(f"Panic: Cerrando posición en {symbol} ({qty} {pos['side']})")
+            bybit_client.place_order(symbol, side, "Market", qty, reduce_only=True)
+            closed_count += 1
+            
+        # 4. Sincronizar DB local
+        self.force_sync_at_startup() # Reutilizamos la lógica de sincronización para limpiar la DB
+        
+        logger.warning(f"🚨 Panic Complete: {closed_count} posiciones cerradas.")
+        return True
+
 executor = ExecutionEngine()

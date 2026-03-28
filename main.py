@@ -118,6 +118,31 @@ async def handle_performance(request):
     stats = analytics_manager.get_dashboard_stats()
     return web.json_response(stats)
 
+async def handle_panic_close(request):
+    """BOTÓN DE PÁNICO: Cierre de emergencia global"""
+    success = await executor.emergency_close_all()
+    if success:
+        return web.json_response({"status": "Success", "message": "BOTÓN DE PÁNICO EJECUTADO: Todas las posiciones cerradas"})
+    return web.json_response({"status": "Error", "message": "Falla al ejecutar cierre de pánico"}, status=500)
+
+async def handle_history(request):
+    """Devuelve el historial de las últimas 50 operaciones cerradas"""
+    closed_trades = db_manager.get_history(limit=50)
+    history = []
+    for t in closed_trades:
+        history.append({
+            "id": t.id,
+            "symbol": t.symbol,
+            "side": t.side,
+            "entry": t.entry_price,
+            "exit": t.exit_price,
+            "pnl_usdt": t.pnl_usdt,
+            "pnl_pct": t.pnl_pct,
+            "reason": t.close_reason,
+            "timestamp": t.close_time.strftime("%Y-%m-%d %H:%M:%S") if t.close_time else "---"
+        })
+    return web.json_response(history)
+
 async def handle_trades(request):
     """Devuelve el historial y trades abiertos desde la DB"""
     session = db_manager.Session()
@@ -160,6 +185,8 @@ async def init_web_server():
     app.router.add_get('/api/status', handle_status)
     app.router.add_get('/api/trigger-scan', handle_trigger_scan)
     app.router.add_get('/api/performance', handle_performance)
+    app.router.add_get('/api/history', handle_history)
+    app.router.add_post('/api/panic-close', handle_panic_close)
     app.router.add_get('/api/trades', handle_trades)
     
     app.router.add_get('/app', serve_index)

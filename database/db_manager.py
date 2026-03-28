@@ -87,5 +87,11 @@ class DBManager:
             session.rollback()
         finally:
             session.close()
+    def get_history(self, limit=50):
+        session = self.Session()
+        try:
+            return session.query(Trade).filter(Trade.status == "CLOSED").order_by(Trade.close_time.desc()).limit(limit).all()
+        finally:
+            session.close()
 
 db_manager = DBManager()
