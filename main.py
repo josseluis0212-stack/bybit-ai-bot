@@ -7,6 +7,7 @@ from config.settings import settings
 from api.bybit_client import bybit_client
 from database.db_manager import db_manager
 from strategy.market_scanner import market_scanner
+from strategy.base_strategy import strategy
 from execution_engine.executor import executor
 
 # Configurar logging básico
