@@ -20,8 +20,12 @@ async def bot_loop():
     logger.info(f"Parámetros: {settings.LEVERAGE}x | Capital/Trade: {settings.TRADE_AMOUNT_USDT} USDT | Max Trades: {settings.MAX_CONCURRENT_TRADES}")
     
     # Sincronización forzada al inicio: cerrar trades "fantasma" de runs anteriores
-    logger.info("Ejecutando sincronización inicial con Bybit...")
+    logger.info("Ejecutando sincronización institucional inicial con Bybit...")
     await executor.force_sync_at_startup()
+    
+    logger.info(f"✅ Bot Configurado: Killzones={settings.KILLZONE_FILTER}, HTF_Confluence={settings.HTF_CONFLUENCE}")
+    if settings.PROXY_URL:
+        logger.info(f"🌐 Conectividad vía Proxy: {settings.PROXY_URL[:15]}...")
     
     while True:
         try:
@@ -64,6 +68,12 @@ async def handle_status(request):
         "strategy": "Institutional SMC (OB + FVG)"
     }
     return web.json_response(data)
+ 
+async def handle_performance(request):
+    """Devuelve estadísticas de rendimiento detalladas (Diario, Semanal, Mensual, Total)"""
+    from analytics.analytics_manager import analytics_manager
+    stats = analytics_manager.get_dashboard_stats()
+    return web.json_response(stats)
 
 async def handle_trades(request):
     """Devuelve el historial y trades abiertos desde la DB"""
@@ -105,6 +115,7 @@ async def init_web_server():
     app.router.add_get('/', handle_health_check)
     app.router.add_get('/health', handle_health_check)
     app.router.add_get('/api/status', handle_status)
+    app.router.add_get('/api/performance', handle_performance)
     app.router.add_get('/api/trades', handle_trades)
     
     app.router.add_get('/app', serve_index)
@@ -127,24 +138,76 @@ async def init_web_server():
     while True:
         await asyncio.sleep(3600)
 
-async def daily_report_task():
-    """Envía un reporte de rendimiento cada 24 horas"""
-    from analytics.stats_calculator import stats_calculator
+async def report_task():
+    """Envía reportes de rendimiento programados (Diario, Semanal, Mensual) a Telegram."""
+    from analytics.analytics_manager import analytics_manager
     from notifications.telegram_bot import telegram_notifier
-    
+    from datetime import datetime, timezone
+    import calendar
+
+    # ── Reporte inicial de arranque ──────────────────────────────────────────
+    logger.info("Enviando reporte inicial de arranque...")
+    try:
+        kz_status  = "ACTIVADAS"  if settings.KILLZONE_FILTER  else "DESACTIVADAS"
+        htf_status = "ACTIVADA"   if settings.HTF_CONFLUENCE    else "DESACTIVADA"
+        startup_msg = (
+            "🚀 <b>INSTITUTIONAL HUNTER ACTIVADO</b>\n\n"
+            f"KZ: {kz_status} | HTF: {htf_status}\n"
+            "Filtro PD: ACTIVADO\n\n"
+            "Sistema operando 24/7.\n"
+            "📬 Recibirás reportes diarios, semanales y mensuales automáticamente."
+        )
+        await telegram_notifier.send_message(startup_msg)
+    except Exception as e:
+        logger.error(f"Error en reporte inicial: {e}")
+
+    # ── Estado de últimos envíos (para evitar duplicados) ────────────────────
+    sent_daily   = None   # datetime.date del último reporte diario enviado
+    sent_weekly  = None   # (year, isoweek) del último reporte semanal enviado
+    sent_monthly = None   # (year, month) del último reporte mensual enviado
+
     while True:
-        await asyncio.sleep(86400) 
-        logger.info("Generando reporte de rendimiento diario...")
-        stats = stats_calculator.get_summary_stats(days=1)
-        if stats:
-            message = stats_calculator.format_stats_message(stats)
-            await telegram_notifier.send_message(message)
+        await asyncio.sleep(60)   # Revisar cada minuto (bajo costo)
+        now = datetime.now(timezone.utc)
+
+        try:
+            # ── REPORTE DIARIO: todos los días a las 23:55 UTC ────────────────
+            if now.hour == 23 and now.minute >= 55 and sent_daily != now.date():
+                logger.info("Generando reporte DIARIO...")
+                msg = analytics_manager.get_periodic_report("diario")
+                if msg:
+                    await telegram_notifier.send_message(msg)
+                sent_daily = now.date()
+
+            # ── REPORTE SEMANAL: domingo a las 23:30 UTC ─────────────────────
+            #    isoweekday(): lunes=1 … domingo=7
+            is_sunday = now.isoweekday() == 7
+            this_week = (now.isocalendar().year, now.isocalendar().week)
+            if is_sunday and now.hour == 23 and now.minute >= 30 and sent_weekly != this_week:
+                logger.info("Generando reporte SEMANAL...")
+                msg = analytics_manager.get_periodic_report("semanal")
+                if msg:
+                    await telegram_notifier.send_message(msg)
+                sent_weekly = this_week
+
+            # ── REPORTE MENSUAL: último día del mes a las 22:00 UTC ──────────
+            last_day_of_month = calendar.monthrange(now.year, now.month)[1]
+            this_month = (now.year, now.month)
+            if now.day == last_day_of_month and now.hour == 22 and now.minute >= 0 and sent_monthly != this_month:
+                logger.info("Generando reporte MENSUAL...")
+                msg = analytics_manager.get_periodic_report("mensual")
+                if msg:
+                    await telegram_notifier.send_message(msg)
+                sent_monthly = this_month
+
+        except Exception as e:
+            logger.error(f"Error en report_task: {e}")
 
 async def main():
     await asyncio.gather(
         init_web_server(),
         bot_loop(),
-        daily_report_task()
+        report_task()
     )
 
 if __name__ == '__main__':

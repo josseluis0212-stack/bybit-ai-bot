@@ -59,20 +59,46 @@
     </header>
 
     <!-- Metrics Grid -->
-    <section class="grid grid-cols-2 gap-4 mb-6">
+    <section class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div class="glass p-5 relative overflow-hidden">
             <div class="absolute -top-4 -right-4 w-16 h-16 bg-green-500/5 rounded-full blur-2xl"></div>
             <span class="text-gray-500 text-[10px] uppercase font-bold tracking-wider">Balance Total</span>
-            <div class="text-2xl font-bold mt-1" id="wallet-balance">---</div>
+            <div class="text-3xl font-bold mt-1" id="wallet-balance">---</div>
             <span class="text-[10px] text-green-400 font-bold mt-1 flex items-center">
                 <i data-lucide="arrow-up-right" class="w-3 h-3 mr-1"></i> +2.4%
             </span>
         </div>
+        
+        <!-- PnL Multi-Timeframe Card -->
         <div class="glass p-5 relative overflow-hidden">
             <div class="absolute -top-4 -right-4 w-16 h-16 bg-blue-500/5 rounded-full blur-2xl"></div>
-            <span class="text-gray-500 text-[10px] uppercase font-bold tracking-wider">PnL Diario</span>
-            <div class="text-2xl font-bold mt-1" id="daily-pnl">---</div>
-            <span class="text-[10px] text-gray-400 font-bold mt-1" id="win-rate">WR: --%</span>
+            <div class="flex justify-between items-start mb-2">
+                <span class="text-gray-500 text-[10px] uppercase font-bold tracking-wider">Desempeño PnL</span>
+                <span class="text-[9px] text-gray-500 font-mono" id="last-update">--:--:--</span>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-x-4 gap-y-2">
+                <div>
+                    <span class="text-[9px] text-gray-400 uppercase">Diario</span>
+                    <div class="text-md font-bold" id="pnl-daily">---</div>
+                    <div class="text-[8px] text-gray-500" id="wr-daily">WR: --%</div>
+                </div>
+                <div>
+                    <span class="text-[9px] text-gray-400 uppercase">Semanal</span>
+                    <div class="text-md font-bold" id="pnl-weekly">---</div>
+                    <div class="text-[8px] text-gray-500" id="wr-weekly">WR: --%</div>
+                </div>
+                <div class="pt-1 border-t border-white/5">
+                    <span class="text-[9px] text-gray-400 uppercase">Mensual</span>
+                    <div class="text-md font-bold" id="pnl-monthly">---</div>
+                    <div class="text-[8px] text-gray-500" id="wr-monthly">WR: --%</div>
+                </div>
+                <div class="pt-1 border-t border-white/5">
+                    <span class="text-[9px] text-gray-400 uppercase">Total</span>
+                    <div class="text-md font-bold text-green-400" id="pnl-total">---</div>
+                    <div class="text-[8px] text-gray-500" id="wr-total">WR: --%</div>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -104,7 +130,6 @@
             <h2 class="text-xl font-bold tracking-tight text-white/90">Monitor Maestro</h2>
             <p class="text-[10px] text-gray-500 font-bold">FLUJO INSTITUCIONAL EN VIVO</p>
         </div>
-        <span class="text-[10px] text-gray-500 bg-white/5 px-2 py-1 rounded-md font-mono" id="last-update">--:--:--</span>
     </div>
 
     <div id="trades-container" class="space-y-4 mb-8">
@@ -136,6 +161,14 @@
     </div>
 
     <script>
+        function formatPnL(val, elementId) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            const sign = val >= 0 ? '+' : '';
+            el.innerText = sign + '$' + Math.abs(val).toFixed(2);
+            el.className = 'text-md font-bold ' + (val >= 0 ? 'neon-text-green' : 'neon-text-red');
+        }
+
         async function updateDashboard() {
             try {
                 // Status Update
@@ -152,6 +185,22 @@
                 // Capacidad progress bar
                 const capacityPct = (statusData.active_trades_count / 10) * 100;
                 document.getElementById('capacity-bar').style.width = capacityPct + '%';
+
+                // Performance Update
+                const perfRes = await fetch('/api/performance');
+                const perfData = await perfRes.json();
+                
+                formatPnL(perfData.daily.pnl, 'pnl-daily');
+                document.getElementById('wr-daily').innerText = 'WR: ' + perfData.daily.wr.toFixed(0) + '%';
+                
+                formatPnL(perfData.weekly.pnl, 'pnl-weekly');
+                document.getElementById('wr-weekly').innerText = 'WR: ' + perfData.weekly.wr.toFixed(0) + '%';
+                
+                formatPnL(perfData.monthly.pnl, 'pnl-monthly');
+                document.getElementById('wr-monthly').innerText = 'WR: ' + perfData.monthly.wr.toFixed(0) + '%';
+                
+                formatPnL(perfData.total.pnl, 'pnl-total');
+                document.getElementById('wr-total').innerText = 'WR: ' + perfData.total.wr.toFixed(0) + '%';
                 
                 // Trades Update
                 const tradesRes = await fetch('/api/trades');
@@ -160,21 +209,11 @@
                 const container = document.getElementById('trades-container');
                 container.innerHTML = '';
                 
-                let totalDailyPnL = 0;
-                let wins = 0;
-                let closedCount = 0;
-
                 if (tradesData.length === 0) {
                     container.innerHTML = '<div class="glass p-10 text-center text-gray-600 font-bold uppercase tracking-widest text-xs italic">A la espera de liquidez institucional...</div>';
                 }
 
                 tradesData.forEach(trade => {
-                    if (trade.status === 'CLOSED') {
-                        totalDailyPnL += (trade.pnl_usdt || 0);
-                        if (trade.pnl_usdt > 0) wins++;
-                        closedCount++;
-                    }
-
                     const isProfit = (trade.pnl_usdt || 0) >= 0;
                     const pnlColor = isProfit ? 'neon-text-green' : 'neon-text-red';
                     
@@ -205,13 +244,6 @@
                     `;
                     container.innerHTML += card;
                 });
-
-                // Update Daily Stats
-                document.getElementById('daily-pnl').innerText = (totalDailyPnL >= 0 ? '+$' : '-$') + Math.abs(totalDailyPnL).toFixed(2);
-                document.getElementById('daily-pnl').className = totalDailyPnL >= 0 ? 'text-2xl font-bold mt-1 neon-text-green' : 'text-2xl font-bold mt-1 neon-text-red';
-                
-                const wr = closedCount > 0 ? ((wins / closedCount) * 100).toFixed(0) : '0';
-                document.getElementById('win-rate').innerText = 'Win Rate: ' + wr + '%';
 
                 document.getElementById('last-update').innerText = new Date().toLocaleTimeString();
                 lucide.createIcons();

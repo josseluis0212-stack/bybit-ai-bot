@@ -19,8 +19,16 @@ class BybitClient:
         self.session = HTTP(
             demo=settings.BYBIT_DEMO,
             api_key=settings.BYBIT_API_KEY,
-            api_secret=settings.BYBIT_API_SECRET,
+            api_secret=settings.BYBIT_API_SECRET
         )
+        
+        if settings.PROXY_URL:
+            self.session.client.proxies = {
+                'http': settings.PROXY_URL,
+                'https': settings.PROXY_URL
+            }
+            logger.info(f"Proxy configurado para Bybit (Sync): {settings.PROXY_URL[:15]}...")
+            
         logger.info(f"BybitClient inicializado (Demo: {settings.BYBIT_DEMO})")
 
     def get_wallet_balance(self):
@@ -59,10 +67,17 @@ class BybitClient:
         
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(url, params=params, timeout=10) as response:
+                kwargs = {"params": params, "timeout": 10}
+                if settings.PROXY_URL:
+                    kwargs["proxy"] = settings.PROXY_URL
+                
+                async with session.get(url, **kwargs) as response:
                     if response.status == 200:
                         data = await response.json()
                         return data
+                    elif response.status == 403:
+                        logger.error(f"⚠️ ERROR 403 (Forbidden) en klines {symbol}. El IP está bloqueado. Proxy configurado: {bool(settings.PROXY_URL)}")
+                        return None
                     else:
                         # logger.warning(f"Error HTTP {response.status} en klines para {symbol}")
                         return None
@@ -122,6 +137,23 @@ class BybitClient:
                 logger.error(f"Error configurando apalancamiento en {symbol}: {e}")
             return None
 
+    def get_closed_pnl(self, category="linear", limit=200, start_time=None, end_time=None):
+        """
+        Obtiene el historial de PnL cerrado.
+        start_time / end_time: timestamps en milisegundos (opcionales) para filtrar por período.
+        """
+        try:
+            params = {"category": category, "limit": limit}
+            if start_time:
+                params["startTime"] = int(start_time)
+            if end_time:
+                params["endTime"] = int(end_time)
+            response = self.session.get_closed_pnl(**params)
+            return response
+        except Exception as e:
+            logger.error(f"Error obteniendo historial de PnL: {e}")
+            return None
+
     def place_order(self, symbol, side, order_type, qty, price=None, take_profit=None, stop_loss=None):
         try:
             order_params = {
@@ -147,5 +179,23 @@ class BybitClient:
         except Exception as e:
             logger.error(f"Excepción crítica al colocar orden en {symbol}: {e}")
             return {"retCode": -1, "retMsg": str(e), "result": {}}
+
+    def set_trading_stop(self, symbol, stop_loss=None, take_profit=None):
+        """Actualiza el SL o TP de una posición abierta."""
+        try:
+            params = {
+                "category": "linear",
+                "symbol": symbol,
+                "stopLoss": str(stop_loss) if stop_loss else None,
+                "takeProfit": str(take_profit) if take_profit else None,
+                "positionIdx": 0 # Generalmente 0 para hedge mode OFF o modo unificado
+            }
+            # Limpiar Nones de los parámetros
+            params = {k: v for k, v in params.items() if v is not None}
+            response = self.session.set_trading_stop(**params)
+            return response
+        except Exception as e:
+            logger.error(f"Error configurando trading stop en {symbol}: {e}")
+            return None
 
 bybit_client = BybitClient()

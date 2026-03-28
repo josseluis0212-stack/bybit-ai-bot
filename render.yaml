@@ -23,3 +23,9 @@ services:
         value: "100"
       - key: MAX_CONCURRENT_TRADES
         value: "10"
+      - key: PROXY_URL
+        value: "" # Agrega aquí tu proxy si estás en Render (ej: http://user:pass@host:port)
+      - key: KILLZONE_FILTER
+        value: "True"
+      - key: HTF_CONFLUENCE
+        value: "True"

@@ -10,6 +10,9 @@ class Settings:
     BYBIT_API_SECRET = os.getenv("BYBIT_API_SECRET")
     BYBIT_DEMO = os.getenv("BYBIT_DEMO", "True").lower() == "true"
     
+    # Proxy (Crucial para Render/Hugging Face 403 bypass)
+    PROXY_URL = os.getenv("PROXY_URL") # Ejemplo: "http://user:pass@host:port"
+    
     # Telegram
     TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
     TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
@@ -18,5 +21,9 @@ class Settings:
     LEVERAGE = int(os.getenv("LEVERAGE") or 5)
     TRADE_AMOUNT_USDT = float(os.getenv("TRADE_AMOUNT_USDT") or 100.0)
     MAX_CONCURRENT_TRADES = int(os.getenv("MAX_CONCURRENT_TRADES") or 10)
+
+    # Filtros Institucionales
+    KILLZONE_FILTER = os.getenv("KILLZONE_FILTER", "True").lower() == "true"
+    HTF_CONFLUENCE = os.getenv("HTF_CONFLUENCE", "True").lower() == "true"
 
 settings = Settings()

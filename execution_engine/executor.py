@@ -11,6 +11,8 @@ from notifications.telegram_bot import telegram_notifier
 logger = logging.getLogger(__name__)
 
 class ExecutionEngine:
+    def __init__(self):
+        self.last_report_count = -1 # Para evitar repetir el reporte de "10 trades"
     def _format_step(self, value, step_string, round_down=False):
         step_dec = Decimal(str(step_string))
         val_dec = Decimal(str(value))
@@ -211,6 +213,58 @@ class ExecutionEngine:
                     reason=reason,
                     balance=current_balance
                 )
+            
+            # --- LÓGICA DE BREAKEVEN (NUEVO) ---
+            elif symbol in real_positions:
+                pos = real_positions[symbol]
+                cur_price = float(pos.get('markPrice', 0)) or float(ticker_map.get(symbol, {}).get('lastPrice', 0))
+                if cur_price == 0: continue
+
+                entry = float(pos.get('avgPrice', trade.entry_price))
+                initial_sl = trade.stop_loss
+                risk = abs(entry - initial_sl)
+                
+                # Si el riesgo es 0 o muy pequeño, evitar división por cero o lógica errónea
+                if risk <= 0: continue
+
+                # Verificar si ya está en breakeven (o cerca) en Bybit
+                current_sl_bybit = float(pos.get('stopLoss', 0))
+                
+                is_long = trade.side == "LONG"
+                
+                # Condición de Breakeven: Precio alcanzó 1:1 RR
+                should_be_be = False
+                if is_long:
+                    if cur_price >= (entry + risk) and current_sl_bybit < entry:
+                        should_be_be = True
+                else: # SHORT
+                    if cur_price <= (entry - risk) and (current_sl_bybit > entry or current_sl_bybit == 0):
+                        should_be_be = True
+
+                if should_be_be:
+                    logger.info(f"Protegiendo {symbol}: Precio alcanzó 1:1 RR. Moviendo SL a Breakeven ({entry}).")
+                    
+                    # Formatear el nuevo SL según el tickSize del instrumento
+                    inst_info = bybit_client.get_instruments_info(symbol=symbol)
+                    if inst_info and symbol in inst_info:
+                        new_sl_str = self._format_step(entry, inst_info[symbol]["tickSize"])
+                    else:
+                        new_sl_str = f"{entry:.4f}"
+
+                    resp = bybit_client.set_trading_stop(symbol, stop_loss=new_sl_str)
+                    if resp and resp.get('retCode') == 0:
+                        await telegram_notifier.send_message(f"🛡️ <b>BREAKEVEN ACTIVADO</b>\nLa operación en <b>{symbol}</b> ya es segura. SL movido a entrada ({new_sl_str}).")
+                    else:
+                        logger.error(f"Error al aplicar Breakeven en {symbol}: {resp}")
+            
+            # REPORTE CADA 10 OPERACIONES (Enviamos el pack completo: Diario, Semanal y Mensual)
+            closed_count = db_manager.get_closed_trades_count()
+            if closed_count > 0 and closed_count % 10 == 0 and closed_count != self.last_report_count:
+                self.last_report_count = closed_count
+                from analytics.analytics_manager import analytics_manager
+                combined_report = analytics_manager.get_combined_periodic_report()
+                if combined_report:
+                    await telegram_notifier.send_message(combined_report)
 
     async def force_sync_at_startup(self):
         """

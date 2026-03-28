@@ -60,6 +60,13 @@ class DBManager:
         finally:
             session.close()
 
+    def get_closed_trades_count(self) -> int:
+        session = self.Session()
+        try:
+            return session.query(Trade).filter(Trade.status == "CLOSED").count()
+        finally:
+            session.close()
+
     def close_trade(self, trade_id, exit_price, pnl_usdt, pnl_pct, reason):
         from datetime import datetime
         session = self.Session()

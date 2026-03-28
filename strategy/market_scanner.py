@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 class MarketScanner:
     def __init__(self):
         self.timeframe = "15" # 15 minutos por defecto para intradía
+        self.htf_timeframe = "60" # 1 hora para tendencia superior
         self.limit = 250 # Necesitamos al menos 200 velas para la EMA 200
         self.semaphore = asyncio.Semaphore(25) # Escaneo paralelo de 25 monedas a la vez (asíncrono)
         
@@ -42,15 +43,38 @@ class MarketScanner:
         """Tarea individual para cada símbolo"""
         symbol = item['symbol']
         async with self.semaphore:
+            # 1. Obtener velas 15m (Estrategia base)
             df = await self.get_klines_as_df(symbol)
-            if df is not None and not df.empty:
+            if df is None or df.empty:
+                return None
+            
+            # 2. Obtener velas 1H (HTF Confluence) solo si está activado
+            df_htf = None
+            from config.settings import settings
+            if settings.HTF_CONFLUENCE:
                 try:
-                    signal_data = strategy.analyze(symbol, df)
-                    if signal_data:
-                        logger.info(f"🚨 SEÑAL ENCONTRADA: {signal_data['signal']} en {symbol}")
-                        return signal_data
+                    # Pequeña optimización: solo pedir lo necesario para EMA 200
+                    response_htf = await bybit_client.get_klines_async(
+                        symbol=symbol,
+                        interval=self.htf_timeframe,
+                        limit=210 
+                    )
+                    if response_htf and response_htf.get("retCode") == 0:
+                        list_data = response_htf["result"]["list"]
+                        if list_data:
+                            df_htf = pd.DataFrame(list_data, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume', 'turnover'])
+                            df_htf = df_htf.iloc[::-1].reset_index(drop=True)
                 except Exception as e:
-                    logger.error(f"Error analizando {symbol}: {e}")
+                    logger.warning(f"No se pudo obtener HTF para {symbol}: {e}")
+
+            try:
+                # 3. Analizar con ambos DataFrames
+                signal_data = strategy.analyze(symbol, df, df_htf)
+                if signal_data:
+                    logger.info(f"🚨 SEÑAL ENCONTRADA: {signal_data['signal']} en {symbol}")
+                    return signal_data
+            except Exception as e:
+                logger.error(f"Error analizando {symbol}: {e}")
             return None
 
     async def scan_market(self):
