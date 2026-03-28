@@ -24,6 +24,11 @@ class InstitutionalSMCStrategy:
         self.min_iss_long = 80.0 # Subido de 75 para filtrar señales débiles
         self.min_iss_short = 90.0 # Subido de 85 para filtrar señales débiles
         self.min_adx = 22.0 # Filtro de tendencia: Solo operamos con tendencia clara (> 22)
+        
+        # Quantum Metrics Memory (v4.0.1)
+        self.last_poc = 0.0
+        self.last_regime = "NORMAL"
+        self.last_vwap_bias = "NEUTRAL"
 
     def calculate_iss(self, candle_ob, impulse_candle, volume_ma):
         """
@@ -183,6 +188,7 @@ class InstitutionalSMCStrategy:
         df['vwap'] = self.calculate_vwap(df)
         current_vwap = df['vwap'].iloc[-1]
         poc_level = self.calculate_poc(df)
+        c_price = df['close'].iloc[-1]
         
         # Filtro de Régimen de Mercado (Desviación Estándar)
         vol_std = df['close'].rolling(window=20).std().iloc[-1]
@@ -190,7 +196,12 @@ class InstitutionalSMCStrategy:
         market_regime = "NORMAL"
         if vol_std > avg_std * 2.5: # Volatilidad extrema (Caos)
             market_regime = "CHAOTIC"
+            self.last_regime = "CHAOTIC"
             return None # Evitamos operar en caos
+        
+        self.last_regime = "NORMAL"
+        self.last_poc = poc_level
+        self.last_vwap_bias = "BULLISH" if c_price > current_vwap else "BEARISH"
 
         # 1. Identificar fractales (Swing Points)
         df['high_fractal'] = df['high'].rolling(window=self.swing_period*2+1, center=True).apply(

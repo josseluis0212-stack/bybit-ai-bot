@@ -3,240 +3,213 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SMC AI Bot Terminal Pro</title>
+    <title>SMC AI Bot | ANTIGRAVITY EDITION</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="manifest" href="/app/manifest.json">
-    <meta name="theme-color" content="#0a0a0a">
+    <meta name="theme-color" content="#0a0a0f">
     <style>
+        :root {
+            --bg-deep: #05050a;
+            --accent-cyan: #00f2ff;
+            --accent-purple: #7000ff;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --neon-glow: 0 0 20px rgba(0, 242, 255, 0.3);
+        }
         body {
             font-family: 'Outfit', sans-serif;
-            background-color: #060606;
-            color: #e0e0e0;
+            background: radial-gradient(circle at top right, #0a0a1f, #050508);
+            background-color: var(--bg-deep);
+            color: #f0f0f5;
             overflow-x: hidden;
+            min-height: 100vh;
         }
-        .glass {
-            background: rgba(255, 255, 255, 0.02);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 28px;
+        .antigravity-glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
         }
-        .accent-glow {
-            box-shadow: 0 0 30px rgba(0, 255, 157, 0.1);
-        }
-        .neon-text-green { color: #00ff9d; text-shadow: 0 0 15px rgba(0, 255, 157, 0.4); }
-        .neon-text-red { color: #ff4d4d; text-shadow: 0 0 15px rgba(255, 77, 77, 0.4); }
+        .neon-border-cyan { border: 1px solid rgba(0, 242, 255, 0.3); box-shadow: var(--neon-glow); }
+        .neon-text-cyan { color: var(--accent-cyan); text-shadow: 0 0 10px rgba(0, 242, 255, 0.5); }
+        .neon-text-purple { color: var(--accent-purple); text-shadow: 0 0 10px rgba(112, 0, 255, 0.5); }
+        
         .pulse { animation: pulse 2s infinite; }
         @keyframes pulse {
             0% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.5; transform: scale(1.1); }
+            50% { opacity: 0.4; transform: scale(1.1); }
             100% { opacity: 1; transform: scale(1); }
         }
-        .animate-float { animation: float 6s ease-in-out infinite; }
-        @keyframes float {
+        
+        .floating { animation: floating 4s ease-in-out infinite; }
+        @keyframes floating {
             0% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
+            50% { transform: translateY(-8px); }
             100% { transform: translateY(0px); }
         }
+
+        .quantum-badge {
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 900;
+        }
+
         ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
     </style>
 </head>
-<body class="p-4 md:p-8 max-w-lg mx-auto pb-24">
+<body class="p-4 md:p-8 max-w-lg mx-auto pb-28">
     
-    <!-- Header Premium -->
-    <header class="flex justify-between items-center mb-8">
-        <div class="animate-float">
-            <h1 class="text-3xl font-bold tracking-tighter">SMC <span class="neon-text-green">TERMINAL</span></h1>
-            <p class="text-[10px] text-gray-500 uppercase tracking-[0.2em] font-black flex items-center mt-1">
-                <span class="w-2 h-2 bg-green-500 rounded-full mr-2 pulse"></span> INSTITUTIONAL CLOUD
-            </p>
+    <!-- Ultra Header -->
+    <header class="flex justify-between items-center mb-10">
+        <div class="floating">
+            <h1 class="text-4xl font-black tracking-tighter leading-none">ANTIGRAVITY</h1>
+            <div class="flex items-center mt-1">
+                <span class="text-[10px] text-gray-500 uppercase tracking-[0.3em] font-black">Quantum Edition</span>
+                <span class="mx-2 text-gray-700">|</span>
+                <span class="text-[10px] text-cyan-400 font-bold tracking-widest uppercase">v4.0.1</span>
+            </div>
         </div>
-        <div class="glass p-4 accent-glow">
-            <i data-lucide="cpu" class="w-6 h-6 text-green-400"></i>
+        <div class="antigravity-glass p-4 neon-border-cyan">
+            <i data-lucide="zap" class="w-6 h-6 text-cyan-400 pulse"></i>
         </div>
     </header>
 
-    <!-- Metrics Grid -->
-    <section class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div class="glass p-5 relative overflow-hidden">
-            <div class="absolute -top-4 -right-4 w-16 h-16 bg-green-500/5 rounded-full blur-2xl"></div>
-            <span class="text-gray-500 text-[10px] uppercase font-bold tracking-wider">Balance Total</span>
-            <div class="text-3xl font-bold mt-1" id="wallet-balance">---</div>
-            <span class="text-[10px] text-green-400 font-bold mt-1 flex items-center">
-                <i data-lucide="arrow-up-right" class="w-3 h-3 mr-1"></i> +2.4%
-            </span>
+    <!-- Quantum Intel Intelligence Panel -->
+    <section class="antigravity-glass p-6 mb-6 relative overflow-hidden border-t border-cyan-500/20">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-[11px] uppercase font-black tracking-widest text-cyan-400">Quantum Intelligence</h3>
+            <div id="regime-badge" class="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-white/5 border border-white/10">Normal Regime</div>
         </div>
         
-        <!-- PnL Multi-Timeframe Card -->
-        <div class="glass p-5 relative overflow-hidden">
-            <div class="absolute -top-4 -right-4 w-16 h-16 bg-blue-500/5 rounded-full blur-2xl"></div>
-            <div class="flex justify-between items-start mb-2">
-                <span class="text-gray-500 text-[10px] uppercase font-bold tracking-wider">Desempeño PnL</span>
-                <span class="text-[9px] text-gray-500 font-mono" id="last-update">--:--:--</span>
+        <div class="grid grid-cols-2 gap-4">
+            <div class="bg-black/20 p-3 rounded-2xl border border-white/5">
+                <span class="text-[9px] text-gray-500 uppercase font-bold block mb-1">Bias de Valor</span>
+                <div id="vwap-bias" class="text-sm font-black uppercase tracking-tight">Cargando...</div>
             </div>
-            
-            <div class="grid grid-cols-2 gap-x-4 gap-y-2">
-                <div>
-                    <span class="text-[9px] text-gray-400 uppercase">Diario</span>
-                    <div class="text-md font-bold" id="pnl-daily">---</div>
-                    <div class="text-[8px] text-gray-500" id="wr-daily">WR: --%</div>
-                </div>
-                <div>
-                    <span class="text-[9px] text-gray-400 uppercase">Semanal</span>
-                    <div class="text-md font-bold" id="pnl-weekly">---</div>
-                    <div class="text-[8px] text-gray-500" id="wr-weekly">WR: --%</div>
-                </div>
-                <div class="pt-1 border-t border-white/5">
-                    <span class="text-[9px] text-gray-400 uppercase">Mensual</span>
-                    <div class="text-md font-bold" id="pnl-monthly">---</div>
-                    <div class="text-[8px] text-gray-500" id="wr-monthly">WR: --%</div>
-                </div>
-                <div class="pt-1 border-t border-white/5">
-                    <span class="text-[9px] text-gray-400 uppercase">Total</span>
-                    <div class="text-md font-bold text-green-400" id="pnl-total">---</div>
-                    <div class="text-[8px] text-gray-500" id="wr-total">WR: --%</div>
-                </div>
+            <div class="bg-black/20 p-3 rounded-2xl border border-white/5">
+                <span class="text-[9px] text-gray-500 uppercase font-bold block mb-1">Global POC</span>
+                <div id="last-poc" class="text-sm font-black text-white">$---.--</div>
             </div>
         </div>
     </section>
 
-    <!-- Secondary Metrics -->
-    <section class="glass p-6 mb-8 relative overflow-hidden">
-        <div class="flex justify-between items-center mb-4">
-            <div class="flex items-center">
-                <div class="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center mr-3">
-                    <i data-lucide="layers" class="w-5 h-5 text-gray-400"></i>
-                </div>
-                <div>
-                    <div class="text-[10px] text-gray-500 uppercase font-black tracking-widest">Capacidad de Trading</div>
-                    <div class="text-sm font-bold"><span id="active-count">0</span> / 10 <span class="text-gray-600 font-normal">Posiciones</span></div>
-                </div>
-            </div>
-            <div class="text-right">
-                <div class="text-[10px] text-gray-500 uppercase font-black tracking-widest">Apalancamiento</div>
-                <div class="text-sm font-bold text-green-400" id="leverage-val">--x</div>
+    <!-- Global Balance & Performance -->
+    <section class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div class="antigravity-glass p-6">
+            <span class="text-gray-500 text-[10px] uppercase font-black tracking-widest">Equity institucional</span>
+            <div class="text-3xl font-black mt-2 tracking-tighter" id="wallet-balance">$---.--</div>
+            <div class="flex items-center mt-2">
+                <div id="active-count" class="text-[14px] font-black text-cyan-400">0</div>
+                <div class="text-[9px] text-gray-500 uppercase font-bold ml-2">Trades Activos</div>
             </div>
         </div>
-        <div class="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
-            <div id="capacity-bar" class="h-full bg-green-500 transition-all duration-1000" style="width: 0%"></div>
+        
+        <div class="antigravity-glass p-6">
+            <div class="flex justify-between items-start">
+                <span class="text-gray-500 text-[10px] uppercase font-black tracking-widest">Global PnL</span>
+                <span class="text-[8px] text-gray-600 font-mono" id="last-update">00:00:00</span>
+            </div>
+            <div class="text-3xl font-black mt-2 tracking-tighter" id="pnl-total">---</div>
+            <div id="wr-total" class="text-[9px] text-gray-500 font-bold mt-1 uppercase">Win Rate: --%</div>
         </div>
     </section>
 
-    <!-- Active Trades Section -->
-    <div class="mb-4 flex justify-between items-end">
-        <div>
-            <h2 class="text-xl font-bold tracking-tight text-white/90">Monitor Maestro</h2>
-            <p class="text-[10px] text-gray-500 font-bold">FLUJO INSTITUCIONAL EN VIVO</p>
+    <!-- Adaptive Trade List -->
+    <div class="mb-4">
+        <h2 class="text-xl font-black tracking-tight text-white/80">Monitor Maestro</h2>
+        <div class="h-px w-12 bg-cyan-500/50 mt-1"></div>
+    </div>
+
+    <div id="trades-container" class="space-y-4 mb-12">
+        <!-- Dashboard Loading -->
+        <div class="antigravity-glass p-12 text-center">
+            <div class="w-10 h-10 border-b-2 border-cyan-500 rounded-full animate-spin mx-auto mb-4"></div>
+            <span class="text-gray-500 text-[10px] font-black tracking-[0.3em] uppercase">Sincronizando Cloud...</span>
         </div>
     </div>
 
-    <div id="trades-container" class="space-y-4 mb-8">
-        <!-- Trades dynamic content -->
-        <div class="glass p-6 text-center animate-pulse">
-            <div class="w-8 h-8 border-2 border-green-500/30 border-t-green-500 rounded-full animate-spin mx-auto mb-3"></div>
-            <span class="text-gray-500 text-xs font-bold tracking-widest uppercase">Escaneando Mercados...</span>
-        </div>
-    </div>
-
-    <!-- PWA Bottom Navigation (Modern Floating) -->
-    <div class="fixed bottom-8 left-1/2 -translate-x-1/2 w-[90%] max-w-md glass p-2 flex justify-around items-center z-50 accent-glow bg-black/60 border-t border-white/10">
-        <button class="flex flex-col items-center p-2 text-green-400 transition-transform active:scale-90">
-            <i data-lucide="layout-grid" class="w-6 h-6 mb-1"></i>
-            <span class="text-[8px] font-bold uppercase tracking-tighter">Terminal</span>
-        </button>
-        <button class="flex flex-col items-center p-2 text-gray-500 transition-transform active:scale-90 opacity-40">
-            <i data-lucide="bar-chart-3" class="w-6 h-6 mb-1"></i>
-            <span class="text-[8px] font-bold uppercase tracking-tighter">Analítica</span>
-        </button>
-        <button class="flex flex-col items-center p-2 text-gray-500 transition-transform active:scale-90 opacity-40">
-            <i data-lucide="history" class="w-6 h-6 mb-1"></i>
-            <span class="text-[8px] font-bold uppercase tracking-tighter">Historial</span>
-        </button>
-        <button class="flex flex-col items-center p-2 text-gray-500 transition-transform active:scale-90 opacity-40">
-            <i data-lucide="settings" class="w-6 h-6 mb-1"></i>
-            <span class="text-[8px] font-bold uppercase tracking-tighter">Config</span>
-        </button>
+    <!-- Navigation Tab Bar -->
+    <div class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm antigravity-glass p-3 flex justify-around items-center z-50 neon-border-cyan bg-black/80">
+        <button class="text-cyan-400 p-2 transition-transform active:scale-90"><i data-lucide="layout-grid" class="w-6 h-6"></i></button>
+        <button class="text-gray-600 p-2 transition-transform active:scale-90 opacity-30"><i data-lucide="bar-chart-big" class="w-6 h-6"></i></button>
+        <button class="text-gray-600 p-2 transition-transform active:scale-90 opacity-30"><i data-lucide="terminal" class="w-6 h-6"></i></button>
+        <button class="text-gray-600 p-2 transition-transform active:scale-90 opacity-30"><i data-lucide="settings" class="w-6 h-6"></i></button>
     </div>
 
     <script>
-        function formatPnL(val, elementId) {
-            const el = document.getElementById(elementId);
-            if (!el) return;
-            const sign = val >= 0 ? '+' : '';
-            el.innerText = sign + '$' + Math.abs(val).toFixed(2);
-            el.className = 'text-md font-bold ' + (val >= 0 ? 'neon-text-green' : 'neon-text-red');
-        }
-
         async function updateDashboard() {
             try {
-                // Status Update
-                const statusRes = await fetch('/api/status');
-                const statusData = await statusRes.json();
+                const [statusRes, perfRes, tradesRes] = await Promise.all([
+                    fetch('/api/status'),
+                    fetch('/api/performance'),
+                    fetch('/api/trades')
+                ]);
                 
-                const balance = statusData.balance.length > 0 ? 
-                    parseFloat(statusData.balance[0].walletBalance).toFixed(2) : '0.00';
-                
-                document.getElementById('wallet-balance').innerText = '$' + balance;
-                document.getElementById('leverage-val').innerText = statusData.leverage + 'x';
-                document.getElementById('active-count').innerText = statusData.active_trades_count;
-                
-                // Capacidad progress bar
-                const capacityPct = (statusData.active_trades_count / 10) * 100;
-                document.getElementById('capacity-bar').style.width = capacityPct + '%';
+                const status = await statusRes.json();
+                const perf = await perfRes.json();
+                const trades = await tradesRes.json();
 
-                // Performance Update
-                const perfRes = await fetch('/api/performance');
-                const perfData = await perfRes.json();
+                // 1. Core Header & Identity
+                const balance = status.balance.length > 0 ? parseFloat(status.balance[0].walletBalance).toFixed(2) : '0.00';
+                document.getElementById('wallet-balance').innerText = '$' + balance;
+                document.getElementById('active-count').innerText = status.active_trades_count || 0;
                 
-                formatPnL(perfData.daily.pnl, 'pnl-daily');
-                document.getElementById('wr-daily').innerText = 'WR: ' + perfData.daily.wr.toFixed(0) + '%';
-                
-                formatPnL(perfData.weekly.pnl, 'pnl-weekly');
-                document.getElementById('wr-weekly').innerText = 'WR: ' + perfData.weekly.wr.toFixed(0) + '%';
-                
-                formatPnL(perfData.monthly.pnl, 'pnl-monthly');
-                document.getElementById('wr-monthly').innerText = 'WR: ' + perfData.monthly.wr.toFixed(0) + '%';
-                
-                formatPnL(perfData.total.pnl, 'pnl-total');
-                document.getElementById('wr-total').innerText = 'WR: ' + perfData.total.wr.toFixed(0) + '%';
-                
-                // Trades Update
-                const tradesRes = await fetch('/api/trades');
-                const tradesData = await tradesRes.json();
-                
+                // 2. Quantum Intel
+                const intel = status.quantum_intel;
+                const regimeEl = document.getElementById('regime-badge');
+                if (intel) {
+                    regimeEl.innerText = intel.regime + ' REGIME';
+                    regimeEl.className = `px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${intel.regime === 'CHAOTIC' ? 'bg-red-500/20 text-red-500 border-red-500/30' : 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30'}`;
+                    
+                    const vwapEl = document.getElementById('vwap-bias');
+                    vwapEl.innerText = intel.vwap_bias === 'BULLISH' ? 'Premium (Overvalued)' : 'Discount (Undervalued)';
+                    vwapEl.className = `text-xs font-black uppercase tracking-tight ${intel.vwap_bias === 'BULLISH' ? 'text-red-400' : 'text-cyan-400'}`;
+                    
+                    document.getElementById('last-poc').innerText = '$' + (intel.last_poc || 0).toFixed(2);
+                }
+
+                // 3. Performance
+                const totalPnL = perf.total.pnl;
+                const pnlEl = document.getElementById('pnl-total');
+                pnlEl.innerText = (totalPnL >= 0 ? '+' : '') + '$' + Math.abs(totalPnL).toFixed(2);
+                pnlEl.className = `text-3xl font-black mt-2 tracking-tighter ${totalPnL >= 0 ? 'neon-text-cyan' : 'text-red-500'}`;
+                document.getElementById('wr-total').innerText = 'Win Rate: ' + perf.total.wr.toFixed(1) + '%';
+
+                // 4. Trade List
                 const container = document.getElementById('trades-container');
                 container.innerHTML = '';
                 
-                if (tradesData.length === 0) {
-                    container.innerHTML = '<div class="glass p-10 text-center text-gray-600 font-bold uppercase tracking-widest text-xs italic">A la espera de liquidez institucional...</div>';
+                if (trades.length === 0) {
+                    container.innerHTML = '<div class="antigravity-glass p-8 text-center text-gray-600 font-bold uppercase tracking-widest text-[9px]">A la espera de liquidez institucional...</div>';
                 }
 
-                tradesData.forEach(trade => {
+                trades.forEach(trade => {
                     const isProfit = (trade.pnl_usdt || 0) >= 0;
-                    const pnlColor = isProfit ? 'neon-text-green' : 'neon-text-red';
+                    const statusColor = trade.status === 'OPEN' ? 'cyan' : 'gray';
                     
                     const card = `
-                        <div class="glass p-6 relative overflow-hidden group transition-all duration-300 hover:bg-white/[0.04] border-l-4 ${trade.status === 'OPEN' ? 'border-green-500' : 'border-gray-800'}">
+                        <div class="antigravity-glass p-6 relative overflow-hidden transition-all duration-300 border-l-2 ${trade.status === 'OPEN' ? 'border-cyan-500 shadow-[0_0_15px_rgba(0,242,255,0.1)]' : 'border-white/5'}">
                             <div class="flex justify-between items-center relative z-10">
                                 <div>
                                     <div class="flex items-center">
-                                        <span class="font-black text-xl tracking-tighter">${trade.symbol}</span>
-                                        <span class="ml-3 text-[9px] bg-white/5 border border-white/10 px-2 py-0.5 rounded-full uppercase font-black text-gray-400 tracking-widest">${trade.side}</span>
+                                        <span class="font-black text-2xl tracking-tighter uppercase">${trade.symbol}</span>
+                                        <span class="ml-3 text-[8px] bg-white/5 border border-white/10 px-2 py-0.5 rounded-full uppercase font-black text-gray-500 tracking-[0.2em]">${trade.side}</span>
                                     </div>
-                                    <div class="flex items-center mt-1">
-                                        <span class="w-1.5 h-1.5 ${trade.status === 'OPEN' ? 'bg-green-500 pulse' : 'bg-gray-700'} rounded-full mr-2"></span>
-                                        <span class="text-[10px] text-gray-500 font-bold uppercase tracking-tight">${trade.status === 'OPEN' ? 'Ejecutando en Cloud' : 'Operación Finalizada'}</span>
+                                    <div class="flex items-center mt-2">
+                                        <span class="w-1.5 h-1.5 ${trade.status === 'OPEN' ? 'bg-cyan-400 pulse' : 'bg-gray-700'} rounded-full mr-2"></span>
+                                        <span class="text-[9px] text-gray-500 font-black uppercase tracking-tight">${trade.status === 'OPEN' ? 'Analizando Flujo' : 'Cerrada'}</span>
                                     </div>
                                 </div>
                                 <div class="text-right">
-                                    <div class="text-xs text-gray-500 font-black uppercase tracking-tighter mb-1">${trade.status === 'CLOSED' ? 'Resultado PnL' : 'Entrada'}</div>
-                                    <div class="text-xl font-black ${trade.status === 'CLOSED' ? pnlColor : 'text-white'}">
-                                        ${trade.status === 'CLOSED' ? (trade.pnl_usdt > 0 ? '+' : '') + trade.pnl_usdt.toFixed(2) : trade.entry.toFixed(4)}
+                                    <div class="text-[10px] font-black uppercase tracking-tighter ${trade.status === 'OPEN' ? 'text-cyan-400' : (isProfit ? 'text-cyan-400' : 'text-red-500')}">
+                                        ${trade.status === 'OPEN' ? 'Entrada' : 'Resultado'}
                                     </div>
-                                    <div class="text-[10px] font-black ${trade.status === 'CLOSED' ? pnlColor : 'text-gray-500'}">
-                                        ${trade.status === 'CLOSED' ? trade.pnl_pct.toFixed(2) + '%' : 'Market Order'}
+                                    <div class="text-2xl font-black ${trade.status === 'CLOSED' ? (isProfit ? 'neon-text-cyan' : 'text-red-500') : 'text-white'}">
+                                        ${trade.status === 'CLOSED' ? trade.pnl_usdt.toFixed(2) : trade.entry.toFixed(4)}
                                     </div>
                                 </div>
                             </div>
@@ -245,10 +218,10 @@
                     container.innerHTML += card;
                 });
 
-                document.getElementById('last-update').innerText = new Date().toLocaleTimeString();
+                document.getElementById('last-update').innerText = status.timestamp.split(' ')[1];
                 lucide.createIcons();
-            } catch (error) {
-                console.error('Error dashboard sync:', error);
+            } catch (err) {
+                console.error("Dashboard error:", err);
             }
         }
 

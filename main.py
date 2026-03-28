@@ -75,12 +75,21 @@ async def bot_loop():
             await asyncio.sleep(60)
 
 async def handle_status(request):
-    """Devuelve el estado general del bot y balance"""
+    """Devuelve el estado general del bot y balance enriquecido con métricas Quantum"""
     balance_info = bybit_client.get_wallet_balance()
+    active_positions = bybit_client.get_active_positions()
+    
     status = {
         "status": "Running",
-        "strategy": "Institutional SMC Quantum v4.0",
-        "balance": balance_info,
+        "strategy": "Institutional SMC Quantum v4.0.1",
+        "balance": balance_info['result']['list'][0]['coin'] if balance_info.get('retCode') == 0 else [],
+        "active_trades_count": len(active_positions),
+        "leverage": settings.LEVERAGE,
+        "quantum_intel": {
+            "regime": strategy.last_regime,
+            "last_poc": strategy.last_poc,
+            "vwap_bias": strategy.last_vwap_bias
+        },
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     }
     return web.json_response(status)
