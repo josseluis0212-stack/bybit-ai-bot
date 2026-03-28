@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+from datetime import datetime
 from aiohttp import web
 from config.settings import settings
 from api.bybit_client import bybit_client
@@ -76,16 +77,30 @@ async def bot_loop():
 async def handle_status(request):
     """Devuelve el estado general del bot y balance"""
     balance_info = bybit_client.get_wallet_balance()
-    active_positions = bybit_client.get_active_positions()
-    
-    data = {
+    status = {
         "status": "Running",
-        "balance": balance_info['result']['list'][0]['coin'] if balance_info.get('retCode') == 0 else [],
-        "active_trades_count": len(active_positions),
-        "leverage": settings.LEVERAGE,
-        "strategy": "Institutional SMC (OB + FVG)"
+        "strategy": "Institutional SMC Quantum v4.0",
+        "balance": balance_info,
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     }
-    return web.json_response(data)
+    return web.json_response(status)
+
+async def handle_trigger_scan(request):
+    """
+    DISPARADOR MANUAL (Quantum v4.0):
+    Permite forzar un escaneo inmediato sin esperar al ciclo de 5 minutos.
+    """
+    logger.info("📡 DISPARADOR MANUAL RECIBIDO: Iniciando escaneo inmediato...")
+    try:
+        signals = await market_scanner.scan_market()
+        if signals:
+            for sig in signals:
+                await executor.try_execute_signal(sig)
+            return web.json_response({"status": "Success", "signals_found": len(signals)})
+        return web.json_response({"status": "Success", "signals_found": 0, "message": "No se encontraron señales válidas."})
+    except Exception as e:
+        logger.error(f"Error en escaneo manual: {e}")
+        return web.json_response({"status": "Error", "message": str(e)}, status=500)
  
 async def handle_performance(request):
     """Devuelve estadísticas de rendimiento detalladas (Diario, Semanal, Mensual, Total)"""
@@ -133,6 +148,7 @@ async def init_web_server():
     app.router.add_get('/', handle_health_check)
     app.router.add_get('/health', handle_health_check)
     app.router.add_get('/api/status', handle_status)
+    app.router.add_get('/api/trigger-scan', handle_trigger_scan)
     app.router.add_get('/api/performance', handle_performance)
     app.router.add_get('/api/trades', handle_trades)
     
