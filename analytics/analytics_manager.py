@@ -7,8 +7,8 @@ logger = logging.getLogger(__name__)
 
 class AnalyticsManager:
     def __init__(self):
-        # Fecha de reinicio del historial (no se muestran trades anteriores a esta fecha)
-        self.reset_date = datetime(2026, 3, 20, tzinfo=timezone.utc)
+        # Fecha de reinicio del historial: 2026-03-28 (Hoy)
+        self.reset_date = datetime(2026, 3, 28, tzinfo=timezone.utc)
 
     # ─────────────────────────────────────────────
     # Helpers internos
