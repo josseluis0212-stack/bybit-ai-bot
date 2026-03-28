@@ -16,31 +16,42 @@ class AnalyticsManager:
     def _fetch_trades(self, start_dt: datetime = None, end_dt: datetime = None) -> pd.DataFrame | None:
         """
         Descarga el historial de PnL cerrado desde Bybit.
-        Si se proporcionan start_dt/end_dt (datetime UTC), filtra por ese rango.
-        Siempre respeta self.reset_date como límite inferior.
+        Bybit limita el rango de tiempo a 7 días si se usa startTime/endTime.
+        Hacemos múltiples peticiones si el rango es mayor.
         """
         now_utc = datetime.now(timezone.utc)
         effective_start = max(start_dt or self.reset_date, self.reset_date)
         effective_end   = end_dt or now_utc
 
-        start_ms = int(effective_start.timestamp() * 1000)
-        end_ms   = int(effective_end.timestamp() * 1000)
+        all_trades = []
+        current_start = effective_start
 
-        response = bybit_client.get_closed_pnl(
-            limit=200,
-            start_time=start_ms,
-            end_time=end_ms
-        )
+        while current_start < effective_end:
+            # Intervalo máximo de 7 días menos 1 minuto para seguridad
+            next_limit = current_start + timedelta(days=7)
+            current_end = min(next_limit, effective_end)
+            
+            start_ms = int(current_start.timestamp() * 1000)
+            end_ms   = int(current_end.timestamp() * 1000)
 
-        if not response or response.get("retCode") != 0:
-            logger.warning(f"get_closed_pnl retCode={response.get('retCode') if response else 'None'}")
+            response = bybit_client.get_closed_pnl(
+                limit=200,
+                start_time=start_ms,
+                end_time=end_ms
+            )
+
+            if response and response.get("retCode") == 0:
+                batch = response["result"].get("list", [])
+                all_trades.extend(batch)
+            else:
+                logger.warning(f"Error parcial en _fetch_trades: {response}")
+            
+            current_start = current_end + timedelta(seconds=1)
+
+        if not all_trades:
             return None
 
-        trades = response["result"].get("list", [])
-        if not trades:
-            return None
-
-        df = pd.DataFrame(trades)
+        df = pd.DataFrame(all_trades)
         df["closedPnl"]   = pd.to_numeric(df["closedPnl"],   errors="coerce")
         df["updatedTime"] = pd.to_datetime(pd.to_numeric(df["updatedTime"]), unit="ms", utc=True)
         return df
