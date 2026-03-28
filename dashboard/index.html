@@ -87,6 +87,28 @@
             </div>
         </section>
 
+        <!-- Botón de Escaneo Prominente -->
+        <button onclick="triggerScan()" class="w-full mb-6 py-4 antigravity-glass neon-border-cyan flex items-center justify-center space-x-3 transition-all active:scale-95 bg-white/5 group">
+            <i data-lucide="zap" class="w-5 h-5 text-cyan-400 group-hover:scale-125 transition-transform"></i>
+            <span class="text-xs font-black uppercase tracking-[0.3em] text-white">Iniciar Escaneo Global</span>
+        </button>
+
+        <!-- Resumen de Rendimiento (Movido aquí para visibilidad inmediata) -->
+        <div class="grid grid-cols-3 gap-2 mb-6">
+            <div class="antigravity-glass p-3 text-center border-t border-white/5">
+                <span class="text-[8px] text-gray-500 uppercase font-black block">Hoy</span>
+                <div id="stat-daily-main" class="text-xs font-black mt-1">$0.00</div>
+            </div>
+            <div class="antigravity-glass p-3 text-center border-t border-white/5">
+                <span class="text-[8px] text-gray-500 uppercase font-black block">Semana</span>
+                <div id="stat-weekly-main" class="text-xs font-black mt-1">$0.00</div>
+            </div>
+            <div class="antigravity-glass p-3 text-center border-t border-white/5">
+                <span class="text-[8px] text-gray-500 uppercase font-black block">Mes</span>
+                <div id="stat-monthly-main" class="text-xs font-black mt-1">$0.00</div>
+            </div>
+        </div>
+
         <!-- Balance & Stats Summary -->
         <section class="grid grid-cols-2 gap-4 mb-6">
             <div class="antigravity-glass p-5">
@@ -94,7 +116,7 @@
                 <div class="text-2xl font-black mt-1 tracking-tighter" id="wallet-balance">$---.--</div>
             </div>
             <div class="antigravity-glass p-5">
-                <span class="text-gray-500 text-[10px] uppercase font-black">Session PnL</span>
+                <span class="text-gray-500 text-[10px] uppercase font-black">PnL Sesión</span>
                 <div class="text-2xl font-black mt-1 tracking-tighter" id="pnl-total">---</div>
             </div>
         </section>
@@ -168,10 +190,22 @@
 
     <!-- Navigation Tab Bar -->
     <nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[92%] max-w-sm antigravity-glass p-3 flex justify-around items-center z-50 neon-border-cyan bg-black/80">
-        <button onclick="switchTab('terminal')" class="nav-btn text-cyan-400 p-2" id="btn-terminal"><i data-lucide="layout-grid" class="w-6 h-6"></i></button>
-        <button onclick="switchTab('analytics')" class="nav-btn text-gray-600 p-2" id="btn-analytics"><i data-lucide="bar-chart-big" class="w-6 h-6"></i></button>
-        <button onclick="switchTab('history')" class="nav-btn text-gray-600 p-2" id="btn-history"><i data-lucide="history" class="w-6 h-6"></i></button>
-        <button onclick="window.location.reload()" class="text-gray-600 p-2"><i data-lucide="refresh-cw" class="w-5 h-5"></i></button>
+        <button onclick="switchTab('terminal')" class="nav-btn text-cyan-400 p-2 flex flex-col items-center" id="btn-terminal">
+            <i data-lucide="layout-grid" class="w-6 h-6"></i>
+            <span class="text-[8px] font-black uppercase mt-1">Home</span>
+        </button>
+        <button onclick="switchTab('analytics')" class="nav-btn text-gray-600 p-2 flex flex-col items-center" id="btn-analytics">
+            <i data-lucide="bar-chart-big" class="w-6 h-6"></i>
+            <span class="text-[8px] font-black uppercase mt-1">Stats</span>
+        </button>
+        <button onclick="switchTab('history')" class="nav-btn text-gray-600 p-2 flex flex-col items-center" id="btn-history">
+            <i data-lucide="history" class="w-6 h-6"></i>
+            <span class="text-[8px] font-black uppercase mt-1">Log</span>
+        </button>
+        <button onclick="window.location.reload()" class="text-gray-600 p-2 flex flex-col items-center">
+            <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+            <span class="text-[8px] font-black uppercase mt-1">Sync</span>
+        </button>
     </nav>
 
     <script>
@@ -229,9 +263,20 @@
 
                 // 3. ANALYTICS
                 document.getElementById('stat-wr').innerText = perf.total.wr.toFixed(1) + '%';
-                document.getElementById('stat-daily').innerText = '$' + perf.daily.pnl.toFixed(2);
-                document.getElementById('stat-weekly').innerText = '$' + perf.weekly.pnl.toFixed(2);
-                document.getElementById('stat-monthly').innerText = '$' + perf.monthly.pnl.toFixed(2);
+                
+                const dailyVal = '$' + perf.daily.pnl.toFixed(2);
+                const weeklyVal = '$' + perf.weekly.pnl.toFixed(2);
+                const monthlyVal = '$' + perf.monthly.pnl.toFixed(2);
+                
+                document.getElementById('stat-daily').innerText = dailyVal;
+                document.getElementById('stat-weekly').innerText = weeklyVal;
+                document.getElementById('stat-monthly').innerText = monthlyVal;
+                
+                // Sync main view stats
+                document.getElementById('stat-daily-main').innerText = dailyVal;
+                document.getElementById('stat-weekly-main').innerText = weeklyVal;
+                document.getElementById('stat-monthly-main').innerText = monthlyVal;
+
                 document.getElementById('stat-total-count').innerText = perf.total.trades;
                 document.getElementById('stat-lev').innerText = status.leverage;
 
