@@ -83,6 +83,34 @@ class InstitutionalSMCStrategy:
                         eql.append({'price': (lows.iloc[i]['low'] + lows.iloc[j]['low'])/2})
         return eqh, eql
 
+    def calculate_vwap(self, df):
+        """
+        Calcula el Volume Weighted Average Price (VWAP) para la sesión actual.
+        """
+        v = df['volume']
+        p = (df['high'] + df['low'] + df['close']) / 3
+        vwap = (p * v).cumsum() / v.cumsum()
+        return vwap
+
+    def calculate_poc(self, df):
+        """
+        Identifica el Point of Control (POC) de las últimas 24-48 horas.
+        """
+        try:
+            # Agrupar volumen por niveles de precio (bins de 0.1% del precio actual)
+            current_price = df['close'].iloc[-1]
+            bin_size = current_price * 0.001 
+            
+            df_bins = df.copy()
+            df_bins['price_bin'] = (df_bins['close'] / bin_size).round() * bin_size
+            vol_profile = df_bins.groupby('price_bin')['volume'].sum()
+            
+            if not vol_profile.empty:
+                return vol_profile.idxmax()
+        except:
+            pass
+        return df['close'].iloc[-1]
+
     def is_killzone(self):
         """
         Verifica si la hora actual está dentro de una Killzone Institucional (EST).
@@ -149,6 +177,19 @@ class InstitutionalSMCStrategy:
         if current_adx < self.min_adx:
             # logger.info(f"Omitiendo {symbol} - Baja volatilidad (ADX: {current_adx:.1f})")
             return None
+
+        # --- INTELIGENCIA QUANTUM (VWAP & POC) ---
+        df['vwap'] = self.calculate_vwap(df)
+        current_vwap = df['vwap'].iloc[-1]
+        poc_level = self.calculate_poc(df)
+        
+        # Filtro de Régimen de Mercado (Desviación Estándar)
+        vol_std = df['close'].rolling(window=20).std().iloc[-1]
+        avg_std = df['close'].rolling(window=100).std().mean()
+        market_regime = "NORMAL"
+        if vol_std > avg_std * 2.5: # Volatilidad extrema (Caos)
+            market_regime = "CHAOTIC"
+            return None # Evitamos operar en caos
 
         # 1. Identificar fractales (Swing Points)
         df['high_fractal'] = df['high'].rolling(window=self.swing_period*2+1, center=True).apply(
@@ -236,10 +277,13 @@ class InstitutionalSMCStrategy:
                     # PD Array Check: Longs only in Discount (< 50% of recent range)
                     is_discount = c_price < equilibrium
                     
+                    # QUANTUM FILTER: Solo compras debajo del VWAP (Precio infravalorado)
+                    is_undervalued = c_price < current_vwap
+                    
                     # HTF Confluence Check
                     htf_ok = (htf_trend == "BULLISH") if settings.HTF_CONFLUENCE else True
 
-                    if (liquidity_sweep or mss) and is_discount and htf_ok:
+                    if (liquidity_sweep or mss) and is_discount and is_undervalued and htf_ok:
                         # OTE 70.5% Refinement: Ajustar entrada si estamos cerca del nivel OTE
                         ote_705 = ob['high'] - (ob['high'] - ob['low']) * 0.705
                         entry_price = min(c_price, ote_705) if c_price > ote_705 else c_price
@@ -260,7 +304,7 @@ class InstitutionalSMCStrategy:
                             
                             return {
                                 "symbol": symbol, "signal": "LONG", "entry_price": entry_price, "sl": sl, "tp": final_tp,
-                                "info": f"HUNTER v3.0 (ISS: {ob['iss']:.1f}). OTE 70.5% + EQH Magnet"
+                                "info": f"QUANTUM v4.0 (ISS: {ob['iss']:.1f}). POC: {poc_level:.2f}"
                             }
 
         # --- SHORT (Cazador) ---
@@ -275,10 +319,13 @@ class InstitutionalSMCStrategy:
                     # PD Array Check: Shorts only in Premium (> 50% of recent range)
                     is_premium = c_price > equilibrium
                     
+                    # QUANTUM FILTER: Solo ventas arriba del VWAP (Precio sobrevalorado)
+                    is_overvalued = c_price > current_vwap
+                    
                     # HTF Confluence Check
                     htf_ok = (htf_trend == "BEARISH") if settings.HTF_CONFLUENCE else True
 
-                    if (liquidity_sweep or mss) and is_premium and htf_ok:
+                    if (liquidity_sweep or mss) and is_premium and is_overvalued and htf_ok:
                         # OTE 70.5% Refinement
                         ote_705 = ob['low'] + (ob['high'] - ob['low']) * 0.705
                         entry_price = max(c_price, ote_705) if c_price < ote_705 else c_price
@@ -299,7 +346,7 @@ class InstitutionalSMCStrategy:
                             
                             return {
                                 "symbol": symbol, "signal": "SHORT", "entry_price": entry_price, "sl": sl, "tp": final_tp,
-                                "info": f"HUNTER v3.0 (ISS: {ob['iss']:.1f}). OTE 70.5% + EQL Magnet"
+                                "info": f"QUANTUM v4.0 (ISS: {ob['iss']:.1f}). POC: {poc_level:.2f}"
                             }
 
         # --- LÓGICA DE BREAKER ENTRIES (NUEVO v3.0) ---
