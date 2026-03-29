@@ -11,7 +11,7 @@ class TrendAnalyzer:
         Analiza la tendencia diaria (1D) de un activo.
         Retorna: 'ALCISTA', 'BAJISTA' o 'LATERAL'
         """
-        klines = self.client.get_kline(symbol=symbol, interval="D", limit=100)
+        klines = self.client.get_kline(symbol=symbol, interval="D", limit=250)
         if not klines:
             return "DESCONOCIDO"
             

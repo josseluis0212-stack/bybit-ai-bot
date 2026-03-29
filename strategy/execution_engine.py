@@ -16,7 +16,7 @@ class ExecutionEngine:
     async def check_signal(self, symbol):
         """Analiza la señal usando triple pantalla de forma asíncrona"""
         # 1. FILTRO MACRO (DIARIO - 1D) 🌊
-        response_d = await self.client.get_klines_async(symbol=symbol, interval="D", limit=100)
+        response_d = await self.client.get_klines_async(symbol=symbol, interval="D", limit=250)
         if not response_d or response_d.get('retCode') != 0: return None
         klines_d = response_d['result']['list']
         
