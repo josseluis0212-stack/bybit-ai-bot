@@ -15,13 +15,8 @@ bot:
   apalancamiento: 10
   modo_demo: false
 
-# Operamos solo altísima liquidez para scalping
-simbolos:
-  - BTCUSDT
-  - ETHUSDT
-  - SOLUSDT
-  - BNBUSDT
-  - XRPUSDT
+# Operar en escaneo global (Todo el mercado de futuros)
+simbolos: "TODOS_LOS_FUTUROS_USDT"
 
 # ============================================================
 # FILTRO MACRO - Institutional VWAP
