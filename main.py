@@ -23,6 +23,7 @@ async def bot_loop():
     win_count = 0
     loss_count = 0
     closed_trades = []
+    trades_cerrados_ciclo = 0
     
     # Inicializar componentes
     client = BybitClient(
@@ -93,6 +94,34 @@ async def bot_loop():
                     if len(closed_trades) > 10: closed_trades.pop()
                     
                     send_log(f"Operación CERRADA en {symbol}: PnL {pnl:.2f} USDT", "log-success" if pnl > 0 else "log-error")
+                    
+                    # Alertar cierre individual a Telegram
+                    estado_trade = "✅ OPERACIÓN GANADORA 💰" if pnl > 0 else "❌ OPERACIÓN PERDEDORA 🩸"
+                    await telegram.send_message(
+                        f"{estado_trade}\n\n"
+                        f"Par: {symbol}\n"
+                        f"Lado: {prev_p['side']}\n"
+                        f"PnL Final: {pnl:.2f} USDT\n\n"
+                        f"PnL Acumulado Sesión: {total_pnl:.2f} USDT"
+                    )
+                    
+                    trades_cerrados_ciclo += 1
+                    report_limit = int(config.get('telegram', {}).get('reporte_estadisticas_cada_n_trades', 10))
+                    
+                    # Reporte de ciclo cada N operaciones
+                    if trades_cerrados_ciclo >= report_limit:
+                        total = win_count + loss_count
+                        winrate = (win_count / total) * 100 if total > 0 else 0
+                        await telegram.send_message(
+                            f"📊 *REPORTE DE CICLO SCALPER* 📊\n\n"
+                            f"Ciclo completado: {report_limit} trades.\n\n"
+                            f"🏆 Ganados: {win_count}\n"
+                            f"💀 Perdidos: {loss_count}\n"
+                            f"🎯 Win Rate: {winrate:.1f}%\n"
+                            f"💸 PnL Total Sesión: {total_pnl:.2f} USDT"
+                        )
+                        trades_cerrados_ciclo = 0
+                        
                     del prev_positions[symbol]
             
             # Actualizar posiciones previas
