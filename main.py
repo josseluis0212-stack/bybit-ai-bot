@@ -26,8 +26,8 @@ async def bot_loop():
     
     # Inicializar componentes
     client = BybitClient(
-        testnet=config['trading'].get('testnet', False),
-        demo=config['trading'].get('demo', True)
+        testnet=config.get('bybit', {}).get('testnet', False),
+        demo=config.get('bot', {}).get('modo_demo', True)
     )
     telegram = TelegramBot()
     risk_manager = RiskManager(config)

@@ -58,12 +58,12 @@ def toggle_mode():
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)
     
-    config['trading']['testnet'] = not config['trading']['testnet']
+    config['bybit']['testnet'] = not config['bybit']['testnet']
     
     with open(config_path, "w") as f:
         yaml.dump(config, f)
         
-    return jsonify(testnet=config['trading']['testnet'])
+    return jsonify(testnet=config['bybit']['testnet'])
 
 def run_server():
     # Render proporciona el puerto en la variable de entorno PORT
