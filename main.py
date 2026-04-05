@@ -42,6 +42,18 @@ async def bot_loop():
         "🐺 *Cazando en Hugging Face...*"
     )
     
+    # *** BORRAR HISTORIAL AL ARRANCAR (pizarra limpia) ***
+    total_pnl = 0.0
+    win_count = 0
+    loss_count = 0
+    closed_trades = []
+    trades_cerrados_ciclo = 0
+    bot_data["total_pnl"] = 0.0
+    bot_data["win_count"] = 0
+    bot_data["loss_count"] = 0
+    bot_data["closed_trades"] = []
+    print("✅ Historial PnL reseteado - Pizarra limpia.")
+    
     semaphore = asyncio.Semaphore(15)
 
     async def analyze_and_execute(symbol):

@@ -25,6 +25,20 @@ bot_data = {
 def index():
     return render_template('index.html')
 
+# Ruta de compatibilidad con la URL vieja del dashboard
+@app.route('/app/index.html')
+def index_legacy():
+    return render_template('index.html')
+
+@app.route('/reset')
+def reset_stats():
+    """Borra el historial de PnL y contadores en memoria"""
+    bot_data["total_pnl"] = 0.0
+    bot_data["win_count"] = 0
+    bot_data["loss_count"] = 0
+    bot_data["closed_trades"] = []
+    return jsonify(status="reset_ok", message="Historial borrado correctamente")
+
 @app.route('/health')
 def health_check():
     return "OK", 200
