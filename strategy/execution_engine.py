@@ -91,16 +91,17 @@ class ExecutionEngine:
         
         send_log(f"⚡ HYPER SCALP: Señal {side} en {symbol} a {entry}", "log-success")
         
-        # Risk Management Scalp
-        balance = self.client.get_balance()
-        riesgo_pct = float(self.config.get('bot', {}).get('riesgo_por_trade_pct', 1.0))
-        riesgo_usdt = balance * (riesgo_pct / 100.0)
+        # Position Sizing
+        monto_fijo = float(self.config.get('bot', {}).get('monto_por_operacion_usdt', 100.0))
+        apalancamiento = int(self.config.get('bot', {}).get('apalancamiento', 5))
         
-        # Stop Loss fijo a 1 ATR de 1 minuto para scalping extremo
+        # El qty se calcula como el valor total a controlar (Monto * Apalancamiento) dividido por el precio de entrada
+        pos_value = monto_fijo * apalancamiento
+        qty = pos_value / entry
+        
+        # Stop Loss protegido a 1 ATR de la vela de gatillo
         sl_dist = atr 
         if sl_dist <= 0: return
-        
-        qty = riesgo_usdt / sl_dist
         
         rr = float(self.config.get('riesgo', {}).get('rr_take_profit', 1.5))
         tp_dist = sl_dist * rr
@@ -121,7 +122,7 @@ class ExecutionEngine:
         response = self.client.place_order(symbol, side, "Market", qty, sl=sl, tp=tp)
         
         if response and response.get("retCode") == 0:
-            send_log(f"Ejecución exitosa en {symbol} (Riesgo: {riesgo_usdt:.2f} USDT)", "log-success")
+            send_log(f"Ejecución exitosa en {symbol} (Pos: {pos_value:.2f} USD)", "log-success")
         else:
             ret_msg = response.get("retMsg") if response else "Sin respuesta"
             send_log(f"Fallo en {symbol}: {ret_msg}", "log-error")

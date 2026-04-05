@@ -10,9 +10,9 @@ bybit:
 bot:
   nombre: "HYPER SCALPER QUANT"
   intervalo_escaneo: 60        # Cada 60 segundos
-  max_operaciones_simultaneas: 5
-  riesgo_por_trade_pct: 1.0    # 1% del balance
-  apalancamiento: 10
+  max_operaciones_simultaneas: 10
+  monto_por_operacion_usdt: 100.0 # Cantidad fija de margen
+  apalancamiento: 5
   modo_demo: false
 
 # Operar en escaneo global (Todo el mercado de futuros)
@@ -54,6 +54,7 @@ dashboard:
   host: "0.0.0.0"
 
 telegram:
-  reporte_estadisticas_cada_n_trades: 15   # Reporte en red cada 15 trades cerrados
+  reporte_estadisticas_cada_n_trades: 10   # Reporte en red cada 10 trades cerrados
   reporte_diario_hora: 23      
   reporte_semanal_dia: 0       
+  reporte_mensual_dia: 1
