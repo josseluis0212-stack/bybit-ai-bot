@@ -1,36 +1,64 @@
-estrategia:
-  ema_lenta: 21
-  ema_rapida: 8
-  ema_tendencia: 200
-  adx_periodo: 14
-  adx_umbral: 20
-  volumen_ma: 20
-  rsi_periodo: 14
-  temporalidad_diaria: D
-  temporalidad_ejecucion: '5'
-ia:
-  exploracion_diaria: 2
-  puntos_ganancia: 10
-  puntos_perdida: 5
-  umbral_aprendizaje: 50
-riesgo:
-  filtro_btc_volatilidad: 2
-  max_drawdown_diario: 5
-  stop_loss_atr_multiplicador: 2
-  take_profit_ratio: 0 # 0 significa 'Sin TP fijo' (Trailing Stop)
-  trailing_stop_activacion: 1.5 # Activar cuando gane 1.5x ATR
-trading:
-  apalancamiento: 5
-  capital_total: 100
-  demo: true
+# ============================================================
+# ANTIGRAVITY HYPER SCALPER v3.0 (QUANT)
+# Estrategia: VWAP + Bollinger Mean Reversion (1m/3m)
+# ============================================================
+
+bybit:
+  testnet: false
+  recv_window: 5000
+
+bot:
+  nombre: "HYPER SCALPER QUANT"
+  intervalo_escaneo: 60        # Cada 60 segundos
   max_operaciones_simultaneas: 5
-  monto_por_operacion: 15
-  pares_permitidos:
+  riesgo_por_trade_pct: 1.0    # 1% del balance
+  apalancamiento: 10
+  modo_demo: false
+
+# Operamos solo altísima liquidez para scalping
+simbolos:
   - BTCUSDT
   - ETHUSDT
   - SOLUSDT
-  - LINKUSDT
-  - AVAXUSDT
-  - DOTUSDT
-  - MATICUSDT
-  testnet: false
+  - BNBUSDT
+  - XRPUSDT
+
+# ============================================================
+# FILTRO MACRO - Institutional VWAP
+# ============================================================
+filtro_macro:
+  indicador: "VWAP"
+  # Si Precio > VWAP -> Contexto Alcista (Solo Longs)
+  # Si Precio < VWAP -> Contexto Bajista (Solo Shorts)
+
+# ============================================================
+# SEÑAL DE ENTRADA ALGO - Bollinger Mean Reversion
+# ============================================================
+entrada:
+  timeframe: "1"               # 1 minuto
+  velas: 150
+  bb_length: 20
+  bb_std: 2.0
+  volumen_ma_length: 20
+  volumen_spike_mult: 1.5      # El volumen del gatillo debe ser 1.5x mayor al promedio
+
+# ============================================================
+# GESTIÓN DE RIESGO - High Frequency Exits
+# ============================================================
+riesgo:
+  rr_take_profit: 1.5          # TP a 1.5x de distancia del riesgo
+  max_perdida_dia_pct: 3.0    
+  # Si el trade no llega ni a TP ni a SL en estas velas, cerrar a market.
+  time_based_exit_velas: 15    # Si a los 15 minutos (15 velas) no se resolvió, abandonar setup.
+
+# ============================================================
+# DASHBOARD Y REPORTES CLOUD
+# ============================================================
+dashboard:
+  puerto: 8080
+  host: "0.0.0.0"
+
+telegram:
+  reporte_estadisticas_cada_n_trades: 15   # Reporte en red cada 15 trades cerrados
+  reporte_diario_hora: 23      
+  reporte_semanal_dia: 0       

@@ -35,27 +35,61 @@ class Indicators:
         return ta.bbands(df['close'], length=length, std=std)
 
     @staticmethod
-    def add_indicators(df, config):
-        strat = config['estrategia']
-        df['ema_fast'] = Indicators.calculate_ema(df, strat['ema_rapida'])
-        df['ema_slow'] = Indicators.calculate_ema(df, strat['ema_lenta'])
-        df['ema_trend'] = Indicators.calculate_ema(df, strat.get('ema_tendencia', 200))
-        df['rsi'] = Indicators.calculate_rsi(df, strat['rsi_periodo'])
-        df['atr'] = Indicators.calculate_atr(df)
-        df['adx'] = Indicators.calculate_adx(df, strat.get('adx_periodo', 14))
-        df['vol_ma'] = Indicators.calculate_volume_sma(df, strat.get('volumen_ma', 20))
-        
-        # Bandas de Bollinger (Para estrategia Grid Secundaria)
-        bb = Indicators.calculate_bbands(df)
-        if bb is not None:
-            df = pd.concat([df, bb], axis=1)
-            # Renombrar columnas para facilitar acceso
-            # ta.bbands retorna nombres como BBL_20_2.0, BBU_20_2.0
-            cols = list(bb.columns)
-            if len(cols) >= 3:
-                df['bb_lower'] = bb[cols[0]]
-                df['bb_mid'] = bb[cols[1]]
-                df['bb_upper'] = bb[cols[2]]
+    def calculate_supertrend(df, length=10, multiplier=3.0):
+        st = ta.supertrend(df['high'], df['low'], df['close'], length=length, multiplier=multiplier)
+        if st is not None and not st.empty:
+            cols = list(st.columns)
+            # Retorna DataFrame original con trend_dir (1 o -1) y supertrend_value añadidos
+            df['supertrend_dir'] = st[cols[1]]
+            df['supertrend_val'] = st[cols[0]]
+        else:
+            df['supertrend_dir'] = 0
+            df['supertrend_val'] = 0
+        return df
+
+    @staticmethod
+    def calculate_macd(df, fast=12, slow=26, signal=9):
+        macd = ta.macd(df['close'], fast=fast, slow=slow, signal=signal)
+        if macd is not None and not macd.empty:
+            cols = list(macd.columns)
+            df['macd'] = macd[cols[0]]
+            df['macd_hist'] = macd[cols[1]]
+            df['macd_signal'] = macd[cols[2]]
+        else:
+            df['macd'] = 0
+            df['macd_hist'] = 0
+            df['macd_signal'] = 0
+        return df
+
+    @staticmethod
+    def calculate_vwap(df):
+        df_vp = df.copy()
+        if 'timestamp' in df_vp.columns:
+            df_vp.set_index('timestamp', inplace=True)
+        vwap = ta.vwap(high=df_vp['high'], low=df_vp['low'], close=df_vp['close'], volume=df_vp['volume'], anchor='D')
+        if vwap is not None and not vwap.empty:
+            if isinstance(vwap, pd.Series):
+                df['vwap'] = vwap.values
+            else:
+                cols = list(vwap.columns)
+                df['vwap'] = vwap[cols[0]].values
+        else:
+            df['vwap'] = df['close']
+        return df
+
+    @staticmethod
+    def add_indicators(df, config=None):
+        if config is None:
+            return df
+
+
+        if 'estrategia' in config:
+            strat = config['estrategia']
+            df['ema_fast'] = Indicators.calculate_ema(df, strat.get('ema_rapida', 20))
+            df['ema_slow'] = Indicators.calculate_ema(df, strat.get('ema_lenta', 50))
+            df['ema_trend'] = Indicators.calculate_ema(df, strat.get('ema_tendencia', 200))
+            df['rsi'] = Indicators.calculate_rsi(df, strat.get('rsi_periodo', 14))
+            df['atr'] = Indicators.calculate_atr(df)
         
         return df
 

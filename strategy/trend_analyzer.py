@@ -6,64 +6,50 @@ class TrendAnalyzer:
         self.client = client
         self.config = config
 
-    def get_market_trend(self, symbol):
+    def analyze_macro_trend(self, symbol):
         """
-        Analiza la tendencia diaria (1D) de un activo.
+        Analiza la tendencia macro.
+        Según config: timeframe 4H (240m), Supertrend + EMA200.
         Retorna: 'ALCISTA', 'BAJISTA' o 'LATERAL'
         """
-        klines = self.client.get_kline(symbol=symbol, interval="D", limit=250)
-        if not klines:
-            return "DESCONOCIDO"
-            
+        filtro = self.config.get('filtro_macro', {})
+        tf = str(filtro.get('timeframe', '240'))
+        velas_necesarias = int(filtro.get('velas', 250))
+        
+        klines = self.client.get_kline(symbol=symbol, interval=tf, limit=velas_necesarias)
+        if not klines: return "LATERAL"
+        
         df = Indicators.klines_to_df(klines)
-        df = Indicators.add_indicators(df, self.config)
+        
+        # Calcular EMA200 y Supertrend
+        ema_largo = int(filtro.get('ema_largo', 200))
+        st_len = int(filtro.get('supertrend_periodo', 10))
+        st_mult = float(filtro.get('supertrend_multiplicador', 3.0))
+        
+        df['ema_trend'] = Indicators.calculate_ema(df, ema_largo)
+        df = Indicators.calculate_supertrend(df, length=st_len, multiplier=st_mult)
         
         last_row = df.iloc[-1]
-        ema_fast = last_row.get('ema_fast')
-        ema_slow = last_row.get('ema_slow')
-        rsi = last_row.get('rsi')
         close = last_row.get('close')
+        ema_200 = last_row.get('ema_trend')
+        st_dir = last_row.get('supertrend_dir') # 1 = Bull, -1 = Bear
         
-        # Verificar que no sean NaN o None
-        if any(pd.isna(x) for x in [ema_fast, ema_slow, rsi, close]):
-            return "LATERAL"
-            
-        # Lógica de tendencia basada en EMAs y RSI
-        if close > ema_fast > ema_slow and rsi > 50:
+        if pd.isna(close) or pd.isna(ema_200) or pd.isna(st_dir): return "LATERAL"
+        
+        if close > ema_200 and st_dir == 1:
             return "ALCISTA"
-        elif close < ema_fast < ema_slow and rsi < 50:
+        elif close < ema_200 and st_dir == -1:
             return "BAJISTA"
-        else:
-            return "LATERAL"
-
-    def analyze_btc_15m_filter(self):
-        """
-        Analiza si BTC ha movido > 3% en los últimos 15 minutos.
-        Define la tendencia de referencia.
-        """
-        klines = self.client.get_kline(symbol="BTCUSDT", interval="15", limit=2)
-        if not klines:
-            return "NEUTRAL", 0
             
-        # kline: [start, open, high, low, close, ...]
-        open_p = float(klines[0][1])
-        close_p = float(klines[0][4])
-        
-        cambio_pct = ((close_p - open_p) / open_p) * 100
-        
-        if abs(cambio_pct) >= 3.0:
-            trend = "ALCISTA" if cambio_pct > 0 else "BAJISTA"
-            send_log(f"⚡ MOVIMIENTO BRUSCO BTC: {cambio_pct:.2f}% (Tendencia: {trend})", "log-warning")
-            return trend, abs(cambio_pct)
-            
-        return "NEUTRAL", abs(cambio_pct)
+        return "LATERAL"
 
     def analyze_btc_filter(self):
         """
-        Analiza BTC como filtro global.
-        Solo bloquea si hay movimiento brusco (>3% en 15m).
+        Filtro de Bitcoin global de 4H.
+        Retorna 'ALCISTA', 'BAJISTA' o 'LATERAL'
         """
-        trend_15m, pct = self.analyze_btc_15m_filter()
+        btc_config = self.config.get('filtro_btc', {})
+        if not btc_config.get('activado', True): return "LATERAL"
         
-        # Retornamos la tendencia de 15m (será NEUTRAL si < 3%)
-        return trend_15m
+        symbol = btc_config.get('simbolo', 'BTCUSDT')
+        return self.analyze_macro_trend(symbol)
