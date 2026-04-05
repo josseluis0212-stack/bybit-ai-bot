@@ -60,15 +60,15 @@ class MarketScanner:
         
         logger.info(f"Escaneando {len(valid_tickers)} monedas líquidas de {len(tickers)} totales.")
         
-        # 3. Procesamiento en Paralelo con Semáforo (10 trabajadores concurrentes)
-        # Esto previene bloqueos de IP por Bybit mientras acelera el escaneo 5x.
-        semaphore = asyncio.Semaphore(10)
+        # 3. Procesamiento en Paralelo con Semáforo (30 trabajadores concurrentes)
+        # Esto previene bloqueos de IP por Bybit mientras acelera el escaneo 10x.
+        semaphore = asyncio.Semaphore(30)
         
         async def scan_symbol(item):
             async with semaphore:
                 symbol = item['symbol']
                 # Pequeña pausa para no saturar CPU local
-                await asyncio.sleep(0.02)
+                await asyncio.sleep(0.01)
                 
                 df = await self.get_klines_as_df(symbol)
                 if df is not None and not df.empty:
