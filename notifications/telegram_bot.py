@@ -36,6 +36,19 @@ class TelegramNotifier:
         except Exception as e:
             logger.error(f"Error enviando mensaje a Telegram: {e}")
             return False
+    async def notify_signal_detected(self, symbol, side, entry_price, sl, tp):
+        emoji = "🔭" if side.upper() == "LONG" else "🔎"
+        message = f"""
+📡 <b>SEÑAL DETECTADA</b> - {symbol}
+        
+<b>Tipo:</b> {side.upper()} {emoji}
+<b>Zona de Entrada:</b> {entry_price}
+<b>Stop Loss:</b> {sl}
+<b>Take Profit:</b> {tp}
+
+<i>El sistema está intentando ejecutar esta operación...</i>
+"""
+        return await self.send_message(message)
 
     async def notify_order_opened(self, symbol, side, entry_price, sl, tp, qty, leverage, current_trades, max_trades, risk_usdt):
         emoji = "🟢" if side.upper() == "LONG" else "🔴"

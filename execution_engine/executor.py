@@ -95,6 +95,12 @@ class ExecutionEngine:
 
         side = "Buy" if signal == "LONG" else "Sell"
         
+        # 3.4 Notificación Inmediata de Señal (ALERTA)
+        await telegram_notifier.notify_signal_detected(
+            symbol=symbol, side=signal, entry_price=f"{entry_price:.4f}",
+            sl=f"{sl_price:.4f}", tp=f"{tp_price:.4f}"
+        )
+        
         # 3.5 Establecer Apalancamiento Fijo 10x
         bybit_client.set_leverage(symbol, leverage)
         
