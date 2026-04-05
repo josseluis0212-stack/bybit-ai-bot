@@ -1,109 +1,124 @@
 import pandas as pd
 import ta
 import logging
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
-class TrendPullbackStrategy:
+class HyperQuantStrategy:
     """
-    Estrategia Cuantitativa de Tendencia y Retroceso (Trend-Pullback).
+    Hyper-Quant V3: Estrategia Autónoma de Reversión Vectorizada (VMR).
+    Optimizado para marcos de 1 minuto y alta frecuencia.
     
-    Lógica de Compra (LONG):
-    1. Filtro Macro: Precio actual > EMA 200 (Tendencia alcista mayor).
-    2. Filtro Micro: EMA 21 > EMA 200.
-    3. Gatillo: RSI (14) < 35 (Sobrevendido en una tendencia alcista).
-    
-    Lógica de Venta (SHORT):
-    1. Filtro Macro: Precio actual < EMA 200 (Tendencia bajista mayor).
-    2. Filtro Micro: EMA 21 < EMA 200.
-    3. Gatillo: RSI (14) > 65 (Sobrecomprado en una tendencia bajista).
-    
-    Gestión de Riesgo:
-    - Stop Loss temporal: 1.5 * ATR(14) para calcular riesgo.
-    - Take Profit temporal: 3.0 * ATR(14) (Risk/Reward 1:2).
+    Lógica:
+    1. Identifica extremos de volatilidad usando Bandas de Bollinger a 2.5 desviaciones.
+    2. Filtra por flujo de dinero institucional (MFI) para detectar clímax de compras/ventas.
+    3. Usa VWAP como ancla de 'Valor Justo' para asegurar que operamos hacia la media.
+    4. Gestión de Riesgo dinámica basada en ATR.
     """
 
     def __init__(self):
-        self.ema_fast = 21
-        self.ema_slow = 200
-        self.rsi_period = 14
-        self.rsi_oversold = 35
-        self.rsi_overbought = 65
+        self.bb_window = 20
+        self.bb_dev = 2.5
+        self.mfi_period = 14
+        self.mfi_oversold = 20
+        self.mfi_overbought = 80
         self.atr_period = 14
         self.atr_sl_multiplier = 1.5
-        self.atr_tp_multiplier = 3.0
+        self.atr_tp_multiplier = 2.2 # R/R ~1.5
+
+    def calculate_vwap(self, df):
+        """Calcula el VWAP sesional (simplificado para el DF actual)"""
+        v = df['volume'].values
+        tp = (df['high'] + df['low'] + df['close']).values / 3
+        return (tp * v).cumsum() / v.cumsum()
 
     def analyze(self, symbol: str, df: pd.DataFrame):
-        """
-        Analiza un DataFrame de klines (velas) y devuelve una señal.
-        Se espera que el df tenga al menos las columnas: ['open', 'high', 'low', 'close']
-        """
-        if len(df) < self.ema_slow + 1:
-            # No hay suficientes datos para calcular la EMA 200
+        if len(df) < self.bb_window + 1:
             return None
 
-        # Convertir a numérico si no lo están
-        for col in ['open', 'high', 'low', 'close']:
+        # Asegurar tipos numéricos
+        for col in ['open', 'high', 'low', 'close', 'volume']:
             df[col] = pd.to_numeric(df[col], errors='coerce')
 
-        # Calcular indicadores
         try:
-            df['ema21'] = ta.trend.ema_indicator(close=df['close'], window=self.ema_fast)
-            df['ema200'] = ta.trend.ema_indicator(close=df['close'], window=self.ema_slow)
-            df['rsi'] = ta.momentum.rsi(close=df['close'], window=self.rsi_period)
-            
-            # True Range y ATR
-            atr_indicator = ta.volatility.AverageTrueRange(
+            # Bandas de Bollinger (Configuración Extrema)
+            indicator_bb = ta.volatility.BollingerBands(
+                close=df['close'], window=self.bb_window, window_dev=self.bb_dev
+            )
+            df['bb_high'] = indicator_bb.bollinger_hband()
+            df['bb_low'] = indicator_bb.bollinger_lband()
+            df['bb_mid'] = indicator_bb.bollinger_mavg()
+
+            # Money Flow Index (Exhaustión de Volumen)
+            df['mfi'] = ta.momentum.mfi(
+                high=df['high'], low=df['low'], close=df['close'], volume=df['volume'], window=self.mfi_period
+            )
+
+            # ATR para Riesgo
+            df['atr'] = ta.volatility.average_true_range(
                 high=df['high'], low=df['low'], close=df['close'], window=self.atr_period
             )
-            df['atr'] = atr_indicator.average_true_range()
-            
+
+            # VWAP (Valor Justo)
+            df['vwap'] = self.calculate_vwap(df)
+
         except Exception as e:
-            logger.error(f"Error calculando indicadores para {symbol}: {e}")
+            logger.error(f"Error en indicadores para {symbol}: {e}")
             return None
 
-        # Obtener la vela más reciente y la anterior (para evitar repintado se usa la reciente cerrada, pero aquí tomamos la última disponible)
-        # Usamos iloc[-1] como la actual o iloc[-2] si queremos solo la vela cerrada.
         current = df.iloc[-1]
+        prev = df.iloc[-2]
         
-        # Saltamos si hay NaNs en los indicadores críticos
-        if pd.isna(current['ema200']) or pd.isna(current['atr']):
+        if pd.isna(current['bb_high']) or pd.isna(current['mfi']) or pd.isna(current['atr']):
             return None
 
-        signal = None
-        tp_price = None
-        sl_price = None
+        price = current['close']
+        vwap = current['vwap']
+        mfi = current['mfi']
+        atr = current['atr']
         
-        c_price = current['close']
-        c_ema21 = current['ema21']
-        c_ema200 = current['ema200']
-        c_rsi = current['rsi']
-        c_atr = current['atr']
+        signal = None
+        sl_price = None
+        tp_price = None
 
-        # Evaluar LONG
-        if c_price > c_ema200 and c_ema21 > c_ema200:
-            if c_rsi < self.rsi_oversold:
-                signal = "LONG"
-                sl_price = c_price - (c_atr * self.atr_sl_multiplier)
-                tp_price = c_price + (c_atr * self.atr_tp_multiplier)
+        # --- Lógica de LONG (Reversión al Alza) ---
+        # Condición: El precio rompió la banda inferior y el MFI indica pánico vendedor (sobrevendido)
+        # Filtro: Solo entramos si estamos por debajo del VWAP (comprando barato)
+        if price < vwap:
+            if (prev['close'] < prev['bb_low'] or current['low'] < current['bb_low']) and mfi < self.mfi_oversold:
+                # Gatillo: Vela actual cierra por encima de la media de la vela anterior o muestra rechazo
+                if price > prev['low']:
+                    signal = "LONG"
+                    sl_price = price - (atr * self.atr_sl_multiplier)
+                    tp_price = price + (atr * self.atr_tp_multiplier)
 
-        # Evaluar SHORT
-        elif c_price < c_ema200 and c_ema21 < c_ema200:
-            if c_rsi > self.rsi_overbought:
-                signal = "SHORT"
-                sl_price = c_price + (c_atr * self.atr_sl_multiplier)
-                tp_price = c_price - (c_atr * self.atr_tp_multiplier)
+        # --- Lógica de SHORT (Reversión a la Baja) ---
+        # Condición: El precio rompió la banda superior y el MFI indica euforia compradora (sobrecomprado)
+        # Filtro: Solo entramos si estamos por encima del VWAP (vendiendo caro)
+        elif price > vwap:
+            if (prev['close'] > prev['bb_high'] or current['high'] > current['bb_high']) and mfi > self.mfi_overbought:
+                # Gatillo: Rechazo en la parte superior
+                if price < prev['high']:
+                    signal = "SHORT"
+                    sl_price = price + (atr * self.atr_sl_multiplier)
+                    tp_price = price - (atr * self.atr_tp_multiplier)
 
         if signal:
+            # Validación final: No entrar si el SL es absurdo o el TP está demasiado cerca
+            if abs(price - sl_price) / price < 0.001: # Menos de 0.1% es ruido
+                return None
+
             return {
                 "symbol": symbol,
                 "signal": signal,
-                "entry_price": c_price,
+                "entry_price": price,
                 "sl": sl_price,
                 "tp": tp_price,
-                "atr": c_atr
+                "atr": atr,
+                "vwap": vwap
             }
-        
+
         return None
 
-strategy = TrendPullbackStrategy()
+strategy = HyperQuantStrategy()

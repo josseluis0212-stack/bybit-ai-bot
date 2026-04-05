@@ -35,7 +35,7 @@ class ExecutionEngine:
         # 1. Chequeo de límites concurrentes
         open_count = db_manager.get_open_trades_count()
         if open_count >= settings.MAX_CONCURRENT_TRADES:
-            logger.info(f"Omitiendo señal {symbol} - Límite de trades abierto alcanzado.")
+            logger.info(f"Omitiendo señal {symbol} - Límite de trades abiertos ({settings.MAX_CONCURRENT_TRADES}) alcanzado.")
             return False
 
         # 2. Chequeo de capital en Bybit
@@ -47,13 +47,20 @@ class ExecutionEngine:
              if usdt_balance:
                  available_balance = float(usdt_balance['walletBalance'])
                  
-        if not risk_manager.can_open_new_trade(open_count, available_balance):
+        # Forzamos los parámetros autónomos: $50 de margen y 10x
+        fixed_margin = 50.0 
+        leverage = 10 
+        required_margin = fixed_margin * 1.1 # Buffer del 10%
+        
+        if available_balance < required_margin:
+            logger.warning(f"Omitiendo {symbol} - Balance insuficiente ({available_balance:.2f} < {required_margin})")
             return False
 
-        # 3. Calcular cantidad e instruir la orden
-        qty = risk_manager.calculate_position_size(entry_price)
+        # 3. Calcular cantidad para una posición de $500 nocional ($50 * 10)
+        notional_value = fixed_margin * leverage
+        qty = notional_value / entry_price
         
-        # Ajustar lote mínimo sugerido por Bybit mediante instruments_info
+        # Ajustar lote mínimo
         instruments_info = bybit_client.get_instruments_info(symbol=symbol)
         qty_str = f"{qty:.3f}"
         tp_str = f"{tp_price:.4f}"
@@ -65,139 +72,112 @@ class ExecutionEngine:
             tp_str = self._format_step(tp_price, info["tickSize"])
             sl_str = self._format_step(sl_price, info["tickSize"])
             
-            # Additional safety check vs Bybit minimum order size
             min_qty = float(info.get("minOrderQty", "0"))
             if float(qty_str) < min_qty:
-                logger.warning(f"Omitiendo señal {symbol} - Cantidad {qty_str} es menor al mínimo de Bybit {min_qty}.")
+                logger.warning(f"Omitiendo {symbol} - Cantidad {qty_str} < Mínimo {min_qty}")
                 return False
-        else:
-            logger.warning(f"Info de instrumento no encontrada para {symbol}. Usando default_step 3 decimales.")
-            qty_str = f"{qty:.3f}"
-            tp_str = f"{tp_price:.4f}"
-            sl_str = f"{sl_price:.4f}"
         
         if float(qty_str) <= 0:
-            logger.warning(f"Omitiendo señal {symbol} - Cantidad muy pequeña tras ajustar a lote mínimo.")
             return False
 
         side = "Buy" if signal == "LONG" else "Sell"
         
-        # 3.5 Establecer Apalancamiento para la moneda antes de la primera orden
-        bybit_client.set_leverage(symbol, settings.LEVERAGE)
+        # 3.5 Establecer Apalancamiento Fijo 10x
+        bybit_client.set_leverage(symbol, leverage)
         
-        logger.info(f"🚀 Ejecutando {signal} en {symbol} | Qty: {qty_str} | SL: {sl_str} | TP: {tp_str}")
+        logger.info(f"🚀 [AUTÓNOMO] Ejecutando {signal} en {symbol} | Notion: ${notional_value} | Margin: ${fixed_margin}")
         
         response = bybit_client.place_order(
             symbol=symbol,
             side=side,
-            order_type="Market", # Entramos Market porque la vela ya cerró confirmando señal
+            order_type="Market",
             qty=qty_str,
             take_profit=tp_str,
             stop_loss=sl_str
         )
 
         if response and response.get("retCode") == 0:
-            # 4. Guardar en Base de Datos
             risk_usdt = abs(entry_price - sl_price) * float(qty_str)
             db_manager.add_trade(
-                symbol=symbol,
-                side=signal,
-                entry_price=entry_price,
-                sl=sl_price,
-                tp=tp_price,
-                qty=float(qty_str),
-                leverage=settings.LEVERAGE,
-                risk_usdt=risk_usdt
+                symbol=symbol, side=signal, entry_price=entry_price,
+                sl=sl_price, tp=tp_price, qty=float(qty_str),
+                leverage=leverage, risk_usdt=risk_usdt
             )
             
-            # 5. Notificar a Telegram
             await telegram_notifier.notify_order_opened(
-                symbol=symbol,
-                side=signal,
-                entry_price=f"{entry_price:.4f}",
-                sl=f"{sl_price:.4f}",
-                tp=f"{tp_price:.4f}",
-                qty=qty_str,
-                leverage=settings.LEVERAGE,
-                current_trades=open_count + 1,
-                max_trades=settings.MAX_CONCURRENT_TRADES,
+                symbol=symbol, side=signal, entry_price=f"{entry_price:.4f}",
+                sl=sl_price, tp=tp_price, qty=qty_str, leverage=leverage,
+                current_trades=open_count + 1, max_trades=settings.MAX_CONCURRENT_TRADES,
                 risk_usdt=f"{risk_usdt:.2f}"
             )
             return True
-        else:
-            logger.error(f"Fallo al ejecutar orden en Bybit: {response}")
-            return False
+        return False
 
     async def check_open_positions(self):
         """
-        Revisa las posiciones abiertas en la BD y las sincroniza con Bybit para ver si tocaron SL o TP.
-        En una versión PRO real esto se hace vía WebSockets, pero por API REST verificamos el estado.
+        Monitoriza trades abiertos, aplica el Time-Exit de 15m y reporta estadísticas cada 10 trades.
         """
         open_trades = db_manager.get_open_trades()
         if not open_trades:
             return
             
-        logger.info(f"Monitorizando {len(open_trades)} operaciones abiertas...")
+        from datetime import datetime, timedelta
+        now = datetime.utcnow()
         
-        # Obtenemos las posiciones reales de Bybit
         positions_response = bybit_client.get_positions()
-        
         real_positions = {}
         if positions_response and positions_response.get('retCode') == 0:
             for pos in positions_response['result']['list']:
-                # pos['size'] > 0 indica que la posición sigue abierta
                 if float(pos['size']) > 0:
                     real_positions[pos['symbol']] = pos
 
-        # Comparar nuestra BD con Bybit
         for trade in open_trades:
             symbol = trade.symbol
             
-            # Si el trade está en nuestra DB pero NO en Bybit con size > 0, significa que se cerró (SL o TP tocado)
+            # --- Regla de TIME-EXIT (15 Minutos) ---
+            duration = now - trade.open_time
+            if duration.total_seconds() > 900: # 15 minutos * 60s
+                logger.info(f"⏳ Time-Exit activado para {symbol} (Duración: {duration.total_seconds()/60:.1f} min)")
+                # Cerramos posición mandando una orden opuesta Market
+                side = "Sell" if trade.side == "LONG" else "Buy"
+                bybit_client.place_order(symbol=symbol, side=side, order_type="Market", qty=str(trade.qty))
+                # El loop siguiente lo detectará como cerrado y procesará el PnL
+                continue
+
             if symbol not in real_positions:
-                logger.info(f"El trade {symbol} ya no está activo en Bybit. Procesando cierre...")
-                
-                # Obtenemos historia de órdenes cerradas para ver por qué se cerró
-                # Para simplificar, obtenemos el precio actual de ticker como exit price aproximado
-                # En PRO: Se busca el PnL exacto en el endpoint de 'closed-pnl'
+                logger.info(f"Trade {symbol} cerrado por Bybit (TP/SL/Manual).")
                 tickers = bybit_client.get_tickers()
-                if not tickers: continue
-                    
                 ticker_info = next((t for t in tickers if t['symbol'] == symbol), None)
                 if not ticker_info: continue
                 
                 exit_price = float(ticker_info['lastPrice'])
-                
-                # Aproximación de pnl (LONG vs SHORT)
                 if trade.side == "LONG":
                     pnl_usdt = (exit_price - trade.entry_price) * trade.qty
-                    reason = "TAKE PROFIT" if exit_price >= trade.take_profit else ("STOP LOSS" if exit_price <= trade.stop_loss else "CERRADA")
+                    reason = "TAKE PROFIT" if exit_price >= (trade.take_profit or 0) else ("STOP LOSS" if exit_price <= (trade.stop_loss or 0) else "CERRADA/TIME-EXIT")
                 else:
                     pnl_usdt = (trade.entry_price - exit_price) * trade.qty
-                    reason = "TAKE PROFIT" if exit_price <= trade.take_profit else ("STOP LOSS" if exit_price >= trade.stop_loss else "CERRADA")
+                    reason = "TAKE PROFIT" if exit_price <= (trade.take_profit or 0) else ("STOP LOSS" if exit_price >= (trade.stop_loss or 0) else "CERRADA/TIME-EXIT")
                 
                 pnl_pct = (pnl_usdt / (trade.entry_price * trade.qty)) * 100 * trade.leverage
-                
-                # Actualizar DB
                 db_manager.close_trade(trade.id, exit_price, pnl_usdt, pnl_pct, reason)
                 
-                # Consultar balance para Telegram
                 balance_info = bybit_client.get_wallet_balance()
-                current_balance = 0.0
-                if balance_info and balance_info.get('retCode') == 0:
-                     current_balance = float(balance_info['result']['list'][0]['coin'][0]['walletBalance'])
+                current_balance = float(balance_info['result']['list'][0]['coin'][0]['walletBalance']) if balance_info else 0.0
                 
-                # Notificar a Telegram
                 await telegram_notifier.notify_order_closed(
-                    symbol=symbol,
-                    side=trade.side,
-                    entry_price=f"{trade.entry_price:.4f}",
-                    exit_price=f"{exit_price:.4f}",
-                    pnl_usdt=pnl_usdt,
-                    pnl_pct=pnl_pct,
-                    duration="N/A", # Simplificación
-                    reason=reason,
-                    balance=current_balance
+                    symbol=symbol, side=trade.side, entry_price=f"{trade.entry_price:.4f}",
+                    exit_price=f"{exit_price:.4f}", pnl_usdt=pnl_usdt, pnl_pct=pnl_pct,
+                    duration=f"{duration.total_seconds()/60:.1f} min", reason=reason, balance=current_balance
                 )
+
+                # --- Verificación de Reporte Estadístico (Cada 10 trades) ---
+                closed_count = db_manager.get_closed_trades_count()
+                if closed_count > 0 and closed_count % 10 == 0:
+                    daily = db_manager.get_stats("daily")
+                    weekly = db_manager.get_stats("weekly")
+                    monthly = db_manager.get_stats("monthly")
+                    await telegram_notifier.notify_stats_summary(daily, weekly, monthly, closed_count)
+
+executor = ExecutionEngine()
 
 executor = ExecutionEngine()

@@ -4,14 +4,13 @@ import logging
 import time
 from api.bybit_client import bybit_client
 from strategy.base_strategy import strategy
-from risk_management.risk_manager import risk_manager
 
 logger = logging.getLogger(__name__)
 
 class MarketScanner:
     def __init__(self):
-        self.timeframe = "15" # 15 minutos por defecto para intradía
-        self.limit = 250 # Necesitamos al menos 200 velas para la EMA 200
+        self.timeframe = "1" # Scalping Ultra-rápido de 1 Minuto
+        self.limit = 400 # Suficiente para VWAP y Bollinger 200 si se requiere
         
     async def get_klines_as_df(self, symbol):
         """
@@ -43,31 +42,33 @@ class MarketScanner:
 
     async def scan_market(self):
         """
-        Rastrea todos los pares buscando señales.
+        Rastrea todos los pares buscando las mejores señales de reversión.
         """
-        logger.info("Iniciando escaneo completo del mercado...")
+        logger.info("Iniciando escaneo de alta frecuencia Hyper-Quant...")
         
         tickers = bybit_client.get_tickers()
         if not tickers:
             logger.error("No se pudieron cargar los tickers. Reintentando luego...")
             return []
             
-        # Ordenar por volumen (turnover24h) descendente para escanear los más relevantes primero
+        # Filtrar por volumen para asegurar liquidez (mínimo 1M turnover si hay muchos)
+        # Pero escaneamos por prioridad de volumen primero
         tickers = sorted(tickers, key=lambda x: float(x.get('turnover24h', 0)), reverse=True)
         
-        # Analizar todos en lugar de limitar a 50
         valid_signals = []
-        for item in tickers:
+        # Para evitar excesivo lag, escaneamos los Top 100 por volumen. 
+        # Bybit suele tener 200+, pero los últimos 100 suelen tener poco volumen para scalping a 1m.
+        for item in tickers[:80]: # Reducimos ligeramente para ser mas veloces en el loop de 60s
             symbol = item['symbol']
             
-            # API Rate Limit mitigation (pequeña pausa)
-            await asyncio.sleep(0.1)
+            # API Rate Limit mitigation
+            await asyncio.sleep(0.05) # Reducido a 0.05 para acelerar el escaneo total (~4-5s total)
             
             df = await self.get_klines_as_df(symbol)
             if df is not None and not df.empty:
                 signal_data = strategy.analyze(symbol, df)
                 if signal_data:
-                    logger.info(f"🚨 SEÑAL ENCONTRADA: {signal_data['signal']} en {symbol} a {signal_data['entry_price']}")
+                    logger.info(f"🚨 SEÑAL HYPER: {signal_data['signal']} en {symbol} | Precio: {signal_data['entry_price']}")
                     valid_signals.append(signal_data)
                     
         return valid_signals

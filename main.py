@@ -13,42 +13,66 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+import aiohttp
+
+async def render_heartbeat():
+    """
+    Servicio de Supervivencia: Evita que Render apague la instancia por inactividad.
+    Realiza un self-ping cada 10 minutos.
+    """
+    port = os.environ.get("PORT", "10000")
+    url = f"http://localhost:{port}/health"
+    await asyncio.sleep(60) # Esperar a que el servidor inicie
+    
+    async with aiohttp.ClientSession() as session:
+        while True:
+            try:
+                async with session.get(url) as response:
+                    if response.status == 200:
+                        logger.info("💓 Heartbeat: Sistema activo y saludable.")
+                    else:
+                        logger.warning(f"💓 Heartbeat: Respuesta inesperada {response.status}")
+            except Exception as e:
+                logger.error(f"💓 Heartbeat Error: {e}")
+            
+            await asyncio.sleep(600) # 10 minutos
+
 async def bot_loop():
-    logger.info("Iniciando Trading Bot Profesional Demo (Loop Principal)...")
-    logger.info(f"Parámetros: {settings.LEVERAGE}x | Capital/Trade: {settings.TRADE_AMOUNT_USDT} USDT | Max Trades: {settings.MAX_CONCURRENT_TRADES}")
+    logger.info("🚀 INICIANDO HYPER-QUANT V3 (MODO AUTÓNOMO)...")
+    logger.info(f"Estrategia: Vectorized Mean Reversion (1m) | Apalancamiento: 10x | Margen: $50")
     
     while True:
+        start_time = time.time()
         try:
-            logger.info("--- Iniciando ciclo de escaneo ---")
+            logger.info("--- [Ciclo de Escaneo de Alta Frecuencia] ---")
             
-            # 0. Sincronizar y cerrar posiciones abiertas que hayan tocado SL/TP
+            # 0. Sincronizar y aplicar Time-Exits
             await executor.check_open_positions()
             
-            # 1. Escanear el mercado (TOP 50 en volumen para optimizar API)
+            # 1. Escanear el mercado completo
             signals = await market_scanner.scan_market()
             
-            # 2. Procesar señales encontradas
+            # 2. Procesar señales
             if signals:
-                logger.info(f"Procesando {len(signals)} señales generadas...")
+                logger.info(f"Procesando {len(signals)} señales encontradas...")
                 for sig in signals:
                     await executor.try_execute_signal(sig)
-            else:
-                logger.info("Sin señales en este ciclo.")
             
-            logger.info("Ciclo completado. Pausando por 5 minutos...")
-            # En producción puede ser cada 1, 5 o 15 minutos exactos usando un scheduler
-            await asyncio.sleep(300) 
+            # Cálculo de tiempo para mantener el ciclo cerca de 60s
+            elapsed = time.time() - start_time
+            sleep_time = max(1, 60 - elapsed)
+            
+            logger.info(f"Ciclo completado en {elapsed:.1f}s. Durmiendo {sleep_time:.1f}s...")
+            await asyncio.sleep(sleep_time) 
             
         except Exception as e:
-            logger.error(f"Error crítico en el bucle principal: {e}")
+            logger.error(f"Error crítico en Hyper-Quant Loop: {e}")
             await asyncio.sleep(60)
 
 async def handle_health_check(request):
-    """Responde 200 OK para que Render sepa que la app está viva"""
-    return web.Response(text="Bot is running! 🚀")
+    return web.Response(text="Hyper-Quant V3 is alive! 🚀")
 
 async def init_web_server():
-    """Inicia un servidor web dummy para cumplir con los requisitos de Render (Web Service Free)"""
     app = web.Application()
     app.router.add_get('/', handle_health_check)
     app.router.add_get('/health', handle_health_check)
@@ -59,16 +83,18 @@ async def init_web_server():
     port = int(os.environ.get("PORT", "10000"))
     site = web.TCPSite(runner, '0.0.0.0', port)
     await site.start()
-    logger.info(f"Servidor web dummy iniciado en el puerto {port}")
+    logger.info(f"Servidor de supervivencia iniciado en el puerto {port}")
 
 async def main():
-    # Iniciamos el servidor web y el bot concurrentemente
+    # Iniciamos el servidor, el bot y el heartbeat concurrentemente
     await asyncio.gather(
         init_web_server(),
+        render_heartbeat(),
         bot_loop()
     )
 
 if __name__ == '__main__':
+    import time # Requerido para start_time
     try:
         asyncio.run(main())
     except KeyboardInterrupt:

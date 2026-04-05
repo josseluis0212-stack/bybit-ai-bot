@@ -81,4 +81,56 @@ class DBManager:
         finally:
             session.close()
 
+    def get_closed_trades_count(self) -> int:
+        session = self.Session()
+        try:
+            return session.query(Trade).filter(Trade.status == "CLOSED").count()
+        finally:
+            session.close()
+
+    def get_stats(self, period="daily"):
+        """
+        Calcula estadísticas para un periodo: daily, weekly, monthly.
+        """
+        from datetime import datetime, timedelta
+        from sqlalchemy import func
+        
+        session = self.Session()
+        try:
+            now = datetime.utcnow()
+            if period == "daily":
+                start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            elif period == "weekly":
+                start_date = now - timedelta(days=now.weekday())
+                start_date = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
+            elif period == "monthly":
+                start_date = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            else:
+                start_date = now - timedelta(days=1)
+
+            trades = session.query(Trade).filter(
+                Trade.status == "CLOSED",
+                Trade.close_time >= start_date
+            ).all()
+
+            if not trades:
+                return {"total_pnl": 0.0, "win_rate": 0.0, "count": 0, "pnl_pct": 0.0}
+
+            total_pnl = sum(t.pnl_usdt for t in trades if t.pnl_usdt)
+            total_pnl_pct = sum(t.pnl_pct for t in trades if t.pnl_pct)
+            wins = len([t for t in trades if t.pnl_usdt > 0])
+            win_rate = (wins / len(trades)) * 100
+
+            return {
+                "total_pnl": total_pnl,
+                "pnl_pct": total_pnl_pct,
+                "win_rate": win_rate,
+                "count": len(trades)
+            }
+        except Exception as e:
+            logger.error(f"Error calculando estadísticas {period}: {e}")
+            return None
+        finally:
+            session.close()
+
 db_manager = DBManager()

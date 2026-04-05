@@ -71,4 +71,27 @@ class TelegramNotifier:
 """
         return await self.send_message(message)
 
+    async def notify_stats_summary(self, daily, weekly, monthly, last_n_count):
+        message = f"""
+📊 <b>RESUMEN ESTADÍSTICO</b> (Últimos {last_n_count} trades)
+
+📅 <b>DIARIO:</b>
+💰 PnL: {daily['total_pnl']:.2f} USDT ({daily['pnl_pct']:.2f}%)
+📈 Win Rate: {daily['win_rate']:.1f}%
+📝 Trades: {daily['count']}
+
+🗓️ <b>SEMANAL:</b>
+💰 PnL: {weekly['total_pnl']:.2f} USDT ({weekly['pnl_pct']:.2f}%)
+📈 Win Rate: {weekly['win_rate']:.1f}%
+📝 Trades: {weekly['count']}
+
+🏛️ <b>MENSUAL:</b>
+💰 PnL: {monthly['total_pnl']:.2f} USDT ({monthly['pnl_pct']:.2f}%)
+📈 Win Rate: {monthly['win_rate']:.1f}%
+📝 Trades: {monthly['count']}
+
+Misión: 🚀 <b>RENTABILIDAD MÁXIMA</b>
+"""
+        return await self.send_message(message)
+
 telegram_notifier = TelegramNotifier()
