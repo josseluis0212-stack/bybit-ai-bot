@@ -39,7 +39,8 @@ async def render_heartbeat():
 
 async def bot_loop():
     logger.info("🚀 INICIANDO HYPER-QUANT V3 (MODO AUTÓNOMO)...")
-    logger.info(f"Estrategia: Vectorized Mean Reversion (1m) | Apalancamiento: 10x | Margen: $50")
+    from notifications.telegram_bot import telegram_notifier
+    await telegram_notifier.send_message("🚀 **Hyper-Quant V3 Iniciado**\n\nEl sistema está en línea y escaneando los **516 pares líquidos** del mercado Bybit en tiempo real.\n\nEstrategia: Reversión Vectorizada (1m)\nConfiguración: Alta Frecuencia (2.0 Dev)")
     
     while True:
         start_time = time.time()
