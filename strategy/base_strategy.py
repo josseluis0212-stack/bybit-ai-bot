@@ -19,10 +19,10 @@ class HyperQuantStrategy:
 
     def __init__(self):
         self.bb_window = 20
-        self.bb_dev = 2.5
+        self.bb_dev = 2.0
         self.mfi_period = 14
-        self.mfi_oversold = 20
-        self.mfi_overbought = 80
+        self.mfi_oversold = 30
+        self.mfi_overbought = 70
         self.atr_period = 14
         self.atr_sl_multiplier = 1.5
         self.atr_tp_multiplier = 2.2 # R/R ~1.5
