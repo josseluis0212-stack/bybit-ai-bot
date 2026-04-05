@@ -27,11 +27,8 @@ class HyperQuantStrategy:
         self.atr_sl_multiplier = 1.5
         self.atr_tp_multiplier = 2.2 # R/R ~1.5
 
-    def calculate_vwap(self, df):
-        """Calcula el VWAP sesional (simplificado para el DF actual)"""
-        v = df['volume'].values
-        tp = (df['high'] + df['low'] + df['close']).values / 3
-        return (tp * v).cumsum() / v.cumsum()
+        cumsum_v = v.cumsum()
+        return np.divide((tp * v).cumsum(), cumsum_v, out=np.zeros_like(cumsum_v), where=cumsum_v!=0)
 
     def analyze(self, symbol: str, df: pd.DataFrame):
         if len(df) < self.bb_window + 1:
