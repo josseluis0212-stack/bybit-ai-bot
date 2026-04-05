@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 pybit>=5.8.0
 python-telegram-bot>=20.8
 python-dotenv>=1.0.1
@@ -7,16 +6,3 @@ numpy>=1.26.4
 SQLAlchemy>=2.0.29
 ta>=0.11.0
 aiohttp>=3.9.0
-=======
-pybit
-pandas
-pandas-ta
-python-dotenv
-requests
-Flask
-Flask-SocketIO
-PyYAML
-eventlet
-gunicorn
-aiohttp
->>>>>>> 877fcfbfb4560be4c8c22641f46a99a14f54d375
