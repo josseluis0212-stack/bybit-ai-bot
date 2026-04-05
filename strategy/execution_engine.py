@@ -48,20 +48,30 @@ class ExecutionEngine:
         vol_mult = float(entrada_cfg.get('volumen_spike_mult', 1.5))
         has_volume_spike = last['volume'] > (last['vol_ma'] * vol_mult)
         
-        # 3. PATRÓN DE HYPER SCALPING (Cero Fricción)
-        # LONG: La vela roza o penetra la banda inferior en 1 minuto
-        setup_long = last['low'] <= last['bb_lower']
+        # 3. FILTRO RSI - CONFIRMACIÓN DE SOBRECALENTAMIENTO
+        df['rsi'] = Indicators.calculate_rsi(df, length=7)  # RSI rápido para scalping
+        last = df.iloc[-1]  # refrescar después de calcular RSI
         
-        # SHORT: La vela roza o penetra la banda superior en 1 minuto
-        setup_short = last['high'] >= last['bb_upper']
+        if pd.isna(last.get('rsi')): return None
+        rsi_val = last['rsi']
         
-        # --- DECISIÓN FINAL SIN FILTROS LENTOS ---
+        bb_mid = last.get('bb_mid')  # Banda media = SMA 20 (objetivo del TP dinámico)
+        
+        # LONG: Vela en o bajo banda inferior + RSI en sobreventa extrema (<30)
+        setup_long = (last['low'] <= last['bb_lower']) and (rsi_val < 30)
+        
+        # SHORT: Vela en o sobre banda superior + RSI en sobrecompra extrema (>70)
+        setup_short = (last['high'] >= last['bb_upper']) and (rsi_val > 70)
+        
+        # --- DECISIÓN FINAL CON CONFIRMACIÓN RSI ---
         if setup_long:
             return {
                 "side": "Buy",
                 "entry": last['close'],
                 "atr": last['atr'],
-                "vwap": last['vwap']
+                "vwap": last['vwap'],
+                "bb_mid": bb_mid,  # TP dinámico hacia la media
+                "rsi": rsi_val
             }
             
         if setup_short:
@@ -69,7 +79,9 @@ class ExecutionEngine:
                 "side": "Sell",
                 "entry": last['close'],
                 "atr": last['atr'],
-                "vwap": last['vwap']
+                "vwap": last['vwap'],
+                "bb_mid": bb_mid,  # TP dinámico hacia la media
+                "rsi": rsi_val
             }
             
         return None
@@ -99,24 +111,32 @@ class ExecutionEngine:
         pos_value = monto_fijo * apalancamiento
         qty = pos_value / entry
         
-        # Stop Loss protegido a 1 ATR de la vela de gatillo
+        # SL: 1 ATR desde la entrada
         sl_dist = atr 
         if sl_dist <= 0: return
         
-        rr = float(self.config.get('riesgo', {}).get('rr_take_profit', 1.5))
-        tp_dist = sl_dist * rr
+        # TP DINÁMICO: apunta a la Banda Media (SMA 20) en lugar de ratio ATR fijo
+        bb_mid = signal_data.get('bb_mid')
+        if bb_mid and not pd.isna(bb_mid):
+            tp = float(bb_mid)
+        else:
+            # Fallback: ratio 1:1.5 sobre el SL si no hay banda media disponible
+            rr = float(self.config.get('riesgo', {}).get('rr_take_profit', 1.5))
+            tp_dist = sl_dist * rr
+            tp = entry + tp_dist if side == "Buy" else entry - tp_dist
         
         sl = entry - sl_dist if side == "Buy" else entry + sl_dist
-        tp = entry + tp_dist if side == "Buy" else entry - tp_dist
-        
-        apalancamiento = int(self.config.get('bot', {}).get('apalancamiento', 10))
+        rsi_val = signal_data.get('rsi', 0)
         
         await self.telegram.send_message(
-            f"⚡ *HYPER SCALP EJECUTADO*\n\n"
+            f"⚡ *HYPER SCALP V2 EJECUTADO*\n\n"
             f"💎 *Moneda:* {symbol}\n"
-            f"🚀 *Acción:* {side} @ {entry:.4f}\n"
-            f"📈 *VWAP:* {signal_data['vwap']:.4f}\n"
-            f"⚖️ *Lev:* {apalancamiento}x"
+            f"🚀 *Acción:* {side} @ {entry:.6f}\n"
+            f"📊 *RSI:* {rsi_val:.1f}\n"
+            f"📈 *VWAP:* {signal_data['vwap']:.6f}\n"
+            f"🟢 *TP (Media):* {tp:.6f}\n"
+            f"🔴 *SL:* {sl:.6f}\n"
+            f"⚖️ *Lev:* {apalancamiento}x | Margen: {monto_fijo} USDT"
         )
         
         response = self.client.place_order(symbol, side, "Market", qty, sl=sl, tp=tp)

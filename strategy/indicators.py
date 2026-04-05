@@ -31,8 +31,17 @@ class Indicators:
 
     @staticmethod
     def calculate_bbands(df, length=20, std=2):
-        # Retorna un DataFrame con columnas: BBL_20_2.0, BBM_20_2.0, BBU_20_2.0
-        return ta.bbands(df['close'], length=length, std=std)
+        bb = ta.bbands(df['close'], length=length, std=std)
+        if bb is not None and not bb.empty:
+            cols = list(bb.columns)  # [BBL, BBM, BBU, BBB, BBP]
+            df['bb_lower'] = bb[cols[0]].values
+            df['bb_mid']   = bb[cols[1]].values  # SMA media = objetivo TP dinámico
+            df['bb_upper'] = bb[cols[2]].values
+        else:
+            df['bb_lower'] = df['close']
+            df['bb_mid']   = df['close']
+            df['bb_upper'] = df['close']
+        return df
 
     @staticmethod
     def calculate_supertrend(df, length=10, multiplier=3.0):
