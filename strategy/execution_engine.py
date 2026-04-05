@@ -48,15 +48,15 @@ class ExecutionEngine:
         vol_mult = float(entrada_cfg.get('volumen_spike_mult', 1.5))
         has_volume_spike = last['volume'] > (last['vol_ma'] * vol_mult)
         
-        # 3. PATRÓN DE REVERSIÓN A LA MEDIA (Mean Reversion)
-        # LONG: Vela anterior rompió banda inferior por debajo, y vela actual cierra por encima de la banda inferior.
-        setup_long = (prev['low'] < prev['bb_lower']) and (last['close'] > last['bb_lower'])
+        # 3. PATRÓN DE HYPER SCALPING (Cero Fricción)
+        # LONG: La vela roza o penetra la banda inferior en 1 minuto
+        setup_long = last['low'] <= last['bb_lower']
         
-        # SHORT: Vela anterior rompió banda superior por arriba, y vela actual cierra por debajo de la banda superior.
-        setup_short = (prev['high'] > prev['bb_upper']) and (last['close'] < last['bb_upper'])
+        # SHORT: La vela roza o penetra la banda superior en 1 minuto
+        setup_short = last['high'] >= last['bb_upper']
         
-        # --- DECISIÓN FINAL ---
-        if macro_trend == "ALCISTA" and setup_long and has_volume_spike:
+        # --- DECISIÓN FINAL SIN FILTROS LENTOS ---
+        if setup_long:
             return {
                 "side": "Buy",
                 "entry": last['close'],
@@ -64,7 +64,7 @@ class ExecutionEngine:
                 "vwap": last['vwap']
             }
             
-        if macro_trend == "BAJISTA" and setup_short and has_volume_spike:
+        if setup_short:
             return {
                 "side": "Sell",
                 "entry": last['close'],
