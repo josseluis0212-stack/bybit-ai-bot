@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Variables de entorno (NUNCA subir al repositorio)
 .env
 
@@ -38,3 +39,18 @@ Thumbs.db
 # Datos temporales
 *.tmp
 *.bak
+=======
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+.venv
+env/
+venv/
+ENV/
+data/
+logs/
+*.log
+.vscode/
+.idea/
+>>>>>>> 877fcfbfb4560be4c8c22641f46a99a14f54d375

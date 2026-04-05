@@ -1,0 +1,60 @@
+# ============================================================
+# ANTIGRAVITY HYPER SCALPER v3.0 (QUANT)
+# Estrategia: VWAP + Bollinger Mean Reversion (1m/3m)
+# ============================================================
+
+bybit:
+  testnet: false
+  recv_window: 5000
+
+bot:
+  nombre: "HYPER SCALPER QUANT"
+  intervalo_escaneo: 60        # Cada 60 segundos
+  max_operaciones_simultaneas: 10
+  monto_por_operacion_usdt: 100.0 # Cantidad fija de margen
+  apalancamiento: 5
+  modo_demo: false
+
+# Operar en escaneo global (Todo el mercado de futuros)
+simbolos: "TODOS_LOS_FUTUROS_USDT"
+
+# ============================================================
+# FILTRO MACRO - Institutional VWAP
+# ============================================================
+filtro_macro:
+  indicador: "VWAP"
+  # Si Precio > VWAP -> Contexto Alcista (Solo Longs)
+  # Si Precio < VWAP -> Contexto Bajista (Solo Shorts)
+
+# ============================================================
+# SEÑAL DE ENTRADA ALGO - Bollinger Mean Reversion
+# ============================================================
+entrada:
+  timeframe: "1"               # 1 minuto
+  velas: 150
+  bb_length: 20
+  bb_std: 2.0
+  volumen_ma_length: 20
+  volumen_spike_mult: 1.5      # El volumen del gatillo debe ser 1.5x mayor al promedio
+
+# ============================================================
+# GESTIÓN DE RIESGO - High Frequency Exits
+# ============================================================
+riesgo:
+  rr_take_profit: 1.5          # TP a 1.5x de distancia del riesgo
+  max_perdida_dia_pct: 3.0    
+  # Si el trade no llega ni a TP ni a SL en estas velas, cerrar a market.
+  time_based_exit_velas: 15    # Si a los 15 minutos (15 velas) no se resolvió, abandonar setup.
+
+# ============================================================
+# DASHBOARD Y REPORTES CLOUD
+# ============================================================
+dashboard:
+  puerto: 8080
+  host: "0.0.0.0"
+
+telegram:
+  reporte_estadisticas_cada_n_trades: 10   # Reporte en red cada 10 trades cerrados
+  reporte_diario_hora: 23      
+  reporte_semanal_dia: 0       
+  reporte_mensual_dia: 1
