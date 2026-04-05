@@ -115,13 +115,13 @@ class ExecutionEngine:
 
     async def check_open_positions(self):
         """
-        Monitoriza trades abiertos, aplica el Time-Exit de 15m y reporta estadísticas cada 10 trades.
+        Monitoriza trades abiertos y reporta estadísticas cada 10 trades.
         """
         open_trades = db_manager.get_open_trades()
         if not open_trades:
             return
             
-        from datetime import datetime, timedelta
+        from datetime import datetime
         now = datetime.utcnow()
         
         positions_response = bybit_client.get_positions()
@@ -134,17 +134,9 @@ class ExecutionEngine:
         for trade in open_trades:
             symbol = trade.symbol
             
-            # --- Regla de TIME-EXIT (15 Minutos) ---
-            duration = now - trade.open_time
-            if duration.total_seconds() > 900: # 15 minutos * 60s
-                logger.info(f"⏳ Time-Exit activado para {symbol} (Duración: {duration.total_seconds()/60:.1f} min)")
-                # Cerramos posición mandando una orden opuesta Market
-                side = "Sell" if trade.side == "LONG" else "Buy"
-                bybit_client.place_order(symbol=symbol, side=side, order_type="Market", qty=str(trade.qty))
-                # El loop siguiente lo detectará como cerrado y procesará el PnL
-                continue
-
+            # Si el símbolo ya no está en las posiciones reales, significa que se cerró por TP/SL
             if symbol not in real_positions:
+                duration = now - trade.open_time
                 logger.info(f"Trade {symbol} cerrado por Bybit (TP/SL/Manual).")
                 tickers = bybit_client.get_tickers()
                 ticker_info = next((t for t in tickers if t['symbol'] == symbol), None)
@@ -153,10 +145,10 @@ class ExecutionEngine:
                 exit_price = float(ticker_info['lastPrice'])
                 if trade.side == "LONG":
                     pnl_usdt = (exit_price - trade.entry_price) * trade.qty
-                    reason = "TAKE PROFIT" if exit_price >= (trade.take_profit or 0) else ("STOP LOSS" if exit_price <= (trade.stop_loss or 0) else "CERRADA/TIME-EXIT")
+                    reason = "TAKE PROFIT" if exit_price >= (trade.take_profit or 0) else ("STOP LOSS" if exit_price <= (trade.stop_loss or 0) else "CERRADA")
                 else:
                     pnl_usdt = (trade.entry_price - exit_price) * trade.qty
-                    reason = "TAKE PROFIT" if exit_price <= (trade.take_profit or 0) else ("STOP LOSS" if exit_price >= (trade.stop_loss or 0) else "CERRADA/TIME-EXIT")
+                    reason = "TAKE PROFIT" if exit_price <= (trade.take_profit or 0) else ("STOP LOSS" if exit_price >= (trade.stop_loss or 0) else "CERRADA")
                 
                 pnl_pct = (pnl_usdt / (trade.entry_price * trade.qty)) * 100 * trade.leverage
                 db_manager.close_trade(trade.id, exit_price, pnl_usdt, pnl_pct, reason)
@@ -177,7 +169,5 @@ class ExecutionEngine:
                     weekly = db_manager.get_stats("weekly")
                     monthly = db_manager.get_stats("monthly")
                     await telegram_notifier.notify_stats_summary(daily, weekly, monthly, closed_count)
-
-executor = ExecutionEngine()
 
 executor = ExecutionEngine()
