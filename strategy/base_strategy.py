@@ -51,7 +51,7 @@ class HyperQuantStrategy:
             df['bb_mid'] = indicator_bb.bollinger_mavg()
 
             # Money Flow Index (Exhaustión de Volumen)
-            df['mfi'] = ta.momentum.mfi(
+            df['mfi'] = ta.volume.money_flow_index(
                 high=df['high'], low=df['low'], close=df['close'], volume=df['volume'], window=self.mfi_period
             )
 

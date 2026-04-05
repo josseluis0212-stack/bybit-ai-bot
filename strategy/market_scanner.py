@@ -42,35 +42,51 @@ class MarketScanner:
 
     async def scan_market(self):
         """
-        Rastrea todos los pares buscando las mejores señales de reversión.
+        Rastrea TODO el mercado USDT Perpetual procesando monedas en paralelo.
         """
-        logger.info("Iniciando escaneo de alta frecuencia Hyper-Quant...")
+        logger.info("🌍 Iniciando ESCANEO GLOBAL Hyper-Quant (Todas las monedas)...")
         
         tickers = bybit_client.get_tickers()
         if not tickers:
-            logger.error("No se pudieron cargar los tickers. Reintentando luego...")
+            logger.error("No se pudieron cargar los tickers. Reintentando...")
             return []
             
-        # Filtrar por volumen para asegurar liquidez (mínimo 1M turnover si hay muchos)
-        # Pero escaneamos por prioridad de volumen primero
-        tickers = sorted(tickers, key=lambda x: float(x.get('turnover24h', 0)), reverse=True)
+        # 1. Filtro de Seguridad: Al menos $50,000 USD de volumen (turnover24h)
+        # Esto evita "slippage" destructivo en monedas muertas.
+        valid_tickers = [t for t in tickers if float(t.get('turnover24h', 0)) > 50000]
         
-        valid_signals = []
-        # Para evitar excesivo lag, escaneamos los Top 100 por volumen. 
-        # Bybit suele tener 200+, pero los últimos 100 suelen tener poco volumen para scalping a 1m.
-        for item in tickers[:80]: # Reducimos ligeramente para ser mas veloces en el loop de 60s
-            symbol = item['symbol']
-            
-            # API Rate Limit mitigation
-            await asyncio.sleep(0.05) # Reducido a 0.05 para acelerar el escaneo total (~4-5s total)
-            
-            df = await self.get_klines_as_df(symbol)
-            if df is not None and not df.empty:
-                signal_data = strategy.analyze(symbol, df)
-                if signal_data:
-                    logger.info(f"🚨 SEÑAL HYPER: {signal_data['signal']} en {symbol} | Precio: {signal_data['entry_price']}")
-                    valid_signals.append(signal_data)
-                    
+        # 2. Ordenar por Volumen de mayor a menor
+        valid_tickers = sorted(valid_tickers, key=lambda x: float(x.get('turnover24h', 0)), reverse=True)
+        
+        logger.info(f"Escaneando {len(valid_tickers)} monedas líquidas de {len(tickers)} totales.")
+        
+        # 3. Procesamiento en Paralelo con Semáforo (10 trabajadores concurrentes)
+        # Esto previene bloqueos de IP por Bybit mientras acelera el escaneo 5x.
+        semaphore = asyncio.Semaphore(10)
+        
+        async def scan_symbol(item):
+            async with semaphore:
+                symbol = item['symbol']
+                # Pequeña pausa para no saturar CPU local
+                await asyncio.sleep(0.02)
+                
+                df = await self.get_klines_as_df(symbol)
+                if df is not None and not df.empty:
+                    return strategy.analyze(symbol, df)
+                return None
+
+        # Lanzar todas las tareas concurrentemente
+        tasks = [scan_symbol(item) for item in valid_tickers]
+        results = await asyncio.gather(*tasks)
+        
+        # Filtrar resultados que no sean None (señales reales)
+        valid_signals = [res for res in results if res is not None]
+        
+        if valid_signals:
+            logger.info(f"🎯 Escaneo Global completado. ¡{len(valid_signals)} señales detectadas!")
+        else:
+            logger.info("Escaneo Global completado. Sin señales en este ciclo.")
+
         return valid_signals
 
 market_scanner = MarketScanner()
