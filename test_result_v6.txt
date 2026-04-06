@@ -1,0 +1,16 @@
+
+==================================================
+VERIFICACIËN DE LËGICA HYPER-QUANT ULTRA V6.0 (BALANCED)
+==================================================
+
+--- Test A: SMC Sweep + FVG (LONG) ---
+INFO:strategy.base_strategy:\U0001f3af [V6-SMC (Sweep+FVG)] Se±al LONG en TESTUSDT detectada.
+Traceback (most recent call last):
+  File "C:\Users\Usuario\.gemini\antigravity\scratch\trading-bot-pro\test_v6_logic.py", line 79, in <module>
+    test_v6_logic()
+  File "C:\Users\Usuario\.gemini\antigravity\scratch\trading-bot-pro\test_v6_logic.py", line 45, in test_v6_logic
+    print(f"[\u2705] ╔XITO: SMC Detectado. Entrada: {res_smc['entry_price']:.2f}")
+  File "C:\Users\Usuario\AppData\Local\Programs\Python\Python312\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2705' in position 1: character maps to <undefined>

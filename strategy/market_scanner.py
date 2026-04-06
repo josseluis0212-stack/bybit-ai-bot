@@ -9,10 +9,11 @@ logger = logging.getLogger(__name__)
 
 class MarketScanner:
     def __init__(self):
-        self.timeframe = "1" # Scalping Ultra-rápido de 1 Minuto
-        self.limit = 60 # Suficiente para Bollinger 20, MFI 14 y ATR 14.
+        self.timeframe_exec = "1"
+        self.timeframe_bias = "15"
+        self.limit = 150 # Necesario para EMA 100 + margen de cálculo
         
-    async def get_klines_as_df(self, symbol):
+    async def get_klines_as_df(self, symbol, interval="1"):
         """
         Obtiene velas históricas de Bybit y las convierte a Pandas DataFrame.
         """
@@ -20,7 +21,7 @@ class MarketScanner:
             response = bybit_client.session.get_kline(
                 category="linear",
                 symbol=symbol,
-                interval=self.timeframe,
+                interval=str(interval),
                 limit=self.limit
             )
             
@@ -37,40 +38,39 @@ class MarketScanner:
                 
             return None
         except Exception as e:
-            logger.error(f"Error obteniendo klines para {symbol}: {e}")
+            logger.error(f"Error obteniendo klines {interval}m para {symbol}: {e}")
             return None
 
     async def scan_market(self):
         """
-        Rastrea el mercado USDT Perpetual con filtros avanzados de liquidez y tendencia.
+        Rastrea el mercado USDT Perpetual con filtros avanzados de liquidez y tendencia (V6).
         """
-        logger.info("🌍 Iniciando ESCANEO PROFESIONAL Ultra-V5 (SMC/FVG)...")
+        logger.info("🌍 Iniciando ESCANEO PROFESIONAL Ultra-V6 (Balanced SMC)...")
         
         tickers = bybit_client.get_tickers()
         if not tickers:
             logger.error("No se pudieron cargar los tickers.")
             return []
             
-        # 1. Filtro de Liquidez Profesional: Al menos $10,000,000 USD de volumen diario
-        # Esto reduce drásticamente el slippage y las trampas de baja liquidez.
+        # Filtro de Liquidez Profesional: Al menos $10,000,000 USD de volumen diario
         MIN_TURNOVER = 10_000_000
         valid_tickers = [t for t in tickers if float(t.get('turnover24h', 0)) > MIN_TURNOVER]
         
-        # 2. Ordenar por Volumen
+        # Ordenar por Volumen
         valid_tickers = sorted(valid_tickers, key=lambda x: float(x.get('turnover24h', 0)), reverse=True)
         
         logger.info(f"Escaneando {len(valid_tickers)} monedas de alta liquidez (> $10M).")
         
-        semaphore = asyncio.Semaphore(20) # Reducimos concurrencia para evitar Rate Limits de Bybit
+        semaphore = asyncio.Semaphore(20) # Concurrencia controlada
         
         async def scan_symbol(item):
             async with semaphore:
                 symbol = item['symbol']
-                await asyncio.sleep(0.05)
+                await asyncio.sleep(0.02) # Pequeño delay adicional para rate limit
                 
                 # Obtener Marco de 1m (Ejecución) y 15m (Tendencia/Bias)
-                df_1m = await self.get_klines_as_df(symbol, interval="1")
-                df_15m = await self.get_klines_as_df(symbol, interval="15")
+                df_1m = await self.get_klines_as_df(symbol, interval=self.timeframe_exec)
+                df_15m = await self.get_klines_as_df(symbol, interval=self.timeframe_bias)
                 
                 if df_1m is not None and not df_1m.empty and df_15m is not None:
                     return strategy.analyze(symbol, df_1m, df_15m)
@@ -82,29 +82,10 @@ class MarketScanner:
         valid_signals = [res for res in results if res is not None]
         
         if valid_signals:
-            logger.info(f"🎯 Escaneo completado. ¡{len(valid_signals)} señales institucionales detectadas!")
+            logger.info(f"🎯 Escaneo completado. ¡{len(valid_signals)} señales detectadas!")
         else:
-            logger.info("Escaneo completado. Sin señales SMC/FVG en este ciclo.")
+            logger.info("Escaneo completado. Sin señales SMC/Pullback en este ciclo.")
 
         return valid_signals
-
-    async def get_klines_as_df(self, symbol, interval="1"):
-        try:
-            response = bybit_client.session.get_kline(
-                category="linear",
-                symbol=symbol,
-                interval=str(interval),
-                limit=60
-            )
-            
-            if response.get("retCode") == 0:
-                list_data = response["result"]["list"]
-                df = pd.DataFrame(list_data, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume', 'turnover'])
-                df = df.iloc[::-1].reset_index(drop=True)
-                return df
-            return None
-        except Exception as e:
-            logger.error(f"Error en klines {interval}m para {symbol}: {e}")
-            return None
 
 market_scanner = MarketScanner()

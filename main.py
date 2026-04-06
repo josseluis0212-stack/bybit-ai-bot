@@ -38,14 +38,14 @@ async def render_heartbeat():
             await asyncio.sleep(600) # 10 minutos
 
 async def bot_loop():
-    logger.info("🚀 INICIANDO HYPER-QUANT ULTRA V5.0 (SMC / FVG)...")
+    logger.info("🚀 INICIANDO HYPER-QUANT ULTRA V6.0 (BALANCED SCALPER)...")
     from notifications.telegram_bot import telegram_notifier
-    await telegram_notifier.send_message("🚀 **Hyper-Quant Ultra V5.0 Iniciado**\n\nEl sistema está en línea con filtrado institucional de **Alta Liquidez (> $10M)**.\n\nEstrategia: Smart Money Concepts (SMC)\nLógica: Liquidity Sweeps + Fair Value Gaps\nBias: Filtro de Tendencia 15m")
+    await telegram_notifier.send_message("🚀 **Hyper-Quant Ultra V6.0 Iniciado**\n\nEl sistema está en línea con filtrado institutional **V6 (SMC + Trend Pullbacks)**.\n\nModo: **Balanced Scalper**\nBias: Tendencia 15m (EMA 100)\nFrecuencia: Media-Alta")
     
     while True:
         start_time = time.time()
         try:
-            logger.info("--- [Ciclo de Escaneo de Alta Frecuencia] ---")
+            logger.info("--- [Ciclo de Escaneo V6 - Balanced] ---")
             
             # 0. Sincronizar y procesar cierres (TP/SL)
             # Nota: El user solicitó quitar el Time-Exit de 15m, lo cual ya se hizo en executor.py
