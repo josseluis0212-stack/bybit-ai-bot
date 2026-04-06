@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 class MarketScanner:
     def __init__(self):
         self.timeframe = "1" # Scalping Ultra-rápido de 1 Minuto
-        self.limit = 400 # Suficiente para VWAP y Bollinger 200 si se requiere
+        self.limit = 60 # Suficiente para Bollinger 20, MFI 14 y ATR 14.
         
     async def get_klines_as_df(self, symbol):
         """
