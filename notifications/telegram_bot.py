@@ -37,73 +37,112 @@ class TelegramNotifier:
             logger.error(f"Error enviando mensaje a Telegram: {e}")
             return False
     async def notify_signal_detected(self, symbol, side, entry_price, sl, tp):
-        emoji = "🔭" if side.upper() == "LONG" else "🔎"
+        emoji = "📈" if side.upper() == "LONG" else "📉"
+        color = "🔵" if side.upper() == "LONG" else "🟠"
         message = f"""
-📡 <b>SEÑAL DETECTADA</b> - {symbol}
-        
-<b>Tipo:</b> {side.upper()} {emoji}
-<b>Zona de Entrada:</b> {entry_price}
-<b>Stop Loss:</b> {sl}
-<b>Take Profit:</b> {tp}
+{color} <b>SMC SIGNAL: {symbol}</b> {emoji}
+────────────────────
+<b>TIPO:</b> <code>{side.upper()}</code>
+<b>ENTRADA:</b> <code>{entry_price}</code>
 
-<i>El sistema está intentando ejecutar esta operación...</i>
+🎯 <b>TAKE PROFIT:</b> <code>{tp}</code>
+🛡️ <b>STOP LOSS:</b> <code>{sl}</code>
+────────────────────
+<i>⚡ Buscando entrada institucional...</i>
 """
         return await self.send_message(message)
 
     async def notify_order_opened(self, symbol, side, entry_price, sl, tp, qty, leverage, current_trades, max_trades, risk_usdt):
-        emoji = "🟢" if side.upper() == "LONG" else "🔴"
+        emoji = "🚀" if side.upper() == "LONG" else "⚡"
+        color = "🔵" if side.upper() == "LONG" else "🟠"
         message = f"""
-{emoji} <b>NUEVA OPERACIÓN ABIERTA</b>
-        
-<b>Par:</b> {symbol}
-<b>Tipo:</b> {side.upper()}
-<b>Entrada:</b> {entry_price}
-<b>Stop Loss:</b> {sl}
-<b>Take Profit:</b> {tp}
-<b>Tamaño:</b> {qty}
-<b>Apalancamiento:</b> {leverage}x
-<b>Riesgo:</b> ~{risk_usdt} USDT
-<b>Operaciones activas:</b> {current_trades}/{max_trades}
+{color} <b>ORDEN EJECUTADA: {symbol}</b> {emoji}
+────────────────────
+<b>Dirección:</b> <code>{side.upper()}</code>
+<b>Precio:</b> <code>{entry_price}</code>
+<b>Tamaño:</b> <code>{qty} ({leverage}x)</code>
+
+<b>Objetivos:</b>
+└ 💰 TP: <code>{tp}</code>
+└ 🛑 SL: <code>{sl}</code>
+
+<b>Riesgo:</b> <code>{risk_usdt} USDT</code>
+<b>Slots:</b> <code>{current_trades}/{max_trades}</code>
+────────────────────
 """
         return await self.send_message(message)
 
     async def notify_order_closed(self, symbol, side, entry_price, exit_price, pnl_usdt, pnl_pct, duration, reason, balance):
-        emoji = "✅" if pnl_usdt > 0 else "❌"
-        message = f"""
-{emoji} <b>OPERACIÓN CERRADA</b>
+        is_win = pnl_usdt > 0
+        emoji = "💰" if is_win else "💸"
+        color = "🟢" if is_win else "🔴"
+        result_text = "PROFIT" if is_win else "LOSS"
         
-<b>Par:</b> {symbol}
-<b>Tipo:</b> {side.upper()}
-<b>Entrada:</b> {entry_price}
-<b>Salida:</b> {exit_price}
-<b>Motivo:</b> {reason}
-<b>Duración:</b> {duration}
+        # Barra visual de resultado
+        bar = "🟩🟩🟩" if is_win else "🟥🟥🟥"
+        
+        message = f"""
+{color} <b>{result_text}: {symbol}</b> {emoji}
+────────────────────
+<b>{side.upper()}</b> | {reason}
+<b>Entrada:</b> <code>{entry_price}</code>
+<b>Salida:</b> <code>{exit_price}</code>
+<b>Reloj:</b> <code>{duration}</code>
 
-<b>Resultado:</b> {pnl_usdt:.2f} USDT ({pnl_pct:.2f}%)
-<b>Balance Actualizado:</b> {balance:.2f} USDT
+<b>RESULTADO:</b>
+└ <b>PnL:</b> <code>{pnl_usdt:+.2f} USDT</code>
+└ <b>ROI:</b> <code>{pnl_pct:+.2f}%</code> {bar}
+
+<b>BALANCE:</b> <code>{balance:.2f} USDT</code>
+────────────────────
 """
         return await self.send_message(message)
 
     async def notify_stats_summary(self, daily, weekly, monthly, last_n_count):
+        # Generar mini barras para el resumen
+        def get_trend(val): return "📈" if val > 0 else "📉"
+        
         message = f"""
-📊 <b>RESUMEN ESTADÍSTICO</b> (Últimos {last_n_count} trades)
+🏛️ <b>DASHBOARD: {last_n_count} TRADES</b>
+────────────────────
+📅 <b>DIARIO</b> {get_trend(daily['total_pnl'])}
+  ├ PnL: <code>{daily['total_pnl']:+.2f} USDT</code>
+  └ WR:  <code>{daily['win_rate']:.1f}%</code>
 
-📅 <b>DIARIO:</b>
-💰 PnL: {daily['total_pnl']:.2f} USDT ({daily['pnl_pct']:.2f}%)
-📈 Win Rate: {daily['win_rate']:.1f}%
-📝 Trades: {daily['count']}
+🗓️ <b>SEMANAL</b> {get_trend(weekly['total_pnl'])}
+  ├ PnL: <code>{weekly['total_pnl']:+.2f} USDT</code>
+  └ WR:  <code>{weekly['win_rate']:.1f}%</code>
 
-🗓️ <b>SEMANAL:</b>
-💰 PnL: {weekly['total_pnl']:.2f} USDT ({weekly['pnl_pct']:.2f}%)
-📈 Win Rate: {weekly['win_rate']:.1f}%
-📝 Trades: {weekly['count']}
+🏛️ <b>MENSUAL</b> {get_trend(monthly['total_pnl'])}
+  ├ PnL: <code>{monthly['total_pnl']:+.2f} USDT</code>
+  └ WR:  <code>{monthly['win_rate']:.1f}%</code>
 
-🏛️ <b>MENSUAL:</b>
-💰 PnL: {monthly['total_pnl']:.2f} USDT ({monthly['pnl_pct']:.2f}%)
-📈 Win Rate: {monthly['win_rate']:.1f}%
-📝 Trades: {monthly['count']}
+<b>ESTADO:</b> 🤖 <b>AUTÓNOMO</b> | 🚀 <b>V5.0</b>
+────────────────────
+"""
+        return await self.send_message(message)
 
-Misión: 🚀 <b>RENTABILIDAD MÁXIMA</b>
+    async def notify_breakeven(self, symbol, new_sl):
+        message = f"""
+🛡️ <b>BREAKEVEN ACTIVADO: {symbol}</b>
+────────────────────
+<b>Estado:</b> <code>RIESGO CERO</code> ✅
+<b>Nuevo SL:</b> <code>{new_sl}</code>
+
+<i>El Stop Loss ha sido movido al precio de entrada para proteger tus ganancias.</i>
+────────────────────
+"""
+        return await self.send_message(message)
+
+    async def notify_api_error(self, error_msg, suggestion):
+        message = f"""
+⚠️ <b>SYSTEM CRITICAL: API ERROR</b>
+────────────────────
+❌ <b>ERROR:</b> <code>{error_msg}</code>
+💡 <b>FIX:</b> <i>{suggestion}</i>
+
+<b>Estatus:</b> ⛔ OPERACIONES PAUSADAS
+────────────────────
 """
         return await self.send_message(message)
 

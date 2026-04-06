@@ -60,8 +60,8 @@ class ExecutionEngine:
             available_balance = 1000.0
             fallback_used = True
                  
-        # Forzamos los parámetros autónomos: $50 de margen y 10x
-        fixed_margin = 50.0 
+        # Forzamos los parámetros autónomos: $20 de margen y 10x
+        fixed_margin = 20.0 
         leverage = 10 
         required_margin = fixed_margin * 1.1 # Buffer del 10%
         
@@ -130,7 +130,19 @@ class ExecutionEngine:
                 risk_usdt=f"{risk_usdt:.2f}"
             )
             return True
-        return False
+        else:
+            ret_code = response.get("retCode") if response else "Unknown"
+            if ret_code == 10003:
+                await telegram_notifier.notify_api_error(
+                    "API Key Inválida (10003)",
+                    "Asegúrate de que las llaves correspondan al entorno (Demo/Real)."
+                )
+            elif response and "401" in str(response):
+                await telegram_notifier.notify_api_error(
+                    "Error 401 (No Autorizado)",
+                    "Las llaves no tienen permisos o el entorno BYBIT_DEMO es incorrecto."
+                )
+            return False
 
     async def check_open_positions(self):
         """
@@ -180,6 +192,28 @@ class ExecutionEngine:
                     exit_price=f"{exit_price:.4f}", pnl_usdt=pnl_usdt, pnl_pct=pnl_pct,
                     duration=f"{duration.total_seconds()/60:.1f} min", reason=reason, balance=current_balance
                 )
+            else:
+                # El trade sigue abierto, verificar Breakeven
+                pos = real_positions[symbol]
+                current_price = float(pos['markPrice'])
+                
+                # Definir 50% del camino al TP
+                tp_dist = abs(trade.take_profit - trade.entry_price)
+                progress = abs(current_price - trade.entry_price) / tp_dist if tp_dist > 0 else 0
+                
+                # Si llegamos al 60% del camino y no hemos movido el SL
+                if progress > 0.6 and not getattr(trade, 'breakeven_active', False):
+                    # Solo mover si estamos en ganancia
+                    is_profit = (trade.side == "LONG" and current_price > trade.entry_price) or \
+                                (trade.side == "SHORT" and current_price < trade.entry_price)
+                    
+                    if is_profit:
+                        logger.info(f"🛡️ Protegiendo {symbol} - Moviendo a BREAKEVEN (Progreso: {progress:.1%})")
+                        res = bybit_client.set_trading_stop(symbol, stop_loss=trade.entry_price)
+                        if res and res.get('retCode') == 0:
+                            trade.breakeven_active = True
+                            # Notificar con el nuevo diseño
+                            await telegram_notifier.notify_breakeven(symbol, trade.entry_price)
 
                 # --- Verificación de Reporte Estadístico (Cada 10 trades) ---
                 closed_count = db_manager.get_closed_trades_count()

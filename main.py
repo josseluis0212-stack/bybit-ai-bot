@@ -38,9 +38,9 @@ async def render_heartbeat():
             await asyncio.sleep(600) # 10 minutos
 
 async def bot_loop():
-    logger.info("🚀 INICIANDO HYPER-QUANT V3 (MODO AUTÓNOMO)...")
+    logger.info("🚀 INICIANDO HYPER-QUANT ULTRA V5.0 (SMC / FVG)...")
     from notifications.telegram_bot import telegram_notifier
-    await telegram_notifier.send_message("🚀 **Hyper-Quant V3 Iniciado**\n\nEl sistema está en línea y escaneando los **516 pares líquidos** del mercado Bybit en tiempo real.\n\nEstrategia: Reversión Vectorizada (1m)\nConfiguración: Alta Frecuencia (2.0 Dev)")
+    await telegram_notifier.send_message("🚀 **Hyper-Quant Ultra V5.0 Iniciado**\n\nEl sistema está en línea con filtrado institucional de **Alta Liquidez (> $10M)**.\n\nEstrategia: Smart Money Concepts (SMC)\nLógica: Liquidity Sweeps + Fair Value Gaps\nBias: Filtro de Tendencia 15m")
     
     while True:
         start_time = time.time()

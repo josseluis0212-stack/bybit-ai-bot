@@ -1,0 +1,36 @@
+
+==================================================
+INICIANDO PRUEBAS DE CONFIGURACION DEL BOT...
+==================================================
+
+==================================================
+PRUEBA 4: CONFIGURACION SETTINGS
+==================================================
+[OK] Settings cargado correctamente.
+   BYBIT_API_KEY:  cFUwMF...AY3X
+   BYBIT_DEMO:     True
+   LEVERAGE:       5x
+   TRADE_AMOUNT:   100.0 USDT
+   MAX_TRADES:     10
+   TELEGRAM_TOKEN: 83636273...4cb0
+
+==================================================
+PRUEBA 1: CONEXION A BYBIT (DEMO)
+==================================================
+[ERROR] Error en Bybit: None
+
+==================================================
+PRUEBA 2: CONEXION A TELEGRAM
+==================================================
+[OK] Mensaje enviado a Telegram correctamente.
+
+==================================================
+PRUEBA 3: BASE DE DATOS LOCAL (SQLite)
+==================================================
+[OK] Base de datos inicializada correctamente.
+   Operaciones abiertas actualmente: 0
+
+==================================================
+[LISTO] TODAS LAS PRUEBAS COMPLETADAS
+==================================================
+

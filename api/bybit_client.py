@@ -25,8 +25,12 @@ class BybitClient:
     def get_wallet_balance(self):
         try:
             response = self.session.get_wallet_balance(accountType="UNIFIED")
+            if response.get("retCode") == 10003:
+                logger.error("🚫 Llave API Inválida (Err 10003). Asegúrate de que las llaves correspondan al entorno (Demo/Real).")
             return response
         except Exception as e:
+            if "401" in str(e):
+                logger.error(f"❌ Error 401: No Autorizado (Sugerencia: Revisa que BYBIT_DEMO sea {settings.BYBIT_DEMO})")
             logger.error(f"Error obteniendo balance: {e}")
             return None
 
@@ -109,6 +113,23 @@ class BybitClient:
             return response
         except Exception as e:
             logger.error(f"Error al colocar orden en {symbol}: {e}")
+            return None
+
+    def set_trading_stop(self, symbol, take_profit=None, stop_loss=None):
+        try:
+            params = {
+                "category": "linear",
+                "symbol": symbol,
+                "tpTriggerBy": "LastPrice",
+                "slTriggerBy": "LastPrice"
+            }
+            if take_profit: params["takeProfit"] = str(take_profit)
+            if stop_loss: params["stopLoss"] = str(stop_loss)
+            
+            response = self.session.set_trading_stop(**params)
+            return response
+        except Exception as e:
+            logger.error(f"Error ajustando stop en {symbol}: {e}")
             return None
 
 bybit_client = BybitClient()

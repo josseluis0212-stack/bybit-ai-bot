@@ -42,51 +42,69 @@ class MarketScanner:
 
     async def scan_market(self):
         """
-        Rastrea TODO el mercado USDT Perpetual procesando monedas en paralelo.
+        Rastrea el mercado USDT Perpetual con filtros avanzados de liquidez y tendencia.
         """
-        logger.info("🌍 Iniciando ESCANEO GLOBAL Hyper-Quant (Todas las monedas)...")
+        logger.info("🌍 Iniciando ESCANEO PROFESIONAL Ultra-V5 (SMC/FVG)...")
         
         tickers = bybit_client.get_tickers()
         if not tickers:
-            logger.error("No se pudieron cargar los tickers. Reintentando...")
+            logger.error("No se pudieron cargar los tickers.")
             return []
             
-        # 1. Filtro de Seguridad: Al menos $50,000 USD de volumen (turnover24h)
-        # Esto evita "slippage" destructivo en monedas muertas.
-        valid_tickers = [t for t in tickers if float(t.get('turnover24h', 0)) > 50000]
+        # 1. Filtro de Liquidez Profesional: Al menos $10,000,000 USD de volumen diario
+        # Esto reduce drásticamente el slippage y las trampas de baja liquidez.
+        MIN_TURNOVER = 10_000_000
+        valid_tickers = [t for t in tickers if float(t.get('turnover24h', 0)) > MIN_TURNOVER]
         
-        # 2. Ordenar por Volumen de mayor a menor
+        # 2. Ordenar por Volumen
         valid_tickers = sorted(valid_tickers, key=lambda x: float(x.get('turnover24h', 0)), reverse=True)
         
-        logger.info(f"Escaneando {len(valid_tickers)} monedas líquidas de {len(tickers)} totales.")
+        logger.info(f"Escaneando {len(valid_tickers)} monedas de alta liquidez (> $10M).")
         
-        # 3. Procesamiento en Paralelo con Semáforo (30 trabajadores concurrentes)
-        # Esto previene bloqueos de IP por Bybit mientras acelera el escaneo 10x.
-        semaphore = asyncio.Semaphore(30)
+        semaphore = asyncio.Semaphore(20) # Reducimos concurrencia para evitar Rate Limits de Bybit
         
         async def scan_symbol(item):
             async with semaphore:
                 symbol = item['symbol']
-                # Pequeña pausa para no saturar CPU local
-                await asyncio.sleep(0.01)
+                await asyncio.sleep(0.05)
                 
-                df = await self.get_klines_as_df(symbol)
-                if df is not None and not df.empty:
-                    return strategy.analyze(symbol, df)
+                # Obtener Marco de 1m (Ejecución) y 15m (Tendencia/Bias)
+                df_1m = await self.get_klines_as_df(symbol, interval="1")
+                df_15m = await self.get_klines_as_df(symbol, interval="15")
+                
+                if df_1m is not None and not df_1m.empty and df_15m is not None:
+                    return strategy.analyze(symbol, df_1m, df_15m)
                 return None
 
-        # Lanzar todas las tareas concurrentemente
         tasks = [scan_symbol(item) for item in valid_tickers]
         results = await asyncio.gather(*tasks)
         
-        # Filtrar resultados que no sean None (señales reales)
         valid_signals = [res for res in results if res is not None]
         
         if valid_signals:
-            logger.info(f"🎯 Escaneo Global completado. ¡{len(valid_signals)} señales detectadas!")
+            logger.info(f"🎯 Escaneo completado. ¡{len(valid_signals)} señales institucionales detectadas!")
         else:
-            logger.info("Escaneo Global completado. Sin señales en este ciclo.")
+            logger.info("Escaneo completado. Sin señales SMC/FVG en este ciclo.")
 
         return valid_signals
+
+    async def get_klines_as_df(self, symbol, interval="1"):
+        try:
+            response = bybit_client.session.get_kline(
+                category="linear",
+                symbol=symbol,
+                interval=str(interval),
+                limit=60
+            )
+            
+            if response.get("retCode") == 0:
+                list_data = response["result"]["list"]
+                df = pd.DataFrame(list_data, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume', 'turnover'])
+                df = df.iloc[::-1].reset_index(drop=True)
+                return df
+            return None
+        except Exception as e:
+            logger.error(f"Error en klines {interval}m para {symbol}: {e}")
+            return None
 
 market_scanner = MarketScanner()

@@ -7,108 +7,86 @@ logger = logging.getLogger(__name__)
 
 class HyperQuantStrategy:
     """
-    Hyper-Quant V3: Estrategia Autónoma de Reversión Vectorizada (VMR).
-    Optimizado para marcos de 1 minuto y alta frecuencia.
+    Hyper-Quant Ultra V5.0: Estrategia de Smart Money Concepts (SMC).
+    Especializada en Liquidity Sweeps (Sacudidas) y Fair Value Gaps (FVG).
     
     Lógica:
-    1. Identifica extremos de volatilidad usando Bandas de Bollinger a 2.5 desviaciones.
-    2. Filtra por flujo de dinero institucional (MFI) para detectar clímax de compras/ventas.
-    3. Usa VWAP como ancla de 'Valor Justo' para asegurar que operamos hacia la media.
-    4. Gestión de Riesgo dinámica basada en ATR.
+    1. Filtro de Bias (15m): Solo opera a favor de la tendencia mayor (EMA 200).
+    2. Liquidity Sweep (1m): Detecta cuando el precio limpia stops de minoristas.
+    3. FVG (Displacement): Entra en el desequilibrio dejado por el dinero institucional.
+    4. Riesgo: 2x ATR para SL, 3x ATR para TP (R/R 1.5).
     """
 
     def __init__(self):
-        self.bb_window = 20
-        self.bb_dev = 2.5
-        self.mfi_period = 14
-        self.mfi_oversold = 20
-        self.mfi_overbought = 80
+        self.ema_period = 200
         self.atr_period = 14
-        self.atr_sl_multiplier = 1.5
-        self.atr_tp_multiplier = 2.2 # R/R ~1.5
+        self.atr_sl_multiplier = 2.0
+        self.atr_tp_multiplier = 3.0
 
-    def calculate_vwap(self, df):
-        """Calcula el VWAP sesional (simplificado para el DF actual)"""
-        v = df['volume'].values.astype(float)
-        tp = (df['high'] + df['low'] + df['close']).values.astype(float) / 3
-        cumsum_v = v.cumsum()
-        return np.divide((tp * v).cumsum(), cumsum_v, out=np.zeros_like(cumsum_v, dtype=float), where=cumsum_v!=0)
-
-    def analyze(self, symbol: str, df: pd.DataFrame):
-        if len(df) < self.bb_window + 1:
+    def analyze(self, symbol: str, df: pd.DataFrame, df_htf: pd.DataFrame):
+        if len(df) < 50 or len(df_htf) < self.ema_period:
             return None
 
         # Asegurar tipos numéricos
-        for col in ['open', 'high', 'low', 'close', 'volume']:
-            df[col] = pd.to_numeric(df[col], errors='coerce')
+        for d in [df, df_htf]:
+            for col in ['open', 'high', 'low', 'close', 'volume']:
+                d[col] = pd.to_numeric(d[col], errors='coerce')
 
         try:
-            # Bandas de Bollinger (Configuración Extrema)
-            indicator_bb = ta.volatility.BollingerBands(
-                close=df['close'], window=self.bb_window, window_dev=self.bb_dev
-            )
-            df['bb_high'] = indicator_bb.bollinger_hband()
-            df['bb_low'] = indicator_bb.bollinger_lband()
-            df['bb_mid'] = indicator_bb.bollinger_mavg()
+            # 1. Calcular Bias en HTF (15m)
+            df_htf['ema_200'] = ta.trend.ema_indicator(df_htf['close'], window=self.ema_period)
+            htf_price = df_htf.iloc[-1]['close']
+            htf_ema = df_htf.iloc[-1]['ema_200']
+            bias = "LONG" if htf_price > htf_ema else "SHORT"
 
-            # Money Flow Index (Exhaustión de Volumen)
-            from ta.volume import MFIIndicator
-            df['mfi'] = MFIIndicator(
-                high=df['high'], low=df['low'], close=df['close'], volume=df['volume'], window=self.mfi_period
-            ).money_flow_index()
-
-            # ATR para Riesgo
-            df['atr'] = ta.volatility.average_true_range(
-                high=df['high'], low=df['low'], close=df['close'], window=self.atr_period
-            )
-
-            # VWAP (Valor Justo)
-            df['vwap'] = self.calculate_vwap(df)
-
+            # 2. Indicadores en 1m
+            df['atr'] = ta.volatility.average_true_range(df['high'], df['low'], df['close'], window=self.atr_period)
+            
         except Exception as e:
-            logger.error(f"Error en indicadores para {symbol}: {e}")
+            logger.error(f"Error en indicadores V5 para {symbol}: {e}")
             return None
 
-        current = df.iloc[-1]
+        # Datos actuales 1m
+        curr = df.iloc[-1]
         prev = df.iloc[-2]
+        prev2 = df.iloc[-3]
         
-        if pd.isna(current['bb_high']) or pd.isna(current['mfi']) or pd.isna(current['atr']):
-            return None
-
-        price = current['close']
-        vwap = current['vwap']
-        mfi = current['mfi']
-        atr = current['atr']
+        atr = curr['atr']
+        price = curr['close']
         
         signal = None
         sl_price = None
         tp_price = None
 
-        # --- Lógica de LONG (Reversión al Alza) ---
-        # Condición: El precio rompió la banda inferior y el MFI indica pánico vendedor (sobrevendido)
-        # Filtro: Solo entramos si estamos por debajo del VWAP (comprando barato)
-        if price < vwap:
-            if (prev['close'] < prev['bb_low'] or current['low'] < current['bb_low']) and mfi < self.mfi_oversold:
-                # Gatillo: Vela actual cierra por encima de la media de la vela anterior o muestra rechazo
-                if price > prev['low']:
+        # --- Lógica SMC LONG ---
+        if bias == "LONG":
+            # 1. Liquidity Sweep: El mínimo de la vela anterior limpió el mínimo de las 5 velas previas
+            lowest_5 = df.iloc[-7:-2]['low'].min()
+            if prev['low'] < lowest_5 and prev['close'] > lowest_5:
+                # 2. FVG (Fair Value Gap) Alcista detectado en las últimas 3 velas
+                # Estructura: Low(Vela 3) > High(Vela 1)
+                if curr['low'] > prev2['high']:
                     signal = "LONG"
-                    sl_price = price - (atr * self.atr_sl_multiplier)
+                    # SL bajo la mecha de la sacudida
+                    sl_price = min(prev['low'], curr['low']) - (atr * 0.5)
                     tp_price = price + (atr * self.atr_tp_multiplier)
 
-        # --- Lógica de SHORT (Reversión a la Baja) ---
-        # Condición: El precio rompió la banda superior y el MFI indica euforia compradora (sobrecomprado)
-        # Filtro: Solo entramos si estamos por encima del VWAP (vendiendo caro)
-        elif price > vwap:
-            if (prev['close'] > prev['bb_high'] or current['high'] > current['bb_high']) and mfi > self.mfi_overbought:
-                # Gatillo: Rechazo en la parte superior
-                if price < prev['high']:
+        # --- Lógica SMC SHORT ---
+        elif bias == "SHORT":
+            # 1. Liquidity Sweep: El máximo de la vela anterior limpió el máximo de las 5 velas previas
+            highest_5 = df.iloc[-7:-2]['high'].max()
+            if prev['high'] > highest_5 and prev['close'] < highest_5:
+                # 2. FVG Bajista
+                # Estructura: High(Vela 3) < Low(Vela 1)
+                if curr['high'] < prev2['low']:
                     signal = "SHORT"
-                    sl_price = price + (atr * self.atr_sl_multiplier)
+                    sl_price = max(prev['high'], curr['high']) + (atr * 0.5)
                     tp_price = price - (atr * self.atr_tp_multiplier)
 
         if signal:
-            # Validación final: No entrar si el SL es absurdo o el TP está demasiado cerca
-            if abs(price - sl_price) / price < 0.001: # Menos de 0.1% es ruido
+            # Filtro de comisiones: TP debe ser al menos 0.25% (Bybit coms ~0.1% total)
+            potential_gain = abs(price - tp_price) / price
+            if potential_gain < 0.0025:
                 return None
 
             return {
@@ -117,10 +95,11 @@ class HyperQuantStrategy:
                 "entry_price": price,
                 "sl": sl_price,
                 "tp": tp_price,
-                "atr": atr,
-                "vwap": vwap
+                "bias": bias
             }
 
         return None
+
+strategy = HyperQuantStrategy()
 
 strategy = HyperQuantStrategy()
