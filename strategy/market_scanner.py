@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 class MarketScanner:
     def __init__(self):
         self.timeframe_exec = "1"
-        self.timeframe_bias = "15"
+        self.timeframe_bias = "5"
         self.limit = 150 # Necesario para EMA 100 + margen de cálculo
         
     async def get_klines_as_df(self, symbol, interval="1"):
