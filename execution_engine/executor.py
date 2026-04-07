@@ -32,10 +32,16 @@ class ExecutionEngine:
         sl_price = signal_data['sl']
         tp_price = signal_data['tp']
         
-        # 1. Chequeo de límites concurrentes
-        open_count = db_manager.get_open_trades_count()
-        if open_count >= settings.MAX_CONCURRENT_TRADES:
-            logger.info(f"Omitiendo señal {symbol} - Límite de trades abiertos ({settings.MAX_CONCURRENT_TRADES}) alcanzado.")
+        # 1. Chequeo de límites concurrentes REAL-TIME (API)
+        positions_res = bybit_client.get_positions()
+        real_open_count = 0
+        if positions_res and positions_res.get('retCode') == 0:
+            real_open_count = len([p for p in positions_res['result']['list'] if float(p['size']) > 0])
+        
+        db_count = db_manager.get_open_trades_count()
+        
+        if real_open_count >= settings.MAX_CONCURRENT_TRADES:
+            logger.info(f"Omitiendo {symbol} - Límite Real alcanzado: {real_open_count}/{settings.MAX_CONCURRENT_TRADES}")
             return False
 
         # 2. Chequeo de capital en Bybit
@@ -130,7 +136,7 @@ class ExecutionEngine:
             await telegram_notifier.notify_order_opened(
                 symbol=symbol, side=signal, entry_price=f"{entry_price:.4f}",
                 sl=sl_price, tp=tp_price, qty=qty_str, leverage=leverage,
-                current_trades=open_count + 1, max_trades=settings.MAX_CONCURRENT_TRADES,
+                current_trades=real_open_count + 1, max_trades=settings.MAX_CONCURRENT_TRADES,
                 risk_usdt=f"{risk_usdt:.2f}"
             )
             return True

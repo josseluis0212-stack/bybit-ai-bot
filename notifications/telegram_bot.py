@@ -74,50 +74,52 @@ class TelegramNotifier:
 
     async def notify_order_closed(self, symbol, side, entry_price, exit_price, pnl_usdt, pnl_pct, duration, reason, balance):
         is_win = pnl_usdt > 0
-        emoji = "💰" if is_win else "💸"
+        emoji = "✅" if is_win else "❌"
+        status_text = "GANADORA" if is_win else "PERDEDORA"
         color = "🟢" if is_win else "🔴"
-        result_text = "PROFIT" if is_win else "LOSS"
-        
-        # Barra visual de resultado
-        bar = "🟩🟩🟩" if is_win else "🟥🟥🟥"
         
         message = f"""
-{color} <b>{result_text}: {symbol}</b> {emoji}
+{color} <b>ESTADO: {status_text} {emoji}</b>
 ────────────────────
-<b>{side.upper()}</b> | {reason}
-<b>Entrada:</b> <code>{entry_price}</code>
-<b>Salida:</b> <code>{exit_price}</code>
-<b>Reloj:</b> <code>{duration}</code>
+<b>Símbolo:</b> <code>{symbol}</code>
+<b>Operación:</b> <code>{side.upper()}</code> ({reason})
 
-<b>RESULTADO:</b>
-└ <b>PnL:</b> <code>{pnl_usdt:+.2f} USDT</code>
-└ <b>ROI:</b> <code>{pnl_pct:+.2f}%</code> {bar}
+<b>Detalles:</b>
+├ <b>Entrada:</b> <code>{entry_price}</code>
+├ <b>Salida:</b> <code>{exit_price}</code>
+└ <b>Reloj:</b> <code>{duration}</code>
 
-<b>BALANCE:</b> <code>{balance:.2f} USDT</code>
+💰 <b>GANANCIA/PÉRDIDA:</b>
+└ <b>PnL:</b> <code>{pnl_usdt:+.2f} USDT</code> (<code>{pnl_pct:+.2f}%</code>)
+
+🏦 <b>BALANCE:</b> <code>{balance:.2f} USDT</code>
 ────────────────────
 """
         return await self.send_message(message)
 
     async def notify_stats_summary(self, daily, weekly, monthly, last_n_count):
         # Generar mini barras para el resumen
-        def get_trend(val): return "📈" if val > 0 else "📉"
+        def get_trend(val): return "🚀" if val > 0 else "🩸"
         
         message = f"""
-🏛️ <b>DASHBOARD: {last_n_count} TRADES</b>
+🏛️ <b>REPORTE ESTADÍSTICO ({last_n_count} Trades)</b>
 ────────────────────
-📅 <b>DIARIO</b> {get_trend(daily['total_pnl'])}
-  ├ PnL: <code>{daily['total_pnl']:+.2f} USDT</code>
-  └ WR:  <code>{daily['win_rate']:.1f}%</code>
+📅 <b>HOY</b> {get_trend(daily['total_pnl'])}
+├ <b>PnL:</b> <code>{daily['total_pnl']:+.2f} USDT</code>
+├ <b>ROI:</b> <code>{daily['pnl_pct']:+.2f}%</code>
+└ <b>Wins:</b> <code>{daily['wins']}W / {daily['losses']}L</code>
 
-🗓️ <b>SEMANAL</b> {get_trend(weekly['total_pnl'])}
-  ├ PnL: <code>{weekly['total_pnl']:+.2f} USDT</code>
-  └ WR:  <code>{weekly['win_rate']:.1f}%</code>
+🗓️ <b>SEMANA</b> {get_trend(weekly['total_pnl'])}
+├ <b>PnL:</b> <code>{weekly['total_pnl']:+.2f} USDT</code>
+├ <b>ROI:</b> <code>{weekly['pnl_pct']:+.2f}%</code>
+└ <b>Wins:</b> <code>{weekly['wins']}W / {weekly['losses']}L</code>
 
-🏛️ <b>MENSUAL</b> {get_trend(monthly['total_pnl'])}
-  ├ PnL: <code>{monthly['total_pnl']:+.2f} USDT</code>
-  └ WR:  <code>{monthly['win_rate']:.1f}%</code>
+🏛️ <b>MES</b> {get_trend(monthly['total_pnl'])}
+├ <b>PnL:</b> <code>{monthly['total_pnl']:+.2f} USDT</code>
+├ <b>ROI:</b> <code>{monthly['pnl_pct']:+.2f}%</code>
+└ <b>Wins:</b> <code>{monthly['wins']}W / {monthly['losses']}L</code>
 
-<b>ESTADO:</b> 🤖 <b>AUTÓNOMO</b> | 🚀 <b>V5.0</b>
+<b>STATUS:</b> 🤖 <b>ULTRA V7.5</b> | ⚡ <b>SCALPER</b>
 ────────────────────
 """
         return await self.send_message(message)
