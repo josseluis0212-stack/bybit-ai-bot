@@ -56,8 +56,8 @@ class MarketScanner:
         MIN_TURNOVER = 10_000_000
         valid_tickers = [t for t in tickers if float(t.get('turnover24h', 0)) > MIN_TURNOVER]
         
-        # Ordenar por Volumen
-        valid_tickers = sorted(valid_tickers, key=lambda x: float(x.get('turnover24h', 0)), reverse=True)
+        # Ordenar por Volumen y tomar las top 70
+        valid_tickers = sorted(valid_tickers, key=lambda x: float(x.get('turnover24h', 0)), reverse=True)[:70]
         
         logger.info(f"Escaneando {len(valid_tickers)} monedas de alta liquidez (> $10M).")
         
