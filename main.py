@@ -50,7 +50,7 @@ def health():
 
 @socketio.on('connect')
 def handle_connect():
-    print("[UI] Cliente conectado. Enviando datos iniciales...")
+    logger.info("[UI] Cliente conectado. Enviando datos iniciales...")
     refresh_ui(bot_control)
 
 @socketio.on('control_bot')
@@ -64,15 +64,24 @@ def handle_control(data):
         bot_control["is_running"] = False
         send_log("⏹️ Bot DETENIDO desde el Dashboard.", "log-error")
     elif action == 'reset':
+        # Reset manual desde el botón
+        bybit_client.close_all_positions()
         db_manager.reset_all_stats()
-        send_log("♻️ ESTADÍSTICAS REINICIADAS A CERO.", "log-warning")
+        send_log("♻️ RESET TOTAL: Posiciones cerradas y estadísticas a cero.", "log-warning")
     
     socketio.emit('new_log', {"message": f"Comando {action} recibido.", "type": "warning"})
     refresh_ui(bot_control)
 
 async def bot_loop():
-    logger.info("🚀 INICIANDO BOT LOOP V7.7...")
+    logger.info("🚀 INICIANDO BOT LOOP V7.8 (FULL SYNC)...")
     scanner = MarketScanner()
+    
+    # --- HARD RESET INICIAL (OPCIONAL/PEDIDO) ---
+    from database.db_manager import db_manager
+    logger.info("🧹 Ejecutando Hard Reset inicial...")
+    bybit_client.close_all_positions()
+    db_manager.reset_all_stats()
+    send_log("🧹 HARD RESET COMPLETADO: Iniciando desde cero absoluto.", "log-warning")
     
     while True:
         if not bot_control["is_running"]:
@@ -100,19 +109,17 @@ async def bot_loop():
         except Exception as e:
             logger.error(f"Error Loop: {e}")
         
-        await asyncio.sleep(60)
+        await asyncio.sleep(30) # Aumentar frecuencia a 30s
 
-def start_bot_worker():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(bot_loop())
+def run_bot_loop():
+    """Wrapper para correr el loop asíncrono en el background task de SocketIO."""
+    asyncio.run(bot_loop())
 
 if __name__ == "__main__":
-    t = threading.Thread(target=start_worker_bot if 'start_worker_bot' in locals() else start_bot_worker)
-    t.daemon = True
-    t.start()
+    # Iniciar el bot como una tarea de fondo de SocketIO para máxima compatibilidad con Eventlet
+    socketio.start_background_task(run_bot_loop)
     
     port = int(os.environ.get("PORT", 10000))
-    logger.info(f"🔥 UNIFIED SERVER LIVE ON PORT {port}")
+    logger.info(f"🔥 UNIFIED SERVER V7.8 LIVE ON PORT {port}")
     socketio.run(app, host="0.0.0.0", port=port, debug=False, use_reloader=False)
-吐
+

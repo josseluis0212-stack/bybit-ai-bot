@@ -52,23 +52,28 @@ class TelegramNotifier:
 """
         return await self.send_message(message)
 
-    async def notify_order_opened(self, symbol, side, entry_price, sl, tp, qty, leverage, current_trades, max_trades, risk_usdt):
-        emoji = "🚀" if side.upper() == "LONG" else "⚡"
-        color = "🔵" if side.upper() == "LONG" else "🟠"
+    async def notify_order_opened(self, symbol, side, entry_price, sl, tp, qty, leverage, current_trades, max_trades, risk_usdt, margin):
+        emoji = "🚀" if side == "LONG" else "🔻"
+        color = "🔵" if side == "LONG" else "🟠"
+        
         message = f"""
-{color} <b>ORDEN EJECUTADA: {symbol}</b> {emoji}
+{color} <b>ORDEN EJECUTADA: {symbol} {emoji}</b>
 ────────────────────
+<b>Símbolo:</b> <code>{symbol}</code>
 <b>Dirección:</b> <code>{side.upper()}</code>
-<b>Precio:</b> <code>{entry_price}</code>
-<b>Margen:</b> <code>{margin} USDT</code>
-<b>Tamaño:</b> <code>{qty} ({leverage}x)</code>
 
-<b>Objetivos:</b>
-└ 💰 TP: <code>{tp}</code>
-└ 🛑 SL: <code>{sl}</code>
+<b>Detalles Operativos:</b>
+├ <b>Precio:</b> <code>{entry_price}</code>
+├ <b>Margen:</b> <code>{margin} USDT</code>
+├ <b>Apalanc.:</b> <code>{leverage}x</code>
+└ <b>Tamaño:</b> <code>{qty}</code>
 
-<b>Riesgo:</b> <code>{risk_usdt} USDT</code>
-<b>Slots:</b> <code>{current_trades}/{max_trades}</code>
+<b>Gestión de Riesgo:</b>
+├ 🎯 <b>TP:</b> <code>{tp}</code>
+├ 🛑 <b>SL:</b> <code>{sl}</code>
+└ ⚠️ <b>Riesgo:</b> <code>{risk_usdt} USDT</code>
+
+💎 <b>SLOTS:</b> <code>{current_trades}/{max_trades}</code>
 ────────────────────
 """
         return await self.send_message(message)
@@ -80,47 +85,47 @@ class TelegramNotifier:
         color = "🟢" if is_win else "🔴"
         
         message = f"""
-{color} <b>ESTADO: {status_text} {emoji}</b>
+{color} <b>RESULTADO: {status_text} {emoji}</b>
 ────────────────────
 <b>Símbolo:</b> <code>{symbol}</code>
 <b>Operación:</b> <code>{side.upper()}</code> ({reason})
 
-<b>Detalles:</b>
+<b>Detalles del Trade:</b>
 ├ <b>Entrada:</b> <code>{entry_price}</code>
 ├ <b>Salida:</b> <code>{exit_price}</code>
 └ <b>Reloj:</b> <code>{duration}</code>
 
-💰 <b>GANANCIA/PÉRDIDA:</b>
-└ <b>PnL:</b> <code>{pnl_usdt:+.2f} USDT</code> (<code>{pnl_pct:+.2f}%</code>)
+💰 <b>GANANCIA / PÉRDIDA:</b>
+├ <b>PnL (USDT):</b> <code>{pnl_usdt:+.2f} USDT</code>
+└ <b>ROI (%):</b> <code>{pnl_pct:+.2f}%</code>
 
-🏦 <b>BALANCE:</b> <code>{balance:.2f} USDT</code>
+🏦 <b>BALANCE TOTAL:</b> <code>{balance:.2f} USDT</code>
 ────────────────────
 """
         return await self.send_message(message)
 
     async def notify_stats_summary(self, daily, weekly, monthly, last_n_count):
-        # Generar mini barras para el resumen
         def get_trend(val): return "🚀" if val > 0 else "🩸"
         
         message = f"""
-🏛️ <b>REPORTE ESTADÍSTICO ({last_n_count} Trades)</b>
+🏛️ <b>ESTADÍSTICAS GLOBALES ({last_n_count} TRADES)</b>
 ────────────────────
 📅 <b>HOY</b> {get_trend(daily['total_pnl'])}
 ├ <b>PnL:</b> <code>{daily['total_pnl']:+.2f} USDT</code>
 ├ <b>ROI:</b> <code>{daily['pnl_pct']:+.2f}%</code>
-└ <b>Wins:</b> <code>{daily['wins']}W / {daily['losses']}L</code>
+└ <b>Record:</b> <code>{daily['wins']}W / {daily['losses']}L</code>
 
 🗓️ <b>SEMANA</b> {get_trend(weekly['total_pnl'])}
 ├ <b>PnL:</b> <code>{weekly['total_pnl']:+.2f} USDT</code>
 ├ <b>ROI:</b> <code>{weekly['pnl_pct']:+.2f}%</code>
-└ <b>Wins:</b> <code>{weekly['wins']}W / {weekly['losses']}L</code>
+└ <b>Record:</b> <code>{weekly['wins']}W / {weekly['losses']}L</code>
 
 🏛️ <b>MES</b> {get_trend(monthly['total_pnl'])}
 ├ <b>PnL:</b> <code>{monthly['total_pnl']:+.2f} USDT</code>
 ├ <b>ROI:</b> <code>{monthly['pnl_pct']:+.2f}%</code>
-└ <b>Wins:</b> <code>{monthly['wins']}W / {monthly['losses']}L</code>
+└ <b>Record:</b> <code>{monthly['wins']}W / {monthly['losses']}L</code>
 
-<b>STATUS:</b> 🤖 <b>ULTRA V7.5</b> | ⚡ <b>SCALPER</b>
+<b>STATUS:</b> 🦾 <b>SINCRO V7.8</b> | ⚡ <b>ULTRA</b>
 ────────────────────
 """
         return await self.send_message(message)

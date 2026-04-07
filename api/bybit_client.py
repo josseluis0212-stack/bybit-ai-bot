@@ -55,6 +55,28 @@ class BybitClient:
             logger.error(f"Error obteniendo posiciones: {e}")
             return None
 
+    def close_all_positions(self, category="linear"):
+        """Cierra todas las posiciones abiertas a precio de mercado para el reset."""
+        try:
+            positions = self.get_positions(category=category)
+            if positions and positions.get("retCode") == 0:
+                for pos in positions["result"]["list"]:
+                    if float(pos["size"]) > 0:
+                        symbol = pos["symbol"]
+                        side = "Sell" if pos["side"] == "Buy" else "Buy"
+                        self.place_order(
+                            symbol=symbol,
+                            side=side,
+                            order_type="Market",
+                            qty=pos["size"],
+                            reduce_only=True
+                        )
+                        logger.info(f"💣 Posición cerrada (RESET): {symbol} {pos['size']}")
+            return True
+        except Exception as e:
+            logger.error(f"Error cerrando todas las posiciones: {e}")
+            return False
+
     def get_instruments_info(self, category="linear", symbol=None):
         try:
             params = {"category": category}
