@@ -50,12 +50,17 @@ class ExecutionEngine:
 
         # 1. Chequeo de límites concurrentes REAL-TIME (API)
         positions_res = bybit_client.get_positions()
-        real_open_count = 0
+        active_positions = []
         if positions_res and positions_res.get('retCode') == 0:
-            real_open_count = len([p for p in positions_res['result']['list'] if float(p['size']) > 0])
+             active_positions = [p for p in positions_res['result']['list'] if float(p['size']) > 0]
         
-        db_count = db_manager.get_open_trades_count()
+        real_open_count = len(active_positions)
         
+        # --- NUEVA REGLA: Verificar si YA hay una operación abierta de este mismo activo ---
+        if any(p['symbol'] == symbol for p in active_positions):
+            logger.info(f"Omitiendo {symbol} - Ya existe una posición abierta para este activo.")
+            return False
+            
         if real_open_count >= settings.MAX_CONCURRENT_TRADES:
             logger.info(f"Omitiendo {symbol} - Límite Real alcanzado: {real_open_count}/{settings.MAX_CONCURRENT_TRADES}")
             return False
