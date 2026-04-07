@@ -1,12 +1,15 @@
+import eventlet
+eventlet.monkey_patch()
+
 import asyncio
 import time
 import logging
 import os
+import threading
 from strategy.market_scanner import MarketScanner
 from strategy.base_strategy import strategy
 from execution_engine.executor import executor
 from api.bybit_client import bybit_client
-from dashboard.app import start_dashboard, bot_control, send_log, refresh_ui
 
 # Configuración de Logging
 logging.basicConfig(
@@ -15,76 +18,96 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# --- INTEGRACIÓN DASHBOARD DIRECTA ---
+from flask import Flask, render_template, jsonify, request
+from flask_socketio import SocketIO, emit
+
+# Rutas absolutas para Render
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+TEMPLATE_DIR = os.path.join(BASE_DIR, "dashboard", "templates")
+STATIC_DIR = os.path.join(BASE_DIR, "dashboard", "static")
+
+app = Flask(__name__, template_folder=TEMPLATE_DIR, static_folder=STATIC_DIR)
+socketio = SocketIO(app, cors_allowed_origins="*")
+
+# Estado compartido
+bot_control = {
+    "is_running": True,
+    "last_bias": "---",
+    "current_balance": "0.00"
+}
+
+@app.route('/')
+@app.route('/app/index.html')
+def index():
+    return render_template('index.html')
+
+@app.route('/health')
+def health():
+    return "OK", 200
+
+@socketio.on('control_bot')
+def handle_control(data):
+    action = data.get('action')
+    if action == 'start': bot_control["is_running"] = True
+    elif action == 'stop': bot_control["is_running"] = False
+    socketio.emit('new_log', {"message": f"Comando {action} recibido.", "type": "warning"})
+
+def send_log(message, type="log-info"):
+    socketio.emit('new_log', {"message": message, "type": type})
+
 async def bot_loop():
-    logger.info("🚀 INICIANDO HYPER-QUANT ULTRA V7.0 (PREMIUM DASHBOARD)...")
-    
-    # Notificación inicial a la UI
-    send_log("🤖 Sistema V7.0 Iniciado. Estableciendo conexión con Bybit...", "log-info")
-    
+    logger.info("🚀 INICIANDO BOT LOOP V7.4...")
     scanner = MarketScanner()
     
     while True:
-        # 1. Verificar si el bot está encendido desde el Dashboard
         if not bot_control["is_running"]:
             await asyncio.sleep(5)
             continue
 
-        start_time = time.time()
-        
         try:
-            # 2. Actualizar balance general para la UI
+            # Sincronizar Balance
             balance_info = bybit_client.get_wallet_balance()
             if balance_info and balance_info.get('retCode') == 0:
                 coins = balance_info['result']['list'][0]['coin']
                 usdt = next((c for c in coins if c['coin'] == 'USDT'), None)
-                if usdt:
-                    bot_control["current_balance"] = f"{float(usdt['walletBalance']):.2f}"
+                if usdt: bot_control["current_balance"] = f"{float(usdt['walletBalance']):.2f}"
             
-            # 3. Monitorear posiciones abiertas (TP/SL/Breakeven)
             await executor.check_open_positions()
-            
-            # 4. Escanear Mercado
-            send_log(f"🔍 Escaneando mercado ({scanner.timeframe_bias}m bias)...", "log-info")
             signals = await scanner.scan_market()
             
             for signal_data in signals:
-                symbol = signal_data['symbol']
-                # Actualizar último Bias detectado para la UI
                 bot_control["last_bias"] = signal_data['signal']
+                await executor.try_execute_signal(signal_data)
                 
-                # Intentar ejecución
-                success = await executor.try_execute_signal(signal_data)
-                if success:
-                    logger.info(f"✅ Orden ejecutada con éxito: {symbol}")
-            
-            # Refrescar UI al final de cada ciclo
-            refresh_ui()
-            
+            # Emitir actualización a la UI
+            from database.db_manager import db_manager
+            stats = {
+                "daily": db_manager.get_stats("daily"),
+                "weekly": db_manager.get_stats("weekly"),
+                "monthly": db_manager.get_stats("monthly")
+            }
+            socketio.emit('update_data', {
+                "balance": bot_control["current_balance"],
+                "bias": bot_control["last_bias"],
+                "stats": stats
+            })
+
         except Exception as e:
-            logger.error(f"❌ Error crítico en el loop: {e}")
-            send_log(f"⚠️ Error en el ciclo: {str(e)}", "log-warning")
-            await asyncio.sleep(10)
+            logger.error(f"Error Loop: {e}")
+        
+        await asyncio.sleep(60)
 
-        # Control de frecuencia: Esperar 1 minuto entre escaneos completos
-        elapsed = time.time() - start_time
-        wait_time = max(1, 60 - elapsed)
-        await asyncio.sleep(wait_time)
-
-def start_bot_in_thread():
+def start_bot_worker():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     loop.run_until_complete(bot_loop())
 
 if __name__ == "__main__":
-    import threading
-    from dashboard.app import app, socketio
+    t = threading.Thread(target=start_bot_worker)
+    t.daemon = True
+    t.start()
     
-    # 1. Iniciar el motor de trading en un hilo separado
-    bot_thread = threading.Thread(target=start_bot_in_thread)
-    bot_thread.daemon = True
-    bot_thread.start()
-    
-    # 2. Iniciar el Dashboard en el hilo principal (Patrón recomendado para Render)
     port = int(os.environ.get("PORT", 10000))
-    logger.info(f"🟢 SISTEMA V7.3 INICIANDO | PUERTO {port} | DASHBOARD EN HILO PRINCIPAL")
+    logger.info(f"🔥 UNIFIED SERVER LIVE ON PORT {port}")
     socketio.run(app, host="0.0.0.0", port=port, debug=False, use_reloader=False)
