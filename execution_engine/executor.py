@@ -11,6 +11,10 @@ from notifications.telegram_bot import telegram_notifier
 logger = logging.getLogger(__name__)
 
 class ExecutionEngine:
+    def __init__(self):
+        # Almacena el timestamp hasta el cual una moneda está bloqueada tras una pérdida
+        self.symbol_cooldowns = {}
+
     def _format_step(self, value, step_string, round_down=False):
         step_dec = Decimal(str(step_string))
         val_dec = Decimal(str(value))
@@ -32,6 +36,18 @@ class ExecutionEngine:
         sl_price = signal_data['sl']
         tp_price = signal_data['tp']
         
+        # 0. Chequeo de Cooldown (V9.0)
+        from datetime import datetime
+        now = datetime.utcnow()
+        if symbol in self.symbol_cooldowns:
+            if now < self.symbol_cooldowns[symbol]:
+                remaining = (self.symbol_cooldowns[symbol] - now).total_seconds() / 60
+                logger.info(f"Omitiendo {symbol} - Moneda en COOLDOWN tras pérdida ({remaining:.1f} min)")
+                return False
+            else:
+                # Cooldown expirado, limpiar
+                del self.symbol_cooldowns[symbol]
+
         # 1. Chequeo de límites concurrentes REAL-TIME (API)
         positions_res = bybit_client.get_positions()
         real_open_count = 0
@@ -165,7 +181,7 @@ class ExecutionEngine:
         if not open_trades:
             return
             
-        from datetime import datetime
+        from datetime import datetime, timedelta
         now = datetime.utcnow()
         
         positions_response = bybit_client.get_positions()
@@ -201,6 +217,12 @@ class ExecutionEngine:
                 pnl_pct = (pnl_usdt / (trade.entry_price * trade.qty)) * 100 * trade.leverage
                 db_manager.close_trade(trade.id, exit_price, pnl_usdt, pnl_pct, reason)
                 
+                # --- APLICAR COOLDOWN SI ES PÉRDIDA (V9.0) ---
+                if pnl_usdt < 0:
+                    from datetime import timedelta
+                    self.symbol_cooldowns[symbol] = datetime.utcnow() + timedelta(minutes=30)
+                    logger.info(f"❄️ {symbol} en COOLDOWN de 30 min tras pérdida.")
+
                 from utils.ui_utils import send_log, refresh_ui
                 msg_close = "💰 GAIN" if pnl_usdt > 0 else "🩸 LOSS"
                 send_log(f"🏁 TRADE CERRADO: {symbol} | {msg_close} | PnL: {pnl_usdt:.2f}$ ({pnl_pct:.2f}%)", "log-success" if pnl_usdt > 0 else "log-error")
