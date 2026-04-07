@@ -114,7 +114,7 @@ class BybitClient:
                 logger.error(f"Error configurando apalancamiento en {symbol}: {e}")
             return None
 
-    def place_order(self, symbol, side, order_type, qty, price=None, take_profit=None, stop_loss=None):
+    def place_order(self, symbol, side, order_type, qty, price=None, take_profit=None, stop_loss=None, **kwargs):
         try:
             order_params = {
                 "category": "linear",
@@ -129,6 +129,12 @@ class BybitClient:
                 order_params["takeProfit"] = str(take_profit)
             if stop_loss:
                 order_params["stopLoss"] = str(stop_loss)
+            
+            # Soporte para reduceOnly y otros parámetros extra
+            for key, value in kwargs.items():
+                # Convertir CamelCase si es necesario para la API de Bybit
+                api_key = "reduceOnly" if key == "reduce_only" else key
+                order_params[api_key] = value
 
             response = self.session.place_order(**order_params)
             logger.info(f"Orden ejecutada: {symbol} {side} {qty}")

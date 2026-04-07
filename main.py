@@ -73,15 +73,8 @@ def handle_control(data):
     refresh_ui(bot_control)
 
 async def bot_loop():
-    logger.info("🚀 INICIANDO BOT LOOP V7.8 (FULL SYNC)...")
+    logger.info("🚀 INICIANDO BOT LOOP V7.9 (SYNCHRONIZED)...")
     scanner = MarketScanner()
-    
-    # --- HARD RESET INICIAL (OPCIONAL/PEDIDO) ---
-    from database.db_manager import db_manager
-    logger.info("🧹 Ejecutando Hard Reset inicial...")
-    bybit_client.close_all_positions()
-    db_manager.reset_all_stats()
-    send_log("🧹 HARD RESET COMPLETADO: Iniciando desde cero absoluto.", "log-warning")
     
     while True:
         if not bot_control["is_running"]:
@@ -116,10 +109,17 @@ def run_bot_loop():
     asyncio.run(bot_loop())
 
 if __name__ == "__main__":
-    # Iniciar el bot como una tarea de fondo de SocketIO para máxima compatibilidad con Eventlet
+    from database.db_manager import db_manager
+    
+    # --- BULLETPROOF HARD RESET (Startup) ---
+    logger.info("🧹 [STARTUP] Ejecutando Hard Reset total...")
+    bybit_client.close_all_positions()
+    db_manager.reset_all_stats()
+    logger.info("🧹 [STARTUP] Reseteo completado. Iniciando servidor...")
+    
+    # Iniciar el bot como una tarea de fondo de SocketIO
     socketio.start_background_task(run_bot_loop)
     
     port = int(os.environ.get("PORT", 10000))
-    logger.info(f"🔥 UNIFIED SERVER V7.8 LIVE ON PORT {port}")
+    logger.info(f"🔥 UNIFIED SERVER V7.9 LIVE ON PORT {port}")
     socketio.run(app, host="0.0.0.0", port=port, debug=False, use_reloader=False)
-
