@@ -70,13 +70,21 @@ async def bot_loop():
         wait_time = max(1, 60 - elapsed)
         await asyncio.sleep(wait_time)
 
+def start_bot_in_thread():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(bot_loop())
+
 if __name__ == "__main__":
-    # Iniciar Dashboard en un hilo separado
-    # Nota: El dashboard usa el puerto definido en PORT (Render)
-    start_dashboard()
+    import threading
+    from dashboard.app import app, socketio
     
-    # Iniciar Loop del Bot en el hilo principal como corrutina
-    try:
-        asyncio.run(bot_loop())
-    except KeyboardInterrupt:
-        logger.info("Bot detenido por el usuario.")
+    # 1. Iniciar el motor de trading en un hilo separado
+    bot_thread = threading.Thread(target=start_bot_in_thread)
+    bot_thread.daemon = True
+    bot_thread.start()
+    
+    # 2. Iniciar el Dashboard en el hilo principal (Patrón recomendado para Render)
+    port = int(os.environ.get("PORT", 10000))
+    logger.info(f"🟢 SISTEMA V7.3 INICIANDO | PUERTO {port} | DASHBOARD EN HILO PRINCIPAL")
+    socketio.run(app, host="0.0.0.0", port=port, debug=False, use_reloader=False)
