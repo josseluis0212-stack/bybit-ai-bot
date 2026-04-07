@@ -143,4 +143,19 @@ class DBManager:
         finally:
             session.close()
 
+    def reset_all_stats(self):
+        """Borra todo el historial de trades para reiniciar contadores a cero."""
+        session = self.Session()
+        try:
+            session.query(Trade).delete()
+            session.commit()
+            logger.info("🗑️ Historial de base de datos borrado correctamente (Reset).")
+            return True
+        except Exception as e:
+            logger.error(f"Error reseteando stats en DB: {e}")
+            session.rollback()
+            return False
+        finally:
+            session.close()
+
 db_manager = DBManager()

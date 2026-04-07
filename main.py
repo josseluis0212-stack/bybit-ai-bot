@@ -48,10 +48,34 @@ def health():
 
 @socketio.on('control_bot')
 def handle_control(data):
+    from database.db_manager import db_manager
     action = data.get('action')
-    if action == 'start': bot_control["is_running"] = True
-    elif action == 'stop': bot_control["is_running"] = False
+    if action == 'start': 
+        bot_control["is_running"] = True
+    elif action == 'stop': 
+        bot_control["is_running"] = False
+    elif action == 'reset':
+        db_manager.reset_all_stats()
+        send_log("♻️ ESTADÍSTICAS REINICIADAS A CERO.", "log-warning")
+    
     socketio.emit('new_log', {"message": f"Comando {action} recibido.", "type": "warning"})
+    refresh_ui()
+
+def refresh_ui():
+    """Vuelve a cargar y enviar los últimos datos (Incluyendo los 0s tras un reset)."""
+    from database.db_manager import db_manager
+    stats = {
+        "daily": db_manager.get_stats("daily"),
+        "weekly": db_manager.get_stats("weekly"),
+        "monthly": db_manager.get_stats("monthly")
+    }
+    socketio.emit('update_data', {
+        "balance": bot_control["current_balance"],
+        "bias": bot_control["last_bias"],
+        "stats": stats,
+        "history": [],
+        "positions": []
+    })
 
 def send_log(message, type="log-info"):
     socketio.emit('new_log', {"message": message, "type": type})
