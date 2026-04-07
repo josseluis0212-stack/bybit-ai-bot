@@ -60,6 +60,7 @@ class TelegramNotifier:
 ────────────────────
 <b>Dirección:</b> <code>{side.upper()}</code>
 <b>Precio:</b> <code>{entry_price}</code>
+<b>Margen:</b> <code>{margin} USDT</code>
 <b>Tamaño:</b> <code>{qty} ({leverage}x)</code>
 
 <b>Objetivos:</b>

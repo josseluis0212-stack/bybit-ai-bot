@@ -129,7 +129,7 @@ class ExecutionEngine:
                 leverage=leverage, risk_usdt=risk_usdt
             )
             
-            from dashboard.app import send_log, refresh_ui
+            from utils.ui_utils import send_log, refresh_ui
             send_log(f"🚀 POSICIÓN ABIERTA: {symbol} ({signal}) a {entry_price:.4f}", "log-success")
             refresh_ui()
             
@@ -137,11 +137,12 @@ class ExecutionEngine:
                 symbol=symbol, side=signal, entry_price=f"{entry_price:.4f}",
                 sl=sl_price, tp=tp_price, qty=qty_str, leverage=leverage,
                 current_trades=real_open_count + 1, max_trades=settings.MAX_CONCURRENT_TRADES,
-                risk_usdt=f"{risk_usdt:.2f}"
+                risk_usdt=f"{risk_usdt:.2f}",
+                margin=fixed_margin
             )
             return True
         else:
-            from dashboard.app import send_log
+            from utils.ui_utils import send_log
             send_log(f"❌ Error al abrir {symbol}: {response.get('retMsg', 'Unknown')}", "log-error")
             ret_code = response.get("retCode") if response else "Unknown"
             if ret_code == 10003:
@@ -174,9 +175,9 @@ class ExecutionEngine:
                 if float(pos['size']) > 0:
                     real_positions[pos['symbol']] = pos
 
-        # Emitir posiciones actuales a la UI
-        from dashboard.app import socketio
-        socketio.emit('update_data', {'positions': list(real_positions.values())})
+        # Emitir actualización completa a la UI (Posiciones, Historial, Stats)
+        from utils.ui_utils import refresh_ui
+        refresh_ui()
 
         for trade in open_trades:
             symbol = trade.symbol
@@ -200,7 +201,7 @@ class ExecutionEngine:
                 pnl_pct = (pnl_usdt / (trade.entry_price * trade.qty)) * 100 * trade.leverage
                 db_manager.close_trade(trade.id, exit_price, pnl_usdt, pnl_pct, reason)
                 
-                from dashboard.app import send_log, refresh_ui
+                from utils.ui_utils import send_log, refresh_ui
                 msg_close = "💰 GAIN" if pnl_usdt > 0 else "🩸 LOSS"
                 send_log(f"🏁 TRADE CERRADO: {symbol} | {msg_close} | PnL: {pnl_usdt:.2f}$ ({pnl_pct:.2f}%)", "log-success" if pnl_usdt > 0 else "log-error")
                 refresh_ui()

@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 # --- INTEGRACIÓN DASHBOARD DIRECTA ---
 from flask import Flask, render_template, jsonify, request
 from flask_socketio import SocketIO, emit
+from utils.ui_utils import set_socketio, send_log, refresh_ui
 
 # Rutas absolutas para Render
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -29,6 +30,7 @@ STATIC_DIR = os.path.join(BASE_DIR, "dashboard", "static")
 
 app = Flask(__name__, template_folder=TEMPLATE_DIR, static_folder=STATIC_DIR)
 socketio = SocketIO(app, cors_allowed_origins="*")
+set_socketio(socketio)
 
 # Estado compartido
 bot_control = {
@@ -46,42 +48,30 @@ def index():
 def health():
     return "OK", 200
 
+@socketio.on('connect')
+def handle_connect():
+    print("[UI] Cliente conectado. Enviando datos iniciales...")
+    refresh_ui(bot_control)
+
 @socketio.on('control_bot')
 def handle_control(data):
     from database.db_manager import db_manager
     action = data.get('action')
     if action == 'start': 
         bot_control["is_running"] = True
+        send_log("▶️ Bot INICIADO desde el Dashboard.", "log-success")
     elif action == 'stop': 
         bot_control["is_running"] = False
+        send_log("⏹️ Bot DETENIDO desde el Dashboard.", "log-error")
     elif action == 'reset':
         db_manager.reset_all_stats()
         send_log("♻️ ESTADÍSTICAS REINICIADAS A CERO.", "log-warning")
     
     socketio.emit('new_log', {"message": f"Comando {action} recibido.", "type": "warning"})
-    refresh_ui()
-
-def refresh_ui():
-    """Vuelve a cargar y enviar los últimos datos (Incluyendo los 0s tras un reset)."""
-    from database.db_manager import db_manager
-    stats = {
-        "daily": db_manager.get_stats("daily"),
-        "weekly": db_manager.get_stats("weekly"),
-        "monthly": db_manager.get_stats("monthly")
-    }
-    socketio.emit('update_data', {
-        "balance": bot_control["current_balance"],
-        "bias": bot_control["last_bias"],
-        "stats": stats,
-        "history": [],
-        "positions": []
-    })
-
-def send_log(message, type="log-info"):
-    socketio.emit('new_log', {"message": message, "type": type})
+    refresh_ui(bot_control)
 
 async def bot_loop():
-    logger.info("🚀 INICIANDO BOT LOOP V7.4...")
+    logger.info("🚀 INICIANDO BOT LOOP V7.7...")
     scanner = MarketScanner()
     
     while True:
@@ -105,17 +95,7 @@ async def bot_loop():
                 await executor.try_execute_signal(signal_data)
                 
             # Emitir actualización a la UI
-            from database.db_manager import db_manager
-            stats = {
-                "daily": db_manager.get_stats("daily"),
-                "weekly": db_manager.get_stats("weekly"),
-                "monthly": db_manager.get_stats("monthly")
-            }
-            socketio.emit('update_data', {
-                "balance": bot_control["current_balance"],
-                "bias": bot_control["last_bias"],
-                "stats": stats
-            })
+            refresh_ui(bot_control)
 
         except Exception as e:
             logger.error(f"Error Loop: {e}")
@@ -128,10 +108,11 @@ def start_bot_worker():
     loop.run_until_complete(bot_loop())
 
 if __name__ == "__main__":
-    t = threading.Thread(target=start_bot_worker)
+    t = threading.Thread(target=start_worker_bot if 'start_worker_bot' in locals() else start_bot_worker)
     t.daemon = True
     t.start()
     
     port = int(os.environ.get("PORT", 10000))
     logger.info(f"🔥 UNIFIED SERVER LIVE ON PORT {port}")
     socketio.run(app, host="0.0.0.0", port=port, debug=False, use_reloader=False)
+吐

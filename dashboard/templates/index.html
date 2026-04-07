@@ -44,12 +44,12 @@
             </div>
         </div>
 
-        <!-- STATS PANEL (D/W/M) -->
-        <div class="grid" style="grid-template-columns: repeat(3, 1fr);">
+        <!-- STATS PANEL (D/W/M) -->        <div class="grid" style="grid-template-columns: repeat(3, 1fr);">
             <!-- DAILY -->
             <div class="card">
                 <div class="card-title">Hoy (PNL)</div>
                 <div id="daily-pnl" class="card-value">0.00%</div>
+                <div id="daily-pnl-usdt" style="font-size: 1rem; font-weight: 600; opacity: 0.9; margin-top: -5px;">$0.00</div>
                 <div class="stats-grid">
                     <div class="stat-item"><div class="stat-label">Wins</div><div id="daily-wins" class="stat-val positive">0</div></div>
                     <div class="stat-item"><div class="stat-label">Losses</div><div id="daily-losses" class="stat-val negative">0</div></div>
@@ -59,6 +59,7 @@
             <div class="card">
                 <div class="card-title">Semana (PNL)</div>
                 <div id="weekly-pnl" class="card-value">0.00%</div>
+                <div id="weekly-pnl-usdt" style="font-size: 1rem; font-weight: 600; opacity: 0.9; margin-top: -5px;">$0.00</div>
                 <div class="stats-grid">
                     <div class="stat-item"><div class="stat-label">Wins</div><div id="weekly-wins" class="stat-val positive">0</div></div>
                     <div class="stat-item"><div class="stat-label">Losses</div><div id="weekly-losses" class="stat-val negative">0</div></div>
@@ -68,6 +69,7 @@
             <div class="card">
                 <div class="card-title">Mes (PNL)</div>
                 <div id="monthly-pnl" class="card-value">0.00%</div>
+                <div id="monthly-pnl-usdt" style="font-size: 1rem; font-weight: 600; opacity: 0.9; margin-top: -5px;">$0.00</div>
                 <div class="stats-grid">
                     <div class="stat-item"><div class="stat-label">Wins</div><div id="monthly-wins" class="stat-val positive">0</div></div>
                     <div class="stat-item"><div class="stat-label">Losses</div><div id="monthly-losses" class="stat-val negative">0</div></div>
@@ -120,6 +122,7 @@
                             <th>Entrada</th>
                             <th>Salida</th>
                             <th>PnL (%)</th>
+                            <th>PnL (USDT)</th>
                             <th>Resultado</th>
                         </tr>
                     </thead>
@@ -129,9 +132,7 @@
                 </table>
             </div>
         </div>
-    </div>
-
-    <script>
+    </di    <script>
         const socket = io();
 
         socket.on('update_data', function (data) {
@@ -166,8 +167,15 @@
 
         function updateStat(period, stats) {
             const pnlEl = document.getElementById(`${period}-pnl`);
+            const pnlUsdtEl = document.getElementById(`${period}-pnl-usdt`);
+            
             pnlEl.innerText = `${stats.pnl_pct.toFixed(2)}%`;
-            pnlEl.className = 'card-value ' + (stats.pnl_pct >= 0 ? 'positive' : 'negative');
+            pnlUsdtEl.innerText = `${stats.total_pnl >= 0 ? '+' : ''}${stats.total_pnl.toFixed(2)} USDT`;
+            
+            const colorClass = stats.pnl_pct >= 0 ? 'positive' : 'negative';
+            pnlEl.className = 'card-value ' + colorClass;
+            pnlUsdtEl.className = colorClass;
+
             document.getElementById(`${period}-wins`).innerText = stats.wins;
             document.getElementById(`${period}-losses`).innerText = stats.losses;
         }
@@ -203,11 +211,13 @@
                     <td>${t.entry_price}</td>
                     <td>${t.exit_price}</td>
                     <td class="${t.pnl_pct >= 0 ? 'positive' : 'negative'}">${t.pnl_pct.toFixed(2)}%</td>
+                    <td class="${t.pnl_pct >= 0 ? 'positive' : 'negative'}">${t.pnl_pct >= 0 ? '+' : ''}${t.pnl_usdt.toFixed(2)} USDT</td>
                     <td>${t.reason}</td>
                 </tr>`;
                 body.innerHTML += row;
             });
         }
+   }
 
         // Control Buttons
         function startBot() { socket.emit('control_bot', { action: 'start' }); }
