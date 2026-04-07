@@ -123,6 +123,10 @@ class ExecutionEngine:
                 leverage=leverage, risk_usdt=risk_usdt
             )
             
+            from dashboard.app import send_log, refresh_ui
+            send_log(f"🚀 POSICIÓN ABIERTA: {symbol} ({signal}) a {entry_price:.4f}", "log-success")
+            refresh_ui()
+            
             await telegram_notifier.notify_order_opened(
                 symbol=symbol, side=signal, entry_price=f"{entry_price:.4f}",
                 sl=sl_price, tp=tp_price, qty=qty_str, leverage=leverage,
@@ -131,6 +135,8 @@ class ExecutionEngine:
             )
             return True
         else:
+            from dashboard.app import send_log
+            send_log(f"❌ Error al abrir {symbol}: {response.get('retMsg', 'Unknown')}", "log-error")
             ret_code = response.get("retCode") if response else "Unknown"
             if ret_code == 10003:
                 await telegram_notifier.notify_api_error(
@@ -162,6 +168,10 @@ class ExecutionEngine:
                 if float(pos['size']) > 0:
                     real_positions[pos['symbol']] = pos
 
+        # Emitir posiciones actuales a la UI
+        from dashboard.app import socketio
+        socketio.emit('update_data', {'positions': list(real_positions.values())})
+
         for trade in open_trades:
             symbol = trade.symbol
             
@@ -184,6 +194,11 @@ class ExecutionEngine:
                 pnl_pct = (pnl_usdt / (trade.entry_price * trade.qty)) * 100 * trade.leverage
                 db_manager.close_trade(trade.id, exit_price, pnl_usdt, pnl_pct, reason)
                 
+                from dashboard.app import send_log, refresh_ui
+                msg_close = "💰 GAIN" if pnl_usdt > 0 else "🩸 LOSS"
+                send_log(f"🏁 TRADE CERRADO: {symbol} | {msg_close} | PnL: {pnl_usdt:.2f}$ ({pnl_pct:.2f}%)", "log-success" if pnl_usdt > 0 else "log-error")
+                refresh_ui()
+
                 balance_info = bybit_client.get_wallet_balance()
                 current_balance = float(balance_info['result']['list'][0]['coin'][0]['walletBalance']) if balance_info else 0.0
                 
@@ -212,6 +227,8 @@ class ExecutionEngine:
                         res = bybit_client.set_trading_stop(symbol, stop_loss=trade.entry_price)
                         if res and res.get('retCode') == 0:
                             trade.breakeven_active = True
+                            from dashboard.app import send_log
+                            send_log(f"🛡️ {symbol}: Moviendo SL a BREAKEVEN para proteger.", "log-warning")
                             # Notificar con el nuevo diseño
                             await telegram_notifier.notify_breakeven(symbol, trade.entry_price)
 

@@ -91,10 +91,9 @@ class DBManager:
     def get_stats(self, period="daily"):
         """
         Calcula estadísticas para un periodo: daily, weekly, monthly.
+        Retorna PnL, WinRate, conteo de Wins y Losses.
         """
         from datetime import datetime, timedelta
-        from sqlalchemy import func
-        
         session = self.Session()
         try:
             now = datetime.utcnow()
@@ -114,22 +113,33 @@ class DBManager:
             ).all()
 
             if not trades:
-                return {"total_pnl": 0.0, "win_rate": 0.0, "count": 0, "pnl_pct": 0.0}
+                return {"total_pnl": 0.0, "pnl_pct": 0.0, "win_rate": 0.0, "wins": 0, "losses": 0, "count": 0}
 
             total_pnl = sum(t.pnl_usdt for t in trades if t.pnl_usdt)
             total_pnl_pct = sum(t.pnl_pct for t in trades if t.pnl_pct)
-            wins = len([t for t in trades if t.pnl_usdt > 0])
-            win_rate = (wins / len(trades)) * 100
+            wins = len([t for t in trades if t.pnl_usdt and t.pnl_usdt > 0])
+            losses = len([t for t in trades if t.pnl_usdt and t.pnl_usdt <= 0])
+            win_rate = (wins / len(trades)) * 100 if trades else 0
 
             return {
                 "total_pnl": total_pnl,
                 "pnl_pct": total_pnl_pct,
                 "win_rate": win_rate,
+                "wins": wins,
+                "losses": losses,
                 "count": len(trades)
             }
         except Exception as e:
             logger.error(f"Error calculando estadísticas {period}: {e}")
             return None
+        finally:
+            session.close()
+
+    def get_recent_closed_trades(self, limit=20):
+        """Retorna las últimas N operaciones cerradas para el Dashboard."""
+        session = self.Session()
+        try:
+            return session.query(Trade).filter(Trade.status == "CLOSED").order_by(Trade.close_time.desc()).limit(limit).all()
         finally:
             session.close()
 
