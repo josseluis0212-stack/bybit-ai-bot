@@ -102,9 +102,15 @@ async def bot_loop():
             signals = await market_scanner.scan_market()
 
             if signals:
-                logger.info(f"Señales encontradas: {len(signals)}")
+                logger.info(f"Señales encontradas: {len(signals)} - Procesando...")
                 for sig in signals:
-                    await executor.try_execute_signal(sig)
+                    logger.info(
+                        f"Ejecutando: {sig['symbol']} {sig['signal']} @ {sig['entry_price']}"
+                    )
+                    result = await executor.try_execute_signal(sig)
+                    logger.info(
+                        f"Resultado {sig['symbol']}: {'EXITOSA' if result else 'FALLIDA'}"
+                    )
                     await asyncio.sleep(0.5)
 
             await sio.emit("heartbeat", {"timestamp": datetime.now().isoformat()})

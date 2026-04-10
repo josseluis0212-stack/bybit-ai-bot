@@ -41,17 +41,19 @@ class ExecutionEngine:
         active_positions = bybit_client.get_active_positions()
         open_count = len(active_positions)
 
+        logger.info(
+            f"[EJECUTOR] {symbol} - Posiciones abiertas: {open_count}/10, Balance: {available_balance:.2f} USDT"
+        )
+
         if open_count >= settings.MAX_CONCURRENT_TRADES:
-            logger.info(
-                f"Omitiendo señal {symbol} - Límite de trades abierto alcanzado en Bybit ({open_count})."
-            )
+            logger.info(f"Omitiendo {symbol} - Límite máximo alcanzado ({open_count}).")
             return False
 
         # Sincronizar conteo con DB por si acaso (opcional pero recomendado)
         db_count = db_manager.get_open_trades_count()
         if db_count > open_count:
             logger.warning(
-                f"Discrepancia detectada: DB dice {db_count} trades, Bybit dice {open_count}. Priorizando Bybit."
+                f"Discrepancia: DB={db_count}, Bybit={open_count}. Priorizando Bybit."
             )
 
         # 2. Chequeo de capital en Bybit
@@ -65,7 +67,14 @@ class ExecutionEngine:
             if usdt_balance:
                 available_balance = float(usdt_balance["walletBalance"])
 
+        logger.info(
+            f"[EJECUTOR] {symbol} - Balance disponible: {available_balance:.2f} USDT"
+        )
+
         if not risk_manager.can_open_new_trade(open_count, available_balance):
+            logger.info(
+                f"Omitiendo {symbol} - Balance insuficiente ({available_balance:.2f} USDT)"
+            )
             return False
 
         # 3. Calcular cantidad e instruir la orden
