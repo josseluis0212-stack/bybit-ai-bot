@@ -10,28 +10,19 @@ logger = logging.getLogger(__name__)
 
 class MarketScanner:
     def __init__(self):
-        self.timeframe = "1"  # 1 minuto para ejecución
-        self.htf_timeframe = "5"  # 5 minutos para tendencia
-        self.limit = 250  # Necesitamos al menos 200 velas para la EMA 200
-        self.semaphore = asyncio.Semaphore(
-            25
-        )  # Escaneo paralelo de 25 monedas a la vez (asíncrono)
+        self.exec_tf = "1"  # 1 minuto para ejecución
+        self.bias_tf = "15"  # 15 minutos para tendencia
+        self.limit = 120
 
-    async def get_klines_as_df(self, symbol):
-        """
-        Obtiene velas históricas de Bybit y las convierte a Pandas DataFrame.
-        """
+    async def get_klines(self, symbol, interval):
         try:
-            # Usar el nuevo método asíncrono para no saturar el pool de conexiones
             response = await bybit_client.get_klines_async(
-                symbol=symbol, interval=self.timeframe, limit=self.limit
+                symbol=symbol, interval=interval, limit=self.limit
             )
-
             if response and response.get("retCode") == 0:
                 list_data = response["result"]["list"]
                 if not list_data:
                     return None
-
                 df = pd.DataFrame(
                     list_data,
                     columns=[
@@ -46,95 +37,55 @@ class MarketScanner:
                 )
                 df = df.iloc[::-1].reset_index(drop=True)
                 return df
-
             return None
         except Exception as e:
-            # logger.error(f"Error klines {symbol}: {e}") # Evitar spam en logs masivos
             return None
 
     async def analyze_symbol(self, item):
-        """Tarea individual para cada símbolo"""
         symbol = item["symbol"]
-        async with self.semaphore:
-            # 1. Obtener velas 15m (Estrategia base)
-            df = await self.get_klines_as_df(symbol)
-            if df is None or df.empty:
+        try:
+            df_exec = await self.get_klines(symbol, self.exec_tf)
+            if df_exec is None or len(df_exec) < 50:
                 return None
 
-            # 2. Obtener velas 1H (HTF Confluence) solo si está activado
-            df_htf = None
-            from config.settings import settings
-
-            if settings.HTF_CONFLUENCE:
-                try:
-                    # Pequeña optimización: solo pedir lo necesario para EMA 200
-                    response_htf = await bybit_client.get_klines_async(
-                        symbol=symbol, interval=self.htf_timeframe, limit=210
-                    )
-                    if response_htf and response_htf.get("retCode") == 0:
-                        list_data = response_htf["result"]["list"]
-                        if list_data:
-                            df_htf = pd.DataFrame(
-                                list_data,
-                                columns=[
-                                    "timestamp",
-                                    "open",
-                                    "high",
-                                    "low",
-                                    "close",
-                                    "volume",
-                                    "turnover",
-                                ],
-                            )
-                            df_htf = df_htf.iloc[::-1].reset_index(drop=True)
-                except Exception as e:
-                    logger.warning(f"No se pudo obtener HTF para {symbol}: {e}")
-
-            try:
-                # 3. Analizar con ambos DataFrames
-                signal_data = strategy.analyze(symbol, df, df_htf)
-                if signal_data:
-                    logger.info(
-                        f"🚨 SEÑAL ENCONTRADA: {signal_data['signal']} en {symbol}"
-                    )
-                    return signal_data
-            except Exception as e:
-                logger.error(f"Error analizando {symbol}: {e}")
+            signal = strategy.analyze(symbol, df_exec)
+            if signal:
+                logger.info(
+                    f"SEÑAL: {signal['signal']} {symbol} @ {signal['entry_price']:.6f}"
+                )
+                return signal
+            return None
+        except Exception as e:
             return None
 
     async def scan_market(self):
-        """
-        Rastrea el 100% de los pares USDT de Bybit buscando señales.
-        Sin límites de cantidad, ordenado por volumen.
-        """
-        logger.info("Iniciando escaneo GLOBAL del mercado (Todas las monedas)...")
-        start_time = time.time()
+        logger.info("Escaneo GLOBAL iniciado...")
+        start = time.time()
 
         tickers = bybit_client.get_tickers()
         if not tickers:
-            logger.error("No se pudieron cargar los tickers.")
             return []
 
-        # Ordenar por volumen (turnover24h) descendente
         tickers = sorted(
             tickers, key=lambda x: float(x.get("turnover24h", 0)), reverse=True
-        )
-        total_pairs = len(tickers)
-        logger.info(f"Analizando {total_pairs} pares USDT en paralelo...")
+        )[:100]
+        logger.info(f"Analizando {len(tickers)} pares...")
 
-        # Lanzar tareas paralelas
-        tasks = [self.analyze_symbol(item) for item in tickers]
+        semaphore = asyncio.Semaphore(20)
+
+        async def bounded_analyze(item):
+            async with semaphore:
+                return await self.analyze_symbol(item)
+
+        tasks = [bounded_analyze(item) for item in tickers]
         results = await asyncio.gather(*tasks)
 
-        # Filtrar resultados válidos (quitar Nones)
-        valid_signals = [sig for sig in results if sig is not None]
+        signals = [r for r in results if r is not None]
 
-        end_time = time.time()
-        logger.info(
-            f"Escaneo global completado en {end_time - start_time:.2f}s. Encontradas {len(valid_signals)} señales."
-        )
+        elapsed = time.time() - start
+        logger.info(f"Escaneo completado en {elapsed:.1f}s. Señales: {len(signals)}")
 
-        return valid_signals
+        return signals
 
 
 market_scanner = MarketScanner()
