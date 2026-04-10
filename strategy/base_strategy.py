@@ -489,4 +489,4 @@ class InstitutionalSMCStrategy:
         return None
 
 
-strategy = HyperQuantStrategy()
+strategy = InstitutionalSMCStrategy()
