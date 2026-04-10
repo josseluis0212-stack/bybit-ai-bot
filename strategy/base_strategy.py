@@ -306,11 +306,11 @@ class InstitutionalSMCStrategy:
                         # TP FIJO 2:1 R:R
                         tp_distance = (entry_price - sl) * 2
                         final_tp = entry_price + tp_distance
-                            
-                            return {
-                                "symbol": symbol, "signal": "LONG", "entry_price": entry_price, "sl": sl, "tp": final_tp,
-                                "info": f"QUANTUM v4.0 (ISS: {ob['iss']:.1f}). POC: {poc_level:.2f}"
-                            }
+                        
+                        return {
+                            "symbol": symbol, "signal": "LONG", "entry_price": entry_price, "sl": sl, "tp": final_tp,
+                            "info": f"QUANTUM v4.0 (ISS: {ob['iss']:.1f}). POC: {poc_level:.2f}"
+                        }
 
         # --- SHORT (Cazador) ---
         if c_price > equilibrium and c_price < current['ema_200']:
@@ -341,11 +341,11 @@ class InstitutionalSMCStrategy:
                         # TP FIJO 2:1 R:R
                         tp_distance = (sl - entry_price) * 2
                         final_tp = entry_price - tp_distance
-                            
-                            return {
-                                "symbol": symbol, "signal": "SHORT", "entry_price": entry_price, "sl": sl, "tp": final_tp,
-                                "info": f"QUANTUM v4.0 (ISS: {ob['iss']:.1f}). POC: {poc_level:.2f}"
-                            }
+                        
+                        return {
+                            "symbol": symbol, "signal": "SHORT", "entry_price": entry_price, "sl": sl, "tp": final_tp,
+                            "info": f"QUANTUM v4.0 (ISS: {ob['iss']:.1f}). POC: {poc_level:.2f}"
+                        }
 
         # --- LÓGICA DE BREAKER ENTRIES (NUEVO v3.0) ---
         for brk in breakers:
