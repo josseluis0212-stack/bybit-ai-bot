@@ -7,23 +7,15 @@ logger = logging.getLogger(__name__)
 
 class HyperQuantStrategy:
     """
-    Hyper-Quant Ultra V9.2 (Scalp Balanced): V9.1 Core + Management Improvements.
-    Optimizada para scalping de alta frecuencia con gestión de riesgo proactiva.
-    
-    Lógica V9.2 Scalp:
-    1. Filtro de Bias (HTF): Opera a favor de la tendencia (EMA 100).
-    2. Liquidity Sweep: Lookback de 15 velas para máxima detección de señales.
-    3. FVG / Displacement: Identifica desequilibrios de mercado rápidos.
-    4. RSI Scalp: Long si RSI < 60, Short si RSI > 40.
-    5. Gestión de Riesgo: SL 2.2x ATR | TP 4.4x ATR (1:2).
+    Hyper-Quant Ultra V9.3 (Dynamic Scalper): Intelligent Take Profit based on signals.
+    Implementa un ratio 1:2 para movimientos institucionales y 1:1.5 para pullbacks rápidos.
     """
 
     def __init__(self):
         self.ema_bias_period = 100
         self.ema_short_period = 20
         self.atr_period = 14
-        self.atr_sl_multiplier = 2.2
-        self.atr_tp_multiplier = self.atr_sl_multiplier * 2.0  # Relación 1:2
+        self.atr_sl_multiplier = 2.2 # Riesgo base
         self.rsi_period = 14
 
     def analyze(self, symbol: str, df: pd.DataFrame, df_htf: pd.DataFrame):
@@ -51,7 +43,7 @@ class HyperQuantStrategy:
             df['rsi'] = ta.momentum.rsi(df['close'], window=self.rsi_period)
             
         except Exception as e:
-            logger.error(f"Error en indicadores V9.3 Scalp para {symbol}: {e}")
+            logger.error(f"Error en indicadores V9.3 Dynamic para {symbol}: {e}")
             return None
 
         # Datos actuales 1m
@@ -68,70 +60,64 @@ class HyperQuantStrategy:
         sl_price = None
         tp_price = None
         reason = ""
+        rr_ratio = 1.0
 
-        # --- Lógica SMC LONG (V9.3 Scalp) ---
+        # --- Lógica LONG (Dynamic TP) ---
         if bias == "LONG":
-            # Filtro RSI HTF (15m): Evitar comprar si ya está muy estirado el precio
-            if htf_rsi > 75: return None
-            # Filtro RSI local (< 60)
-            if rsi > 60: return None
+            if htf_rsi > 75 or rsi > 60: return None
 
-            # SMC: Liquidity Sweep
+            # A. SMC Sweep (Institutional - High RR 1:2)
             range_low = df.iloc[-15:-6]['low'].min()
             recent_lows = df.iloc[-6:-1]['low']
             sweep_detected = any(recent_lows < range_low) and prev['close'] > range_low
-            
-            # FVG Alcista
             fvg_detected = curr['low'] > prev2['high']
 
             if sweep_detected and fvg_detected:
                 signal = "LONG"
                 reason = "SMC Sweep+FVG"
+                rr_ratio = 2.0
                 sl_price = price - (atr * self.atr_sl_multiplier)
-                tp_price = price + (atr * self.atr_tp_multiplier)
+                tp_price = price + (atr * self.atr_sl_multiplier * rr_ratio)
             
-            # Trend Pullback
+            # B. Trend Pullback (Retail - Conservative RR 1:1.5)
             elif price > ema_20 and prev['low'] <= ema_20 and curr['close'] > ema_20:
                 signal = "LONG"
                 reason = "Pullback EMA 20"
+                rr_ratio = 1.5
                 sl_price = price - (atr * self.atr_sl_multiplier)
-                tp_price = price + (atr * self.atr_tp_multiplier)
+                tp_price = price + (atr * self.atr_sl_multiplier * rr_ratio)
 
-        # --- Lógica SMC SHORT (V9.3 Scalp) ---
+        # --- Lógica SHORT (Dynamic TP) ---
         elif bias == "SHORT":
-            # Filtro RSI HTF (15m): Evitar vender si ya está muy abajo el precio en 15m
-            if htf_rsi < 25: return None
-            # Filtro RSI local (> 40)
-            if rsi < 40: return None
+            if htf_rsi < 25 or rsi < 40: return None
 
-            # SMC: Liquidity Sweep
+            # A. SMC Sweep (Institutional - High RR 1:2)
             range_high = df.iloc[-15:-6]['high'].max()
             recent_highs = df.iloc[-6:-1]['high']
             sweep_detected = any(recent_highs > range_high) and prev['close'] < range_high
-            
-            # FVG Bajista
             fvg_detected = curr['high'] < prev2['low']
 
             if sweep_detected and fvg_detected:
                 signal = "SHORT"
                 reason = "SMC Sweep+FVG"
+                rr_ratio = 2.0
                 sl_price = price + (atr * self.atr_sl_multiplier)
-                tp_price = price - (atr * self.atr_tp_multiplier)
+                tp_price = price - (atr * self.atr_sl_multiplier * rr_ratio)
                 
-            # Trend Pullback
+            # B. Trend Pullback (Retail - Conservative RR 1:1.5)
             elif price < ema_20 and prev['high'] >= ema_20 and curr['close'] < ema_20:
                 signal = "SHORT"
                 reason = "Pullback EMA 20"
+                rr_ratio = 1.5
                 sl_price = price + (atr * self.atr_sl_multiplier)
-                tp_price = price - (atr * self.atr_tp_multiplier)
+                tp_price = price - (atr * self.atr_sl_multiplier * rr_ratio)
 
         if signal:
-            # Filtro de rentabilidad mínima mejorado para scalping
             potential_gain = abs(price - tp_price) / price
             if potential_gain < 0.0012: # 0.12% mínimo
                 return None
 
-            logger.info(f"🎯 [V9.3-SCALP] Señal {signal} en {symbol} | RSI-15m: {htf_rsi:.0f}")
+            logger.info(f"🎯 [V9.3-DYNAMIC] Señal {signal} en {symbol} | RR 1:{rr_ratio}")
             return {
                 "symbol": symbol,
                 "signal": signal,
@@ -139,7 +125,7 @@ class HyperQuantStrategy:
                 "sl": sl_price,
                 "tp": tp_price,
                 "bias": bias,
-                "reason": f"{reason} (HTF RSI {htf_rsi:.0f})",
+                "reason": f"{reason} (RR 1:{rr_ratio})",
                 "rsi": rsi,
                 "htf_rsi": htf_rsi
             }
