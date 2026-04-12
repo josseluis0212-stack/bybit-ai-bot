@@ -228,11 +228,11 @@ class ExecutionEngine:
                 pnl_pct = (pnl_usdt / (trade.entry_price * trade.qty)) * 100 * trade.leverage
                 db_manager.close_trade(trade.id, exit_price, pnl_usdt, pnl_pct, reason)
                 
-                # --- APLICAR COOLDOWN SI ES PÉRDIDA (V9.1) ---
+                # --- APLICAR COOLDOWN SI ES PÉRDIDA (V9.2) ---
                 if pnl_usdt < 0:
                     from datetime import timedelta
-                    self.symbol_cooldowns[symbol] = datetime.utcnow() + timedelta(minutes=30)
-                    logger.info(f"❄️ {symbol} en COOLDOWN de 30 min tras pérdida.")
+                    self.symbol_cooldowns[symbol] = datetime.utcnow() + timedelta(minutes=60)
+                    logger.info(f"❄️ {symbol} en COOLDOWN de 60 min tras pérdida.")
 
                 from utils.ui_utils import send_log, refresh_ui
                 msg_close = "💰 GAIN" if pnl_usdt > 0 else "🩸 LOSS"
@@ -256,25 +256,36 @@ class ExecutionEngine:
                 tp_dist = abs(trade.take_profit - trade.entry_price)
                 progress = abs(current_price - trade.entry_price) / tp_dist if tp_dist > 0 else 0
                 
-                # Si llegamos al 60% del camino y no hemos movido el SL
-                if progress > 0.6 and not getattr(trade, 'breakeven_active', False):
-                    # Solo mover si estamos en ganancia
+                # Lógica V9.2: PROTECCIÓN GRADUAL
+                # 1. BREAKEVEN (40% de camino al TP)
+                if progress > 0.4 and not getattr(trade, 'breakeven_active', False):
                     is_profit = (trade.side == "LONG" and current_price > trade.entry_price) or \
                                 (trade.side == "SHORT" and current_price < trade.entry_price)
                     
                     if is_profit:
-                        # V9.1 Breakeven Plus: +0.15% para cubrir comisiones de maker/taker
-                        safe_sl = trade.entry_price * 1.0015 if trade.side == "LONG" else trade.entry_price * 0.9985
+                        safe_sl = trade.entry_price * 1.0010 if trade.side == "LONG" else trade.entry_price * 0.9990
                         safe_sl_str = f"{safe_sl:.4f}"
                         
-                        logger.info(f"🛡️ Protegiendo {symbol} - Moviendo a BREAKEVEN PLUS (Progreso: {progress:.1%} | SL: {safe_sl_str})")
+                        logger.info(f"🛡️ BREAKEVEN [V9.2] {symbol} (Progreso: {progress:.1%})")
                         res = bybit_client.set_trading_stop(symbol, stop_loss=safe_sl_str)
                         if res and res.get('retCode') == 0:
                             trade.breakeven_active = True
-                            from dashboard.app import send_log
-                            send_log(f"🛡️ {symbol}: Moviendo SL a BREAKEVEN PLUS ({safe_sl_str}) para proteger.", "log-warning")
-                            # Notificar con el nuevo diseño
+                            send_log(f"🛡️ {symbol}: Moviendo SL a BREAKEVEN para proteger.", "log-warning")
                             await telegram_notifier.notify_breakeven(symbol, safe_sl_str)
+
+                # 2. TRAILING ASEGURADO (70% de camino al TP)
+                elif progress > 0.7 and not getattr(trade, 'trailing_active', False):
+                    # Asegurar al menos el 30% del beneficio proyectado
+                    profit_to_lock = (trade.take_profit - trade.entry_price) * 0.3
+                    locked_sl = trade.entry_price + profit_to_lock if trade.side == "LONG" else trade.entry_price - profit_to_lock
+                    locked_sl_str = f"{locked_sl:.4f}"
+
+                    logger.info(f"💰 TRAILING [V9.2] {symbol} (Progreso: {progress:.1%})")
+                    res = bybit_client.set_trading_stop(symbol, stop_loss=locked_sl_str)
+                    if res and res.get('retCode') == 0:
+                        trade.trailing_active = True
+                        send_log(f"💰 {symbol}: Asegurando 30% de ganancias (Trailing).", "log-success")
+                        await telegram_notifier.notify_breakeven(symbol, f"{locked_sl_str} (TRAIL)")
 
                 # --- Verificación de Reporte Estadístico (Cada 10 trades) ---
                 closed_count = db_manager.get_closed_trades_count()

@@ -10,7 +10,8 @@ logger = logging.getLogger(__name__)
 class MarketScanner:
     def __init__(self):
         self.timeframe_exec = "1"
-        self.timeframe_bias = "5"
+        self.timeframe_bias = "15"
+        self.timeframe_macro = "60"
         self.limit = 150 # Necesario para EMA 100 + margen de cálculo
         
     async def get_klines_as_df(self, symbol, interval="1"):
@@ -34,6 +35,10 @@ class MarketScanner:
                 
                 # Invertir el DataFrame para que la vela más antigua sea la primera
                 df = df.iloc[::-1].reset_index(drop=True)
+                
+                # Asegurar tipos numéricos para cálculos de tendencia
+                for col in ['open', 'high', 'low', 'close', 'volume']:
+                    df[col] = pd.to_numeric(df[col], errors='coerce')
                 return df
                 
             return None
@@ -43,9 +48,9 @@ class MarketScanner:
 
     async def scan_market(self):
         """
-        Rastrea el mercado USDT Perpetual con filtros avanzados de liquidez y tendencia (V6).
+        Rastrea el mercado USDT Perpetual con filtros avanzados de liquidez y tendencia (V9.2).
         """
-        logger.info("🌍 Iniciando ESCANEO PROFESIONAL Ultra-V6 (Balanced SMC)...")
+        logger.info("🌍 Iniciando ESCANEO PROFESIONAL Ultra-V9.2 (Precision Plus)...")
         
         tickers = bybit_client.get_tickers()
         if not tickers:
@@ -66,14 +71,32 @@ class MarketScanner:
         async def scan_symbol(item):
             async with semaphore:
                 symbol = item['symbol']
-                await asyncio.sleep(0.02) # Pequeño delay adicional para rate limit
+                await asyncio.sleep(0.01)
                 
-                # Obtener Marco de 1m (Ejecución) y 15m (Tendencia/Bias)
+                # 1. Obtener Marcos: 1m (Exec), 15m (Bias), 1H (Macro)
                 df_1m = await self.get_klines_as_df(symbol, interval=self.timeframe_exec)
                 df_15m = await self.get_klines_as_df(symbol, interval=self.timeframe_bias)
+                df_1h = await self.get_klines_as_df(symbol, interval=self.timeframe_macro)
                 
-                if df_1m is not None and not df_1m.empty and df_15m is not None:
-                    return strategy.analyze(symbol, df_1m, df_15m)
+                if df_1m is None or df_15m is None or df_1h is None:
+                    return None
+
+                # 2. FILTRO MACRO (1H): EMA 100
+                import ta
+                ema_1h = ta.trend.ema_indicator(df_1h['close'], window=100)
+                if ema_1h.empty: return None
+                
+                last_price = df_1h.iloc[-1]['close']
+                last_ema_1h = ema_1h.iloc[-1]
+                
+                macro_trend = "LONG" if last_price > last_ema_1h else "SHORT"
+                
+                # solo procedemos si la estrategia detecta señal en la misma dirección que 1H
+                signal = strategy.analyze(symbol, df_1m, df_15m)
+                
+                if signal and signal['bias'] == macro_trend:
+                    return signal
+                    
                 return None
 
         tasks = [scan_symbol(item) for item in valid_tickers]
