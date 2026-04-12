@@ -8,9 +8,9 @@ services:
     startCommand: "python main.py"
     envVars:
       - key: BYBIT_API_KEY
-        value: "cFUwMFSdsPNEU7AY3X"
+        value: "JllcWqJQgodbLaT64e"
       - key: BYBIT_API_SECRET
-        value: "DkCVmSIVexe8PHKG7D7jRVMFqniJEmOY8g1a"
+        value: "yrNa6kmlSUlIEa1H3io4XROoANFxEPRDnp1a"
       - key: BYBIT_DEMO
         value: "True"
       - key: TELEGRAM_BOT_TOKEN
