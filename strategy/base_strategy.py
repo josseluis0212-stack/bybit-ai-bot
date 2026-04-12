@@ -36,10 +36,13 @@ class HyperQuantStrategy:
                 d[col] = pd.to_numeric(d[col], errors='coerce')
 
         try:
-            # 1. Calcular Bias en HTF
+            # 1. Calcular Bias e indicadores en HTF (15m)
             df_htf['ema_bias'] = ta.trend.ema_indicator(df_htf['close'], window=self.ema_bias_period)
+            df_htf['rsi_htf'] = ta.momentum.rsi(df_htf['close'], window=self.rsi_period)
+            
             htf_price = df_htf.iloc[-1]['close']
             htf_ema = df_htf.iloc[-1]['ema_bias']
+            htf_rsi = df_htf.iloc[-1]['rsi_htf']
             bias = "LONG" if htf_price > htf_ema else "SHORT"
 
             # 2. Indicadores en 1m
@@ -48,7 +51,7 @@ class HyperQuantStrategy:
             df['rsi'] = ta.momentum.rsi(df['close'], window=self.rsi_period)
             
         except Exception as e:
-            logger.error(f"Error en indicadores V9.2 Scalp para {symbol}: {e}")
+            logger.error(f"Error en indicadores V9.3 Scalp para {symbol}: {e}")
             return None
 
         # Datos actuales 1m
@@ -66,17 +69,19 @@ class HyperQuantStrategy:
         tp_price = None
         reason = ""
 
-        # --- Lógica SMC LONG (V9.2 Scalp) ---
+        # --- Lógica SMC LONG (V9.3 Scalp) ---
         if bias == "LONG":
-            # Filtro RSI: Scalping agresivo (< 60)
+            # Filtro RSI HTF (15m): Evitar comprar si ya está muy estirado el precio
+            if htf_rsi > 75: return None
+            # Filtro RSI local (< 60)
             if rsi > 60: return None
 
-            # SMC: Liquidity Sweep (V9.1 lookback: 15 velas)
+            # SMC: Liquidity Sweep
             range_low = df.iloc[-15:-6]['low'].min()
             recent_lows = df.iloc[-6:-1]['low']
             sweep_detected = any(recent_lows < range_low) and prev['close'] > range_low
             
-            # FVG Alcista (Displacement)
+            # FVG Alcista
             fvg_detected = curr['low'] > prev2['high']
 
             if sweep_detected and fvg_detected:
@@ -85,24 +90,26 @@ class HyperQuantStrategy:
                 sl_price = price - (atr * self.atr_sl_multiplier)
                 tp_price = price + (atr * self.atr_tp_multiplier)
             
-            # Trend Pullback (EMA 20)
+            # Trend Pullback
             elif price > ema_20 and prev['low'] <= ema_20 and curr['close'] > ema_20:
                 signal = "LONG"
                 reason = "Pullback EMA 20"
                 sl_price = price - (atr * self.atr_sl_multiplier)
                 tp_price = price + (atr * self.atr_tp_multiplier)
 
-        # --- Lógica SMC SHORT (V9.2 Scalp) ---
+        # --- Lógica SMC SHORT (V9.3 Scalp) ---
         elif bias == "SHORT":
-            # Filtro RSI: Scalping agresivo (> 40)
+            # Filtro RSI HTF (15m): Evitar vender si ya está muy abajo el precio en 15m
+            if htf_rsi < 25: return None
+            # Filtro RSI local (> 40)
             if rsi < 40: return None
 
-            # SMC: Liquidity Sweep (V9.1 lookback: 15 velas)
+            # SMC: Liquidity Sweep
             range_high = df.iloc[-15:-6]['high'].max()
             recent_highs = df.iloc[-6:-1]['high']
             sweep_detected = any(recent_highs > range_high) and prev['close'] < range_high
             
-            # FVG Bajista (Displacement)
+            # FVG Bajista
             fvg_detected = curr['high'] < prev2['low']
 
             if sweep_detected and fvg_detected:
@@ -119,12 +126,12 @@ class HyperQuantStrategy:
                 tp_price = price - (atr * self.atr_tp_multiplier)
 
         if signal:
-            # Filtro de rentabilidad mínima
+            # Filtro de rentabilidad mínima mejorado para scalping
             potential_gain = abs(price - tp_price) / price
-            if potential_gain < 0.0010: # 0.10% mínimo para scalping
+            if potential_gain < 0.0012: # 0.12% mínimo
                 return None
 
-            logger.info(f"🎯 [V9.2-SCALP] Seal {signal} en {symbol} | RSI: {rsi:.1f}")
+            logger.info(f"🎯 [V9.3-SCALP] Señal {signal} en {symbol} | RSI-15m: {htf_rsi:.0f}")
             return {
                 "symbol": symbol,
                 "signal": signal,
@@ -132,8 +139,9 @@ class HyperQuantStrategy:
                 "sl": sl_price,
                 "tp": tp_price,
                 "bias": bias,
-                "reason": f"{reason} (RSI {rsi:.0f})",
-                "rsi": rsi
+                "reason": f"{reason} (HTF RSI {htf_rsi:.0f})",
+                "rsi": rsi,
+                "htf_rsi": htf_rsi
             }
 
         return None
