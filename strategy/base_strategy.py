@@ -7,15 +7,15 @@ logger = logging.getLogger(__name__)
 
 class HyperQuantStrategy:
     """
-    Hyper-Quant Ultra V9.0: Precision Scalper (SMC + Trend + RSI).
+    Hyper-Quant Ultra V9.1: Precision Scalper (SMC + Trend + RSI).
     Especializada en Liquidity Sweeps, FVGs y Pullbacks con gestión de ruido mejorada.
     
-    Lógica V9.0 (Precision):
+    Lógica V9.1 (Precision):
     1. Filtro de Bias (15m): Solo opera a favor de la tendencia (EMA 100).
-    2. Filtro RSI (1m): Evita compras en sobrecompra (>65) y ventas en sobreventa (<35).
+    2. Filtro RSI (1m): Evita compras en sobrecompra (>60) y ventas en sobreventa (<40).
     3. Liquidity Sweep (1m): Detecta sacudidas institucionales.
     4. FVG / Displacement: Identifica desequilibrios de mercado.
-    5. Gestión de Riesgo: SL amplio (2.2x ATR) y TP conservador (1.5x ATR) para asegurar beneficios.
+    5. Gestión de Riesgo: SL amplio (2.2x ATR) y TP relación 1:2 (4.4x ATR).
     """
 
     def __init__(self):
@@ -23,7 +23,7 @@ class HyperQuantStrategy:
         self.ema_short_period = 20
         self.atr_period = 14
         self.atr_sl_multiplier = 2.2
-        self.atr_tp_multiplier = 1.5
+        self.atr_tp_multiplier = self.atr_sl_multiplier * 2.0  # Relación 1:2
         self.rsi_period = 14
 
     def analyze(self, symbol: str, df: pd.DataFrame, df_htf: pd.DataFrame):
@@ -48,7 +48,7 @@ class HyperQuantStrategy:
             df['rsi'] = ta.momentum.rsi(df['close'], window=self.rsi_period)
             
         except Exception as e:
-            logger.error(f"Error en indicadores V9 para {symbol}: {e}")
+            logger.error(f"Error en indicadores V9.1 para {symbol}: {e}")
             return None
 
         # Datos actuales 1m
@@ -66,10 +66,10 @@ class HyperQuantStrategy:
         tp_price = None
         reason = ""
 
-        # --- Lógica SMC LONG (Precision V9.0) ---
+        # --- Lógica SMC LONG (Precision V9.1) ---
         if bias == "LONG":
-            # Filtro RSI: Evitar comprar si está muy sobrecomprado (>65)
-            if rsi > 65: return None
+            # Filtro RSI: Evitar comprar si está muy sobrecomprado (>60)
+            if rsi > 60: return None
 
             # SMC: Liquidity Sweep
             range_low = df.iloc[-15:-6]['low'].min()
@@ -89,13 +89,13 @@ class HyperQuantStrategy:
             elif price > ema_20 and prev['low'] <= ema_20 and curr['close'] > ema_20:
                 signal = "LONG"
                 reason = "Trend Pullback (EMA 20)"
-                sl_price = price - (atr * 2.0)
-                tp_price = price + (atr * 1.5)
+                sl_price = price - (atr * self.atr_sl_multiplier)
+                tp_price = price + (atr * self.atr_tp_multiplier)
 
-        # --- Lógica SMC SHORT (Precision V9.0) ---
+        # --- Lógica SMC SHORT (Precision V9.1) ---
         elif bias == "SHORT":
-            # Filtro RSI: Evitar vender si está muy sobrevendido (<35)
-            if rsi < 35: return None
+            # Filtro RSI: Evitar vender si está muy sobrevendido (<40)
+            if rsi < 40: return None
 
             # SMC: Liquidity Sweep
             range_high = df.iloc[-15:-6]['high'].max()
@@ -115,8 +115,8 @@ class HyperQuantStrategy:
             elif price < ema_20 and prev['high'] >= ema_20 and curr['close'] < ema_20:
                 signal = "SHORT"
                 reason = "Trend Pullback (EMA 20)"
-                sl_price = price + (atr * 2.0)
-                tp_price = price - (atr * 1.5)
+                sl_price = price + (atr * self.atr_sl_multiplier)
+                tp_price = price - (atr * self.atr_tp_multiplier)
 
         if signal:
             # Filtro de rentabilidad mínima
@@ -124,7 +124,7 @@ class HyperQuantStrategy:
             if potential_gain < 0.0015: # 0.15% mínimo
                 return None
 
-            logger.info(f"🎯 [V9-Precision] Señal {signal} en {symbol} | RSI: {rsi:.1f}")
+            logger.info(f"🎯 [V9.1-Precision] Señal {signal} en {symbol} | RSI: {rsi:.1f}")
             return {
                 "symbol": symbol,
                 "signal": signal,

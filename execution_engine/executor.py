@@ -36,7 +36,7 @@ class ExecutionEngine:
         sl_price = signal_data['sl']
         tp_price = signal_data['tp']
         
-        # 0. Chequeo de Cooldown (V9.0)
+        # 0. Chequeo de Cooldown (V9.1)
         from datetime import datetime
         now = datetime.utcnow()
         if symbol in self.symbol_cooldowns:
@@ -222,7 +222,7 @@ class ExecutionEngine:
                 pnl_pct = (pnl_usdt / (trade.entry_price * trade.qty)) * 100 * trade.leverage
                 db_manager.close_trade(trade.id, exit_price, pnl_usdt, pnl_pct, reason)
                 
-                # --- APLICAR COOLDOWN SI ES PÉRDIDA (V9.0) ---
+                # --- APLICAR COOLDOWN SI ES PÉRDIDA (V9.1) ---
                 if pnl_usdt < 0:
                     from datetime import timedelta
                     self.symbol_cooldowns[symbol] = datetime.utcnow() + timedelta(minutes=30)
@@ -257,14 +257,18 @@ class ExecutionEngine:
                                 (trade.side == "SHORT" and current_price < trade.entry_price)
                     
                     if is_profit:
-                        logger.info(f"🛡️ Protegiendo {symbol} - Moviendo a BREAKEVEN (Progreso: {progress:.1%})")
-                        res = bybit_client.set_trading_stop(symbol, stop_loss=trade.entry_price)
+                        # V9.1 Breakeven Plus: +0.15% para cubrir comisiones de maker/taker
+                        safe_sl = trade.entry_price * 1.0015 if trade.side == "LONG" else trade.entry_price * 0.9985
+                        safe_sl_str = f"{safe_sl:.4f}"
+                        
+                        logger.info(f"🛡️ Protegiendo {symbol} - Moviendo a BREAKEVEN PLUS (Progreso: {progress:.1%} | SL: {safe_sl_str})")
+                        res = bybit_client.set_trading_stop(symbol, stop_loss=safe_sl_str)
                         if res and res.get('retCode') == 0:
                             trade.breakeven_active = True
                             from dashboard.app import send_log
-                            send_log(f"🛡️ {symbol}: Moviendo SL a BREAKEVEN para proteger.", "log-warning")
+                            send_log(f"🛡️ {symbol}: Moviendo SL a BREAKEVEN PLUS ({safe_sl_str}) para proteger.", "log-warning")
                             # Notificar con el nuevo diseño
-                            await telegram_notifier.notify_breakeven(symbol, trade.entry_price)
+                            await telegram_notifier.notify_breakeven(symbol, safe_sl_str)
 
                 # --- Verificación de Reporte Estadístico (Cada 10 trades) ---
                 closed_count = db_manager.get_closed_trades_count()
