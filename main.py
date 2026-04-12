@@ -73,7 +73,7 @@ def handle_control(data):
     refresh_ui(bot_control)
 
 async def bot_loop():
-    logger.info("🚀 INICIANDO BOT LOOP V7.9 (SYNCHRONIZED)...")
+    logger.info("🚀 INICIANDO BOT LOOP V9.1 (SYNCHRONIZED)...")
     scanner = MarketScanner()
     
     while True:
@@ -110,17 +110,14 @@ def run_bot_loop():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     
-    # --- RESET Y PULSO INICIAL ---
-    logger.info("🧹 [V8.1] Reseteando sistema e iniciando primer ciclo...")
-    from database.db_manager import db_manager
-    bybit_client.close_all_positions()
-    db_manager.reset_all_stats()
+    # --- PULSO INICIAL (SIN RESET - V9.1) ---
+    logger.info("⚡ [V9.1] Reanudando sistema sin borrar posiciones ni estadísticas existentes...")
     
     # Emitir pulso inicial para quitar el "Cargando"
     try:
         from utils.ui_utils import refresh_ui
         refresh_ui(bot_control)
-        send_log("🚀 BOT V8.1 CONECTADO Y LIMPIO.", "log-success")
+        send_log("🚀 BOT V9.1 ACTIVO - Reanudando seguimiento de posiciones abiertas.", "log-success")
     except: pass
 
     loop.run_until_complete(bot_loop())
@@ -130,5 +127,5 @@ if __name__ == "__main__":
     socketio.start_background_task(target=run_bot_loop)
     
     port = int(os.environ.get("PORT", 10000))
-    logger.info(f"🔥 UNIFIED SERVER V8.1 LIVE ON PORT {port}")
+    logger.info(f"🔥 UNIFIED SERVER V9.1 LIVE ON PORT {port}")
     socketio.run(app, host="0.0.0.0", port=port, debug=False, use_reloader=False)
