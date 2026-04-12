@@ -191,6 +191,12 @@ class ExecutionEngine:
         
         positions_response = bybit_client.get_positions()
         real_positions = {}
+        
+        # Si la API falla (llaves inválidas o 401), abortamos para no cerrar operaciones en la base de datos local erróneamente.
+        if positions_response is None or positions_response.get('retCode') != 0:
+            logger.warning("⚠️ API falló al obtener posiciones. Abortando validación de cierres para prevenir falsos positivos.")
+            return
+
         if positions_response and positions_response.get('retCode') == 0:
             for pos in positions_response['result']['list']:
                 if float(pos['size']) > 0:
