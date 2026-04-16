@@ -60,6 +60,21 @@ class DBManager:
         finally:
             session.close()
 
+    def update_breakeven_status(self, trade_id, active=True):
+        session = self.Session()
+        try:
+            trade = session.query(Trade).filter(Trade.id == trade_id).first()
+            if trade:
+                trade.breakeven_active = active
+                session.commit()
+                return True
+        except Exception as e:
+            logger.error(f"Error actualizando breakeven en DB: {e}")
+            session.rollback()
+        finally:
+            session.close()
+        return False
+
     def close_trade(self, trade_id, exit_price, pnl_usdt, pnl_pct, reason):
         from datetime import datetime
         session = self.Session()

@@ -132,12 +132,12 @@ class TelegramNotifier:
 
     async def notify_breakeven(self, symbol, new_sl):
         message = f"""
-🛡️ <b>BREAKEVEN ACTIVADO: {symbol}</b>
+🛡️ <b>BREAKEVEN PLUS ACTIVADO: {symbol}</b>
 ────────────────────
-<b>Estado:</b> <code>RIESGO CERO</code> ✅
+<b>Estado:</b> <code>GANANCIA ASEGURADA</code> ✅
 <b>Nuevo SL:</b> <code>{new_sl}</code>
 
-<i>El Stop Loss ha sido movido al precio de entrada para proteger tus ganancias.</i>
+<i>El Stop Loss ha sido movido para asegurar un 25% de la ganancia objetivo.</i>
 ────────────────────
 """
         return await self.send_message(message)

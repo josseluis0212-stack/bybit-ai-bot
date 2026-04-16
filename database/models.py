@@ -29,3 +29,6 @@ class Trade(Base):
     # Fechas
     open_time = Column(DateTime, default=datetime.utcnow)
     close_time = Column(DateTime, nullable=True)
+    
+    # Flags de gestión
+    breakeven_active = Column(Boolean, default=False)
