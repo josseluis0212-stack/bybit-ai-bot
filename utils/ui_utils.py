@@ -24,7 +24,9 @@ def refresh_ui(bot_control=None):
     stats = {
         "daily": db_manager.get_stats("daily"),
         "weekly": db_manager.get_stats("weekly"),
-        "monthly": db_manager.get_stats("monthly")
+        "monthly": db_manager.get_stats("monthly"),
+        "all_time": db_manager.get_stats("all_time"),
+        "performance": db_manager.get_advanced_stats()
     }
     
     recent_trades = []
@@ -52,6 +54,8 @@ def refresh_ui(bot_control=None):
     data = {
         "balance": bot_control["current_balance"] if bot_control else "0.00",
         "bias": bot_control["last_bias"] if bot_control else "---",
+        "current_price": bot_control["current_price"] if bot_control else "0.00",
+        "ema_value": bot_control["ema_value"] if bot_control else "0.00",
         "stats": stats,
         "history": recent_trades,
         "positions": real_positions

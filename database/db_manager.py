@@ -119,6 +119,8 @@ class DBManager:
                 start_date = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
             elif period == "monthly":
                 start_date = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            elif period == "all_time":
+                start_date = datetime(2020, 1, 1) # Muy al pasado
             else:
                 start_date = now - timedelta(days=1)
 
@@ -155,6 +157,50 @@ class DBManager:
         session = self.Session()
         try:
             return session.query(Trade).filter(Trade.status == "CLOSED").order_by(Trade.close_time.desc()).limit(limit).all()
+        finally:
+            session.close()
+
+    def get_advanced_stats(self):
+        """Calcula métricas de rendimiento avanzadas."""
+        session = self.Session()
+        try:
+            trades = session.query(Trade).filter(Trade.status == "CLOSED").all()
+            if not trades:
+                return {
+                    "profit_factor": 0.0,
+                    "avg_rr": 0.0,
+                    "best_trade": 0.0,
+                    "worst_trade": 0.0,
+                    "win_rate": 0.0
+                }
+            
+            gross_profit = sum(t.pnl_usdt for t in trades if t.pnl_usdt and t.pnl_usdt > 0)
+            gross_loss = abs(sum(t.pnl_usdt for t in trades if t.pnl_usdt and t.pnl_usdt < 0))
+            
+            profit_factor = gross_profit / gross_loss if gross_loss > 0 else (gross_profit if gross_profit > 0 else 0.0)
+            
+            best_trade = max((t.pnl_usdt for t in trades if t.pnl_usdt is not None), default=0.0)
+            worst_trade = min((t.pnl_usdt for t in trades if t.pnl_usdt is not None), default=0.0)
+            
+            wins = [t.pnl_usdt for t in trades if t.pnl_usdt and t.pnl_usdt > 0]
+            losses = [abs(t.pnl_usdt) for t in trades if t.pnl_usdt and t.pnl_usdt < 0]
+            
+            avg_win = sum(wins) / len(wins) if wins else 1.0
+            avg_loss = sum(losses) / len(losses) if losses else 1.0
+            avg_rr = avg_win / avg_loss
+            
+            win_rate = (len(wins) / len(trades)) * 100
+            
+            return {
+                "profit_factor": round(profit_factor, 2),
+                "avg_rr": round(avg_rr, 2),
+                "best_trade": round(best_trade, 2),
+                "worst_trade": round(worst_trade, 2),
+                "win_rate": round(win_rate, 1)
+            }
+        except Exception as e:
+            logger.error(f"Error calculando métricas avanzadas: {e}")
+            return None
         finally:
             session.close()
 

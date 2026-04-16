@@ -36,7 +36,9 @@ set_socketio(socketio)
 bot_control = {
     "is_running": True,
     "last_bias": "---",
-    "current_balance": "0.00"
+    "current_balance": "0.00",
+    "current_price": "0.00",
+    "ema_value": "0.00"
 }
 
 @app.route('/')
@@ -89,6 +91,16 @@ async def bot_loop():
                 usdt = next((c for c in coins if c['coin'] == 'USDT'), None)
                 if usdt: bot_control["current_balance"] = f"{float(usdt['walletBalance']):.2f}"
             
+            # Sincronizar Datos de Sesgo (BTCUSDT como Referencia)
+            df_btc_1m = await scanner.get_klines_as_df("BTCUSDT", interval="1")
+            df_btc_15m = await scanner.get_klines_as_df("BTCUSDT", interval="15")
+            if df_btc_1m is not None and df_btc_15m is not None:
+                import ta
+                ema_100 = ta.trend.ema_indicator(df_btc_15m['close'], window=100)
+                bot_control["current_price"] = f"{df_btc_1m.iloc[-1]['close']:.2f}"
+                bot_control["ema_value"] = f"{ema_100.iloc[-1]:.2f}"
+                bot_control["last_bias"] = "LONG" if float(bot_control["current_price"]) > ema_100.iloc[-1] else "SHORT"
+
             await executor.check_open_positions()
             signals = await scanner.scan_market()
             

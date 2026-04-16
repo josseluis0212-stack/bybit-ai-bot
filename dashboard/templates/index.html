@@ -3,229 +3,338 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BYBIT | Hyper-Quant V7.0</title>
+    <title>Hyper-Quant Pro | Terminal</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
 </head>
 <body>
     <div class="container">
         <!-- HEADER -->
         <header>
-            <div class="header">
-                <div class="status-badge" id="bot-status-badge">
-                    <div class="status-dot"></div>
-                    <span>SISTEMA V8.1 ACTIVO (TOP 70)</span>
+            <div class="header-left">
+                <div class="brand">
+                    <div class="brand-icon">⚡</div>
+                    <div class="header-title">HIPER-CUANT PRO</div>
                 </div>
-                <h1>HYPER-QUANT ⚡ PRO</h1>
+                <div class="header-badges">
+                    <div class="badge" id="bot-status-label">SISTEMA V9.1 ACTIVO</div>
+                    <div class="badge">MANIFESTACIÓN</div>
+                </div>
+            </div>
+            <div class="header-right">
+                <button class="btn btn-start" onclick="controlBot('start')">CORRER</button>
+                <button class="btn btn-stop" onclick="controlBot('stop')">DETENER</button>
+                <button class="btn btn-reset" onclick="controlBot('reset')">RESTABLECER ESTADÍSTICAS</button>
             </div>
         </header>
 
-        <!-- TOP METRICS -->
-        <div class="grid">
-            <!-- ACCOUNT STATUS -->
+        <!-- TOP GRID -->
+        <div class="top-grid">
+            <!-- BALANCE -->
             <div class="card">
-                <div class="card-title">Balance de Cuenta</div>
-                <div id="balance" class="card-value">0.00 USDT</div>
-                <div id="account-status" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">Cargando balance de Bybit...</div>
-            </div>
-
-            <!-- TREND BIAS -->
-            <div class="card">
-                <div class="card-title">Bias de Mercado (5m / 15m)</div>
-                <div id="bias-trend" class="card-value">---</div>
-                <div id="trend-desc" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">Filtro EMA 100 Activo</div>
-            </div>
-
-            <!-- BOT CONTROL -->
-            <div class="card" style="display:flex; flex-direction:column; justify-content:center; gap: 10px;">
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <button class="btn btn-primary" onclick="startBot()">INICIAR</button>
-                    <button class="btn btn-danger" onclick="stopBot()">DETENER</button>
-                </div>
-                <button class="btn btn-warning" style="width: 100%;" onclick="resetStats()">RESET ESTADÍSTICAS</button>
-            </div>
-        </div>
-
-        <!-- STATS PANEL (D/W/M) -->        <div class="grid" style="grid-template-columns: repeat(3, 1fr);">
-            <!-- DAILY -->
-            <div class="card">
-                <div class="card-title">Hoy (PNL)</div>
-                <div id="daily-pnl" class="card-value">0.00%</div>
-                <div id="daily-pnl-usdt" style="font-size: 1rem; font-weight: 600; opacity: 0.9; margin-top: -5px;">$0.00</div>
-                <div class="stats-grid">
-                    <div class="stat-item"><div class="stat-label">Wins</div><div id="daily-wins" class="stat-val positive">0</div></div>
-                    <div class="stat-item"><div class="stat-label">Losses</div><div id="daily-losses" class="stat-val negative">0</div></div>
+                <div class="card-label">💰 SALDO DE LA CUENTA</div>
+                <div id="balance" class="card-value-lg">$0.00</div>
+                <div class="bias-prices">
+                    <div class="price-item">
+                        <span class="price-label">Disponible</span>
+                        <span class="price-val">$0.00</span>
+                    </div>
+                    <div class="price-item">
+                        <span class="price-label">PNL No Realizada</span>
+                        <span id="total-unrealized-pnl" class="price-val">$0.00</span>
+                    </div>
                 </div>
             </div>
-            <!-- WEEKLY -->
+
+            <!-- TREND / BIAS -->
             <div class="card">
-                <div class="card-title">Semana (PNL)</div>
-                <div id="weekly-pnl" class="card-value">0.00%</div>
-                <div id="weekly-pnl-usdt" style="font-size: 1rem; font-weight: 600; opacity: 0.9; margin-top: -5px;">$0.00</div>
-                <div class="stats-grid">
-                    <div class="stat-item"><div class="stat-label">Wins</div><div id="weekly-wins" class="stat-val positive">0</div></div>
-                    <div class="stat-item"><div class="stat-label">Losses</div><div id="weekly-losses" class="stat-val negative">0</div></div>
+                <div class="card-label">📉 SESGO DEL MERCADO</div>
+                <div class="bias-indicator">
+                    <span id="bias-arrow" class="bias-arrow"></span>
+                    <span id="bias-text" class="bias-text">---</span>
+                </div>
+                <div class="bias-prices">
+                    <div class="price-item">
+                        <span class="price-label">Precio Actual</span>
+                        <span id="current-price" class="price-val">0.00</span>
+                    </div>
+                    <div class="price-item">
+                        <span class="price-label">HTF EMA100 (15M)</span>
+                        <span id="ema-value" class="price-val">0.00</span>
+                    </div>
                 </div>
             </div>
-            <!-- MONTHLY -->
+
+            <!-- CONFIG -->
             <div class="card">
-                <div class="card-title">Mes (PNL)</div>
-                <div id="monthly-pnl" class="card-value">0.00%</div>
-                <div id="monthly-pnl-usdt" style="font-size: 1rem; font-weight: 600; opacity: 0.9; margin-top: -5px;">$0.00</div>
-                <div class="stats-grid">
-                    <div class="stat-item"><div class="stat-label">Wins</div><div id="monthly-wins" class="stat-val positive">0</div></div>
-                    <div class="stat-item"><div class="stat-label">Losses</div><div id="monthly-losses" class="stat-val negative">0</div></div>
+                <div class="card-label">⚙️ CONFIGURACIÓN DE ESTRATEGIA</div>
+                <div class="config-list">
+                    <div class="config-item"><span class="config-key">Aprovechar</span><span class="config-val">10x</span></div>
+                    <div class="config-item"><span class="config-key">Cantidad</span><span class="config-val">$20.00</span></div>
+                    <div class="config-item"><span class="config-key">SL/TP ATR</span><span class="config-val">2.0 / 4.0</span></div>
+                    <div class="config-item"><span class="config-key">Mult. Plus</span><span class="config-val">0.25 (BE+)</span></div>
+                    <div class="config-item"><span class="config-key">Filtro HTF</span><span class="config-val positive">EN</span></div>
+                    <div class="config-item"><span class="config-key">Modo</span><span class="config-val">AUTÓNOMO</span></div>
                 </div>
             </div>
         </div>
 
-        <!-- MAIN VIEW (OPEN POSITIONS & LOGS) -->
-        <div class="grid" style="grid-template-columns: 2fr 1fr;">
-            <!-- OPEN POSITIONS -->
-            <div class="card">
-                <div class="card-title">Posiciones en Vivo</div>
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Simbolo</th>
-                                <th>Lado</th>
-                                <th>Apalanc.</th>
-                                <th>PnL (%)</th>
-                                <th>PnL (USDT)</th>
-                            </tr>
-                        </thead>
-                        <tbody id="positions-body">
-                            <!-- Se llena dinámicamente -->
-                        </tbody>
-                    </table>
+        <!-- PNL GRID -->
+        <div class="pnl-grid">
+            <div class="card pnl-mini">
+                <div class="card-label">PNL HOY</div>
+                <div id="pnl-daily-pct" class="pnl-val">0.00%</div>
+                <div id="pnl-daily-usdt" class="pnl-usdt">$0.00</div>
+                <div class="pnl-stats">
+                    <span>W: <b id="daily-wins" class="positive">0</b></span>
+                    <span>L: <b id="daily-losses" class="negative">0</b></span>
                 </div>
             </div>
-
-            <!-- ACTIVITY LOG -->
-            <div class="card">
-                <div class="card-title">Actividad Reciente</div>
-                <div id="logs" class="logs-container">
-                    <div class="log-entry log-info">Bot iniciado... esperando escaneo.</div>
+            <div class="card pnl-mini">
+                <div class="card-label">SEMANA PNL</div>
+                <div id="pnl-weekly-pct" class="pnl-val">0.00%</div>
+                <div id="pnl-weekly-usdt" class="pnl-usdt">$0.00</div>
+                <div class="pnl-stats">
+                    <span>W: <b id="weekly-wins" class="positive">0</b></span>
+                    <span>L: <b id="weekly-losses" class="negative">0</b></span>
+                </div>
+            </div>
+            <div class="card pnl-mini">
+                <div class="card-label">PNL DEL MES</div>
+                <div id="pnl-monthly-pct" class="pnl-val">0.00%</div>
+                <div id="pnl-monthly-usdt" class="pnl-usdt">$0.00</div>
+                <div class="pnl-stats">
+                    <span>W: <b id="monthly-wins" class="positive">0</b></span>
+                    <span>L: <b id="monthly-losses" class="negative">0</b></span>
+                </div>
+            </div>
+            <div class="card pnl-mini">
+                <div class="card-label">PNL TODOS LOS TIEMPOS</div>
+                <div id="pnl-alltime-pct" class="pnl-val">0.00%</div>
+                <div id="pnl-alltime-usdt" class="pnl-usdt">$0.00</div>
+                <div class="pnl-stats">
+                    <span id="all-time-count">Trades: 0</span>
                 </div>
             </div>
         </div>
 
-        <!-- HISTORY TABLE -->
-        <div class="card">
-            <div class="card-title">Historial de Operaciones Cerradas (Últimas 20)</div>
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Hora (UTC)</th>
-                            <th>Simbolo</th>
-                            <th>Lado</th>
-                            <th>Entrada</th>
-                            <th>Salida</th>
-                            <th>PnL (%)</th>
-                            <th>PnL (USDT)</th>
-                            <th>Resultado</th>
-                        </tr>
-                    </thead>
-                    <tbody id="history-body">
-                        <!-- Se llena dinámicamente -->
-                    </tbody>
-                </table>
+        <!-- MAIN GRID -->
+        <div class="main-grid">
+            <!-- LEFT: TABLES -->
+            <div class="main-left">
+                <div class="card" style="margin-bottom: 1.5rem;">
+                    <div class="card-label">📶 POSICIONES ACTIVAS</div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Símbolo</th>
+                                    <th>Lado</th>
+                                    <th>Entrada</th>
+                                    <th>PnL %</th>
+                                    <th>PnL USDT</th>
+                                </tr>
+                            </thead>
+                            <tbody id="positions-body">
+                                <tr><td colspan="5" style="text-align:center; color:var(--text-muted);">No hay puestos activos</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-label">🕒 OPERACIONES RECIENTES</div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Simbolo</th>
+                                    <th>Final</th>
+                                    <th>PNL %</th>
+                                    <th>USDT</th>
+                                    <th>Razón</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-body">
+                                <!-- Se llena dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT: PERFORMANCE -->
+            <div class="main-right">
+                <div class="card">
+                    <div class="card-label">📊 MÉTRICAS DE RENDIMIENTO</div>
+                    
+                    <div class="performance-item">
+                        <div class="perf-row">
+                            <div class="perf-label">TASA DE VICTORIAS</div>
+                            <div id="metric-winrate" class="perf-val positive">0.0%</div>
+                        </div>
+                   </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="performance-item">
+                            <div class="perf-label">FACTOR DE BENEFICIO</div>
+                            <div id="metric-pf" class="perf-val">0.00</div>
+                        </div>
+                        <div class="performance-item">
+                            <div class="perf-label">PROMEDIO R:R</div>
+                            <div id="metric-rr" class="perf-val">1: 0.00</div>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="performance-item">
+                            <div class="perf-label">MEJOR COMERCIO</div>
+                            <div id="metric-best" class="perf-val positive">$0.00</div>
+                        </div>
+                        <div class="performance-item">
+                            <div class="perf-label">PEOR INTERCAMBIO</div>
+                            <div id="metric-worst" class="perf-val negative">$0.00</div>
+                        </div>
+                    </div>
+
+                    <div class="card-label" style="margin-top: 2rem;">📟 ACTIVIDAD DEL SISTEMA</div>
+                    <div id="logs" class="log-wrapper">
+                        <div class="log-line">Sincronizando con terminal remota...</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
+
     <script>
         const socket = io();
 
         socket.on('update_data', function (data) {
-            // Actualizar Balance y Bias
-            if (data.balance) document.getElementById('balance').innerText = `${data.balance} USDT`;
+            // Balance
+            if (data.balance) {
+                document.getElementById('balance').innerText = `$${parseFloat(data.balance).toLocaleString()}`;
+            }
+
+            // Bias
             if (data.bias) {
-                const el = document.getElementById('bias-trend');
-                el.innerText = data.bias;
-                el.className = 'card-value ' + (data.bias === 'LONG' ? 'positive' : 'negative');
+                const textEl = document.getElementById('bias-text');
+                const arrowEl = document.getElementById('bias-arrow');
+                textEl.innerText = data.bias;
+                
+                if (data.bias === 'LONG') {
+                    textEl.className = 'bias-text positive';
+                    arrowEl.innerText = '📈';
+                    arrowEl.className = 'bias-arrow positive';
+                } else if (data.bias === 'SHORT') {
+                    textEl.className = 'bias-text negative';
+                    arrowEl.innerText = '📉';
+                    arrowEl.className = 'bias-arrow negative';
+                } else {
+                    textEl.className = 'bias-text';
+                    arrowEl.innerText = '';
+                }
+
+                document.getElementById('current-price').innerText = data.current_price || '0.00';
+                document.getElementById('ema-value').innerText = data.ema_value || '0.00';
             }
 
-            // Actualizar Estadísticas D/W/M
+            // Stats PNL
             if (data.stats) {
-                updateStat('daily', data.stats.daily);
-                updateStat('weekly', data.stats.weekly);
-                updateStat('monthly', data.stats.monthly);
+                updatePNLCard('daily', data.stats.daily);
+                updatePNLCard('weekly', data.stats.weekly);
+                updatePNLCard('monthly', data.stats.monthly);
+                updatePNLCard('alltime', data.stats.all_time);
+                
+                if (data.stats.all_time) {
+                    document.getElementById('all-time-count').innerText = `Trades: ${data.stats.all_time.count}`;
+                }
+
+                // Performance Metrics
+                const perf = data.stats.performance;
+                if (perf) {
+                    document.getElementById('metric-winrate').innerText = `${perf.win_rate}%`;
+                    document.getElementById('metric-pf').innerText = perf.profit_factor;
+                    document.getElementById('metric-rr').innerText = `1: ${perf.avg_rr}`;
+                    document.getElementById('metric-best').innerText = `$${perf.best_trade}`;
+                    document.getElementById('metric-worst').innerText = `$${perf.worst_trade}`;
+                }
             }
 
-            // Actualizar Posiciones y Tablas
-            if (data.positions) updatePositionsTable(data.positions);
-            if (data.history) updateHistoryTable(data.history);
+            // Tables
+            if (data.positions) updatePositions(data.positions);
+            if (data.history) updateHistory(data.history);
         });
 
         socket.on('new_log', function (data) {
             const logsDiv = document.getElementById('logs');
             const entry = document.createElement('div');
-            entry.className = 'log-entry ' + (data.type || 'log-info');
+            entry.className = 'log-line ' + (data.type ? data.type.replace('log-', '') : '');
             entry.innerText = `[${new Date().toLocaleTimeString()}] ${data.message}`;
             logsDiv.appendChild(entry);
             logsDiv.scrollTop = logsDiv.scrollHeight;
         });
 
-        function updateStat(period, stats) {
-            const pnlEl = document.getElementById(`${period}-pnl`);
-            const pnlUsdtEl = document.getElementById(`${period}-pnl-usdt`);
+        function updatePNLCard(period, s) {
+            if (!s) return;
+            const pctEl = document.getElementById(`pnl-${period}-pct`);
+            const usdtEl = document.getElementById(`pnl-${period}-usdt`);
             
-            pnlEl.innerText = `${stats.pnl_pct.toFixed(2)}%`;
-            pnlUsdtEl.innerText = `${stats.total_pnl >= 0 ? '+' : ''}${stats.total_pnl.toFixed(2)} USDT`;
+            pctEl.innerText = `${s.pnl_pct.toFixed(2)}%`;
+            usdtEl.innerText = `${s.total_pnl >= 0 ? '+' : ''}$${s.total_pnl.toFixed(2)}`;
             
-            const colorClass = stats.pnl_pct >= 0 ? 'positive' : 'negative';
-            pnlEl.className = 'card-value ' + colorClass;
-            pnlUsdtEl.className = colorClass;
-
-            document.getElementById(`${period}-wins`).innerText = stats.wins;
-            document.getElementById(`${period}-losses`).innerText = stats.losses;
+            const colorClass = s.total_pnl >= 0 ? 'positive' : 'negative';
+            pctEl.className = 'pnl-val ' + colorClass;
+            
+            if (period !== 'alltime') {
+                document.getElementById(`${period}-wins`).innerText = s.wins;
+                document.getElementById(`${period}-losses`).innerText = s.losses;
+            }
         }
 
-        function updatePositionsTable(positions) {
+        function updatePositions(pos) {
             const body = document.getElementById('positions-body');
             body.innerHTML = '';
-            if (positions.length === 0) {
+            let totalUnrealized = 0;
+
+            if (pos.length === 0) {
                 body.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Sin posiciones abiertas</td></tr>';
-                return;
+            } else {
+                pos.forEach(p => {
+                    const pnl_pct = (parseFloat(p.unrealisedPnl) / (parseFloat(p.avgPrice) * parseFloat(p.size))) * 100 * parseFloat(p.leverage);
+                    totalUnrealized += parseFloat(p.unrealisedPnl);
+                    
+                    body.innerHTML += `<tr>
+                        <td>${p.symbol}</td>
+                        <td class="${p.side === 'Buy' ? 'positive' : 'negative'}">${p.side === 'Buy' ? 'LONG' : 'SHORT'}</td>
+                        <td>${parseFloat(p.avgPrice).toFixed(4)}</td>
+                        <td class="${parseFloat(p.unrealisedPnl) >= 0 ? 'positive' : 'negative'}">${pnl_pct.toFixed(2)}%</td>
+                        <td class="${parseFloat(p.unrealisedPnl) >= 0 ? 'positive' : 'negative'}">${parseFloat(p.unrealisedPnl).toFixed(2)}</td>
+                    </tr>`;
+                });
             }
-            positions.forEach(p => {
-                const pnl_pct = parseFloat(p.unrealisedPnlPct || 0) * 100;
-                const row = `<tr>
-                    <td>${p.symbol}</td>
-                    <td class="${p.side === 'Buy' ? 'positive' : 'negative'}">${p.side === 'Buy' ? 'LONG' : 'SHORT'}</td>
-                    <td>${p.leverage}x</td>
-                    <td class="${pnl_pct >= 0 ? 'positive' : 'negative'}">${pnl_pct.toFixed(2)}%</td>
-                    <td>${parseFloat(p.unrealisedPnl).toFixed(2)} USDT</td>
-                </tr>`;
-                body.innerHTML += row;
-            });
+            document.getElementById('total-unrealized-pnl').innerText = `${totalUnrealized >= 0 ? '+' : ''}$${totalUnrealized.toFixed(2)}`;
+            document.getElementById('total-unrealized-pnl').className = 'price-val ' + (totalUnrealized >= 0 ? 'positive' : 'negative');
         }
 
-        function updateHistoryTable(history) {
+        function updateHistory(hist) {
             const body = document.getElementById('history-body');
             body.innerHTML = '';
-            history.forEach(t => {
-                const row = `<tr>
-                    <td>${t.close_time}</td>
+            hist.forEach(t => {
+                body.innerHTML += `<tr>
                     <td>${t.symbol}</td>
-                    <td>${t.side}</td>
-                    <td>${t.entry_price}</td>
                     <td>${t.exit_price}</td>
                     <td class="${t.pnl_pct >= 0 ? 'positive' : 'negative'}">${t.pnl_pct.toFixed(2)}%</td>
-                    <td class="${t.pnl_pct >= 0 ? 'positive' : 'negative'}">${t.pnl_pct >= 0 ? '+' : ''}${t.pnl_usdt.toFixed(2)} USDT</td>
-                    <td>${t.reason}</td>
+                    <td class="${t.pnl_usdt >= 0 ? 'positive' : 'negative'}">${t.pnl_usdt.toFixed(2)}</td>
+                    <td style="font-size: 0.65rem; color: var(--text-muted)">${t.reason}</td>
                 </tr>`;
-                body.innerHTML += row;
             });
         }
 
-        // Control Buttons
-        function startBot() { socket.emit('control_bot', { action: 'start' }); }
-        function stopBot() { socket.emit('control_bot', { action: 'stop' }); }
-        function resetStats() { if(confirm('¿Seguro que quieres resetear los contadores de la sesión?')) socket.emit('control_bot', { action: 'reset' }); }
+        function controlBot(action) {
+            if (action === 'reset' && !confirm('¿Restablecer todas las estadísticas?')) return;
+            socket.emit('control_bot', { action: action });
+        }
     </script>
 </body>
 </html>
