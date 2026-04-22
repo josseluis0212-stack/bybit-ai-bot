@@ -197,6 +197,10 @@ async def init_web_server():
     app.router.add_post("/api/reset", handle_reset)
     app.router.add_get("/api/history", handle_history)
 
+    app.router.add_get("/app", httpd_handle_static_index)
+
+    app.router.add_static('/static/', path='dashboard/', name='static')
+
     runner = web.AppRunner(app)
     await runner.setup()
 
@@ -204,6 +208,10 @@ async def init_web_server():
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
     logger.info(f"Servidor web + Socket.IO activo en puerto {port}")
+
+async def httpd_handle_static_index(request):
+    index_path = os.path.join(os.path.dirname(__file__), 'dashboard', 'index.html')
+    return web.FileResponse(index_path)
 
 
 async def main():
