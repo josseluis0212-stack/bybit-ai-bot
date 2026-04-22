@@ -66,6 +66,7 @@ class MarketScanner:
         if not tickers:
             return []
 
+        tickers = [t for t in tickers if float(t.get("turnover24h", 0)) >= 330000]
         tickers = sorted(
             tickers, key=lambda x: float(x.get("turnover24h", 0)), reverse=True
         )[:100]
