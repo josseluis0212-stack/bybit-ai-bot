@@ -185,6 +185,11 @@ async def handle_health_check(request):
     return web.Response(text="Bot is running!")
 
 
+async def httpd_handle_static_index(request):
+    index_path = os.path.join(os.path.dirname(__file__), 'dashboard', 'index.html')
+    return web.FileResponse(index_path)
+
+
 async def init_web_server():
     app = web.Application()
     sio.attach(app)
@@ -208,10 +213,6 @@ async def init_web_server():
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
     logger.info(f"Servidor web + Socket.IO activo en puerto {port}")
-
-async def httpd_handle_static_index(request):
-    index_path = os.path.join(os.path.dirname(__file__), 'dashboard', 'index.html')
-    return web.FileResponse(index_path)
 
 
 async def main():
