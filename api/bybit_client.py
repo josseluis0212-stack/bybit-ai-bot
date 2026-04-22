@@ -6,6 +6,7 @@ from config.settings import settings
 
 logger = logging.getLogger(__name__)
 
+
 class BybitClient:
     _instance = None
 
@@ -21,14 +22,17 @@ class BybitClient:
             api_key=settings.BYBIT_API_KEY,
             api_secret=settings.BYBIT_API_SECRET
         )
-        
+
         if settings.PROXY_URL:
-            self.session.client.proxies = {
-                'http': settings.PROXY_URL,
-                'https': settings.PROXY_URL
-            }
-            logger.info(f"Proxy configurado para Bybit (Sync): {settings.PROXY_URL[:15]}...")
-            
+            try:
+                self.session.client.proxies = {
+                    'http': settings.PROXY_URL,
+                    'https': settings.PROXY_URL
+                }
+                logger.info(f"Proxy configurado para Bybit (Sync)")
+            except Exception as e:
+                logger.warning(f"Error configurando proxy: {e}")
+
         logger.info(f"BybitClient inicializado (Demo: {settings.BYBIT_DEMO})")
 
     def get_wallet_balance(self):
@@ -53,36 +57,42 @@ class BybitClient:
             return None
 
     async def get_klines_async(self, symbol, interval, limit=200):
-        """Obtiene velas de forma asíncrona usando aiohttp para evitar agotar el pool de conexiones"""
+        """Obtiene velas de forma asíncrona usando aiohttp"""
         url = "https://api.bybit.com/v5/market/kline"
         if settings.BYBIT_DEMO:
             url = "https://api-demo.bybit.com/v5/market/kline"
-            
+
         params = {
             "category": "linear",
             "symbol": symbol,
             "interval": interval,
             "limit": limit
         }
-        
+
         try:
             async with aiohttp.ClientSession() as session:
-                kwargs = {"params": params, "timeout": 10}
+                kwargs = {"params": params, "timeout": 15}
                 if settings.PROXY_URL:
                     kwargs["proxy"] = settings.PROXY_URL
-                
+
                 async with session.get(url, **kwargs) as response:
                     if response.status == 200:
                         data = await response.json()
                         return data
                     elif response.status == 403:
-                        logger.error(f"⚠️ ERROR 403 (Forbidden) en klines {symbol}. El IP está bloqueado. Proxy configurado: {bool(settings.PROXY_URL)}")
+                        logger.warning(f"ERROR 403 - IP bloqueada por Bybit. Necesitas proxy.")
+                        return None
+                    elif response.status == 401:
+                        logger.warning(f"ERROR 401 - Credenciales inválidas o expiradas.")
                         return None
                     else:
-                        # logger.warning(f"Error HTTP {response.status} en klines para {symbol}")
+                        logger.warning(f"HTTP {response.status} para {symbol}")
                         return None
+        except aiohttp.ClientConnectorError:
+            logger.warning(f"Conexión fallida para {symbol}. Revisa el proxy.")
+            return None
         except Exception as e:
-            # logger.error(f"Excepción en get_klines_async para {symbol}: {e}")
+            logger.warning(f"Error en klines {symbol}: {type(e).__name__}")
             return None
             
     def get_positions(self, category="linear", settleCoin="USDT"):
