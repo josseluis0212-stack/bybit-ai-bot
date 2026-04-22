@@ -72,7 +72,7 @@ class HyperQuantStrategy:
 
         volatility_ratio = atr / atr_sma if not pd.isna(atr_sma) else 1.0
 
-        if volatility_ratio < 0.5:
+        if volatility_ratio < 0.3:
             logger.debug(f"Omitiendo {symbol} - Baja volatilidad (ratio: {volatility_ratio:.2f})")
             return None
 
@@ -97,9 +97,9 @@ class HyperQuantStrategy:
                 price > ema_20 and prev["low"] <= ema_20 and curr["close"] > ema_20
             )
 
-            rsi_confluence = rsi < 55 and rsi > 35
+            rsi_confluence = rsi < 60 and rsi > 30
 
-            if ((sweep and fvg) or pullback) and rsi_confluence:
+            if (sweep and fvg) or pullback:
                 sl = price - (atr * 1.5)
                 tp = price + (atr * 3.75)
 
@@ -131,9 +131,9 @@ class HyperQuantStrategy:
                 price < ema_20 and prev["high"] >= ema_20 and curr["close"] < ema_20
             )
 
-            rsi_confluence = rsi > 45 and rsi < 65
+            rsi_confluence = rsi > 40 and rsi < 70
 
-            if ((sweep and fvg) or pullback) and rsi_confluence:
+            if (sweep and fvg) or pullback:
                 sl = price + (atr * 1.5)
                 tp = price - (atr * 3.75)
 
