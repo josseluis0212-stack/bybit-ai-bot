@@ -37,26 +37,17 @@ class ExecutionEngine:
         sl_price = signal_data["sl"]
         tp_price = signal_data["tp"]
 
-        # 1. Chequeo de límites concurrentes (USANDO DATA EN VIVO DE BYBIT)
+        # 1. Chequeo de límites concurrentes
         active_positions = bybit_client.get_active_positions()
         open_count = len(active_positions)
 
-        logger.info(
-            f"[EJECUTOR] {symbol} - Posiciones abiertas: {open_count}/10, Balance: {available_balance:.2f} USDT"
-        )
+        logger.info(f"[EJECUTOR] {symbol} - Posiciones abiertas: {open_count}/10")
 
         if open_count >= settings.MAX_CONCURRENT_TRADES:
-            logger.info(f"Omitiendo {symbol} - Límite máximo alcanzado ({open_count}).")
+            logger.info(f"Omitiendo {symbol} - Límite máximo ({open_count}).")
             return False
 
-        # Sincronizar conteo con DB por si acaso (opcional pero recomendado)
-        db_count = db_manager.get_open_trades_count()
-        if db_count > open_count:
-            logger.warning(
-                f"Discrepancia: DB={db_count}, Bybit={open_count}. Priorizando Bybit."
-            )
-
-        # 2. Chequeo de capital en Bybit
+        # 2. Chequeo de capital
         balance_info = bybit_client.get_wallet_balance()
         available_balance = 0.0
         if balance_info and balance_info.get("retCode") == 0:
@@ -67,9 +58,7 @@ class ExecutionEngine:
             if usdt_balance:
                 available_balance = float(usdt_balance["walletBalance"])
 
-        logger.info(
-            f"[EJECUTOR] {symbol} - Balance disponible: {available_balance:.2f} USDT"
-        )
+        logger.info(f"[EJECUTOR] {symbol} - Balance: {available_balance:.2f} USDT")
 
         if not risk_manager.can_open_new_trade(open_count, available_balance):
             logger.info(
