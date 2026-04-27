@@ -171,11 +171,16 @@ class AnalyticsManager:
         # Descargar trades acumulados
         df_full = self._fetch_trades(start_dt=self.reset_date, end_dt=now)
         
+        empty_stats = {
+            "pnl": 0.0, "wr": 0.0, "count": 0, "wins": 0, "losses": 0,
+            "best": 0.0, "worst": 0.0, "pf": 0.0, "rr": "1:2.1"
+        }
+        
         stats = {
-            "daily": {"pnl": 0.0, "wr": 0.0, "count": 0},
-            "weekly": {"pnl": 0.0, "wr": 0.0, "count": 0},
-            "monthly": {"pnl": 0.0, "wr": 0.0, "count": 0},
-            "total": {"pnl": 0.0, "wr": 0.0, "count": 0}
+            "daily": empty_stats.copy(),
+            "weekly": empty_stats.copy(),
+            "monthly": empty_stats.copy(),
+            "total": empty_stats.copy()
         }
 
         if df_full is not None and not df_full.empty:
