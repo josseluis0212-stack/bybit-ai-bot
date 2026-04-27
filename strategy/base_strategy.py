@@ -1,118 +1,130 @@
 import pandas as pd
 import numpy as np
 import logging
-from datetime import datetime, timezone
 from ta.trend import EMAIndicator
 from ta.volatility import AverageTrueRange
 from ta.momentum import RSIIndicator
+from config.settings import settings
 
 logger = logging.getLogger(__name__)
 
 class BaseStrategy:
-    def __init__(self, name="Institutional SMC Quantum v5.3"):
+    def __init__(self, name="HYPER SCALPER QUANT V1"):
         self.name = name
 
-    def calculate_indicators(self, df: pd.DataFrame) -> pd.DataFrame:
-        if df.empty: return df
-        df = df.copy()
+    def analyze_symbol(self, symbol, df_ltf: pd.DataFrame, df_htf: pd.DataFrame):
+        """
+        Analiza el mercado con la lógica Hyper Scalper V1.
+        """
+        if len(df_ltf) < 50 or len(df_htf) < 100: return None
         
-        # Medias (Using 'ta' library - certified stable)
-        df["ema_50"] = EMAIndicator(close=df["close"], window=50).ema_indicator()
+        # --- HTF ANALYSIS (15m) ---
+        df_htf = df_htf.copy()
+        df_htf["ema_100"] = EMAIndicator(close=df_htf["close"], window=100).ema_indicator()
         
-        # Bias HTF: EMA 300 en 5m (Equivalente a EMA 100 en 15m)
-        df["ema_htf"] = EMAIndicator(close=df["close"], window=300).ema_indicator()
+        htf_curr = df_htf.iloc[-1]
+        ema_100_htf = float(htf_curr["ema_100"])
+        htf_close = float(htf_curr["close"])
         
-        # RSI y ATR
+        if pd.isna(ema_100_htf): return None
+        
+        bias = "LONG" if htf_close > ema_100_htf else "SHORT"
+        
+        # --- LTF ANALYSIS (1m) ---
+        df = df_ltf.copy()
+        df["ema_20"] = EMAIndicator(close=df["close"], window=20).ema_indicator()
         df["rsi"] = RSIIndicator(close=df["close"], window=14).rsi()
-        df["atr"] = AverageTrueRange(high=df["high"], low=df["low"], close=df["close"], window=14).average_true_range()
+        df["atr"] = AverageTrueRange(high=df["high"], low=df["low"], close=df["close"], window=settings.ATR_PERIOD).average_true_range()
         
-        # Filtro de Volatilidad Relativa
-        df["atr_sma_50"] = df["atr"].rolling(50).mean()
-        
-        # Detección de Order Blocks (OB)
-        df['bullish_ob'] = np.where((df['close'] < df['open']) & (df['close'].shift(-1) > df['open'].shift(-1)), df['low'], np.nan)
-        df['bullish_ob'] = df['bullish_ob'].ffill()
-        
-        df['bearish_ob'] = np.where((df['close'] > df['open']) & (df['close'].shift(-1) < df['open'].shift(-1)), df['high'], np.nan)
-        df['bearish_ob'] = df['bearish_ob'].ffill()
-
-        return df
-
-    def analyze_symbol(self, symbol, df: pd.DataFrame):
-        """
-        Analiza un símbolo con lógica SMC v5.3 (Final Hybrid).
-        """
-        if len(df) < 301: return None
-        
-        df = self.calculate_indicators(df)
         curr = df.iloc[-1]
+        prev = df.iloc[-2]
         prev2 = df.iloc[-3]
         
         price = float(curr["close"])
         rsi = float(curr["rsi"])
         atr = float(curr["atr"])
-        atr_avg = float(curr["atr_sma_50"])
+        ema_20 = float(curr["ema_20"])
         
-        if pd.isna(atr) or pd.isna(atr_avg): return None
-
-        # 1. FILTRO DE VOLATILIDAD
-        if atr < (atr_avg * 0.9): return None
-
-        # 2. SESGO HTF (EMA 300 en 5m)
-        ema_htf = float(curr["ema_htf"])
-        if pd.isna(ema_htf): return None
-        bias = "LONG" if price > ema_htf else "SHORT"
+        if pd.isna(rsi) or pd.isna(atr) or pd.isna(ema_20): return None
         
-        # 3. FILTRO DE VOLUMEN
+        # Filtro de Volumen Promedio (1m)
         vol_avg = df["volume"].rolling(20).mean().iloc[-1]
         vol_ratio = float(curr["volume"]) / vol_avg if vol_avg > 0 else 1.0
 
-        # Multiplicadores ATR (Dashboard: 3.0 / 6.0)
-        atr_sl_mult = 3.0
-        atr_tp_mult = 6.0
-
+        # --- CONDITIONS ---
+        is_signal = False
+        signal_type = ""
+        
         if bias == "LONG":
+            # 1. Filtro RSI
             if rsi > 65: return None
             
-            recent_lows = df["low"].iloc[-15:-1].min()
+            # 2. Toque o cruce de EMA 20
+            # Pullback a la EMA 20 (El mínimo debe haber tocado o estar muy cerca de la EMA)
+            touched_ema = curr["low"] <= ema_20 and curr["close"] > ema_20
+            if not touched_ema:
+                touched_ema = prev["low"] <= prev["ema_20"] and curr["close"] > ema_20
+            
+            if not touched_ema: return None
+            
+            # 3. Confirmación SMC
+            # a) Liquidity Sweep (Mínimo de las últimas 15 velas barrido)
+            recent_lows = df["low"].iloc[-16:-1].min()
             sweep = curr["low"] < recent_lows and curr["close"] > recent_lows
+            
+            # b) FVG (Fair Value Gap)
             fvg = curr["low"] > prev2["high"]
-            ob_mitigation = not pd.isna(curr['bullish_ob']) and curr['low'] <= curr['bullish_ob'] and curr['close'] > curr['bullish_ob']
-
-            if sweep or fvg or ob_mitigation:
-                sl = price - (atr * atr_sl_mult)
-                tp = price + (atr * atr_tp_mult)
+            
+            if sweep or fvg:
+                is_signal = True
+                signal_type = "LONG"
                 
-                if (tp - price) / price < 0.0025: return None
-                if vol_ratio > 1.8: tp = None
-
-                return {
-                    "symbol": symbol, "signal": "LONG", "entry_price": price,
-                    "sl": sl, "tp": tp, "atr": atr,
-                    "info": f"SMC v5.3 LONG | RSI:{rsi:.1f} | HTF:OK"
-                }
-
-        else: # SHORT
+        elif bias == "SHORT":
+            # 1. Filtro RSI
             if rsi < 35: return None
             
-            recent_highs = df["high"].iloc[-15:-1].max()
-            sweep = curr["high"] > recent_highs and curr["close"] < recent_highs
-            fvg = curr["high"] < prev2["low"]
-            ob_mitigation = not pd.isna(curr['bearish_ob']) and curr['high'] >= curr['bearish_ob'] and curr['close'] < curr['bearish_ob']
-
-            if sweep or fvg or ob_mitigation:
-                sl = price + (atr * atr_sl_mult)
-                tp = price - (atr * atr_tp_mult)
+            # 2. Toque o cruce de EMA 20
+            touched_ema = curr["high"] >= ema_20 and curr["close"] < ema_20
+            if not touched_ema:
+                touched_ema = prev["high"] >= prev["ema_20"] and curr["close"] < ema_20
                 
-                if (price - tp) / price < 0.0025: return None
-                if vol_ratio > 1.8: tp = None
+            if not touched_ema: return None
+            
+            # 3. Confirmación SMC
+            recent_highs = df["high"].iloc[-16:-1].max()
+            sweep = curr["high"] > recent_highs and curr["close"] < recent_highs
+            
+            fvg = curr["high"] < prev2["low"]
+            
+            if sweep or fvg:
+                is_signal = True
+                signal_type = "SHORT"
 
-                return {
-                    "symbol": symbol, "signal": "SHORT", "entry_price": price,
-                    "sl": sl, "tp": tp, "atr": atr,
-                    "info": f"SMC v5.3 SHORT | RSI:{rsi:.1f} | HTF:OK"
-                }
-
+        if is_signal:
+            sl_dist = atr * settings.ATR_MULTIPLIER_SL
+            tp_dist = atr * settings.ATR_MULTIPLIER_TP
+            
+            if signal_type == "LONG":
+                sl = price - sl_dist
+                tp = price + tp_dist
+            else:
+                sl = price + sl_dist
+                tp = price - tp_dist
+                
+            # Excepción de Volumen (Modo Profit Infinito)
+            if vol_ratio > 1.5:
+                tp = None
+                
+            return {
+                "symbol": symbol,
+                "signal": signal_type,
+                "entry_price": price,
+                "sl": sl,
+                "tp": tp,
+                "atr": atr,
+                "info": f"HyperScalper V1 | Vol:{vol_ratio:.1f}x | RSI:{rsi:.1f}"
+            }
+            
         return None
 
 strategy = BaseStrategy()

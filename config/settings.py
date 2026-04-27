@@ -11,24 +11,33 @@ class Settings:
     BYBIT_API_SECRET = os.getenv("BYBIT_API_SECRET")
     BYBIT_DEMO = os.getenv("BYBIT_DEMO", "True").lower() == "true"
 
-    # Proxy (Crucial para Render/Hugging Face 403 bypass)
-    PROXY_URL = os.getenv("PROXY_URL")  # Ejemplo: "http://user:pass@host:port"
+    PROXY_URL = os.getenv("PROXY_URL")
 
     # Telegram
     TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
     TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
     # Parámetros de Riesgo Base
-    LEVERAGE = int(os.getenv("LEVERAGE") or 5)
-    TRADE_AMOUNT_USDT = float(os.getenv("TRADE_AMOUNT_USDT") or 100.0)
+    LEVERAGE = int(os.getenv("LEVERAGE") or 10)
+    TRADE_AMOUNT_USDT = float(os.getenv("TRADE_AMOUNT_USDT") or 20.0)
     MAX_CONCURRENT_TRADES = int(os.getenv("MAX_CONCURRENT_TRADES") or 10)
 
-    # Cobertura de comisiones (para breakeven mínimo)
-    BREAKEVEN_SPREAD = 0.001  # 0.1% sobre entrada para cubrir comisiones
+    # Cobertura de comisiones (para simular deducción y calcular PNL real)
+    TAKER_FEE = 0.00055  # 0.055% bybit taker fee (entrada + salida = 0.11% aprox)
+    BREAKEVEN_SPREAD = 0.0015  # 0.15% sobre entrada para cubrir comisiones reales
 
-    # Filtros Institucionales
-    KILLZONE_FILTER = os.getenv("KILLZONE_FILTER", "True").lower() == "true"
-    HTF_CONFLUENCE = os.getenv("HTF_CONFLUENCE", "True").lower() == "true"
-
+    # --- HYPER SCALPER V1 PARAMS ---
+    SCAN_INTERVAL_SECONDS = 15
+    MIN_VOL_24H_USD = 500000
+    TOP_COINS_LIMIT = 70
+    
+    ATR_PERIOD = 14
+    ATR_MULTIPLIER_SL = 2.2
+    ATR_MULTIPLIER_TP = 4.4
+    
+    COOLDOWN_MINUTES = 30
+    
+    BREAKEVEN_ACTIVATION_PCT = 0.60  # 60% hacia el TP
+    TRAIL_PROTECTION_PCT = 0.50  # Asegurar 50% de la ganancia
 
 settings = Settings()

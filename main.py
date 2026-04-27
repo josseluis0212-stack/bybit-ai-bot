@@ -118,7 +118,7 @@ async def bot_loop():
             logger.info("🔍 [CICLO] Monitoreando posiciones y analizando oportunidades...")
             await executor.check_open_positions()
             
-            logger.info("📡 [SCANNER] Escaneando mercado con filtros Elite (5m / $10M)...")
+            logger.info(f"📡 [SCANNER] Escaneando mercado: Top {settings.TOP_COINS_LIMIT} Monedas (>$500k vol)...")
             signals = await market_scanner.scan_market()
 
             if signals:
@@ -134,7 +134,7 @@ async def bot_loop():
                     await asyncio.sleep(0.5)
 
             await sio.emit("heartbeat", {"timestamp": datetime.now().isoformat()})
-            await asyncio.sleep(300)
+            await asyncio.sleep(settings.SCAN_INTERVAL_SECONDS)
 
         except Exception as e:
             logger.error(f"Error en bucle: {e}")
