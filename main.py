@@ -30,7 +30,7 @@ class SocketIOLogHandler(logging.Handler):
             pass
 
 socket_handler = SocketIOLogHandler()
-socket_handler.setFormatter(logging.Formatter('%H:%M:%S - %message'))
+socket_handler.setFormatter(logging.Formatter('%(message)s'))
 logging.getLogger().addHandler(socket_handler)
 
 sio = socketio.AsyncServer(async_mode="aiohttp")

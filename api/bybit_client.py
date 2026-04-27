@@ -147,13 +147,15 @@ class BybitClient:
                 logger.error(f"Error configurando apalancamiento en {symbol}: {e}")
             return None
 
-    def get_closed_pnl(self, category="linear", limit=200, start_time=None, end_time=None):
+    def get_closed_pnl(self, category="linear", limit=200, start_time=None, end_time=None, symbol=None):
         """
         Obtiene el historial de PnL cerrado.
         start_time / end_time: timestamps en milisegundos (opcionales) para filtrar por período.
         """
         try:
             params = {"category": category, "limit": limit}
+            if symbol:
+                params["symbol"] = symbol
             if start_time:
                 params["startTime"] = int(start_time)
             if end_time:
