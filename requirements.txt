@@ -1,9 +1,9 @@
-pandas-ta
+pandas>=2.1.4
+numpy>=1.26.4
+pandas-ta @ git+https://github.com/twopirllc/pandas-ta.git@main
 pybit>=5.8.0
 python-telegram-bot>=20.8
 python-dotenv>=1.0.1
-pandas>=2.1.4
-numpy>=1.26.4
 SQLAlchemy>=2.0.29
 aiohttp>=3.9.0
 pytz>=2024.1
