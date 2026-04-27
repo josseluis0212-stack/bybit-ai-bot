@@ -26,4 +26,5 @@ Este archivo es el registro persistente de las decisiones estratégicas, prefere
 - **Sincronización de PnL**: Se identificó la necesidad de usar `closedPnl` real de Bybit para incluir comisiones (Maker 0.02%, Taker 0.055%) en el historial local.
 - **Corrección de Dashboard**: Las rutas `/api/performance` y `/api/trades` están pendientes de implementación en `main.py` para reactivar los contadores de la APK/Dashboard.
 - **Estado de Despliegue**: El bot está sincronizado con GitHub y desplegado en Render (`bybit-ai-bot-kr6d`).
-- **Incidencia Crítica (Abril 2026)**: Se detectó un error `401 Unauthorized` persistente al conectar con Bybit Demo. Esto indica que las API Keys son inválidas o no tienen los permisos necesarios para el entorno Demo o el tipo de cuenta `UNIFIED`.
+- **[2026-04-27] Incidencia Resuelta**: Se añadió `pandas-ta` a `requirements.txt` para corregir el error `ModuleNotFoundError`.
+- **[2026-04-27] Actualización**: Despliegue de **Antigravity Quantum v4.1** con filtro de volumen de $30M y apalancamiento 10x.
