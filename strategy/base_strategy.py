@@ -2,7 +2,9 @@ import pandas as pd
 import numpy as np
 import logging
 from datetime import datetime, timezone
-import pandas_ta as ta
+from ta.trend import EMAIndicator
+from ta.volatility import AverageTrueRange
+from ta.momentum import RSIIndicator
 
 logger = logging.getLogger(__name__)
 
@@ -14,15 +16,15 @@ class BaseStrategy:
         if df.empty: return df
         df = df.copy()
         
-        # Medias (Using pandas-ta)
-        df["ema_50"] = ta.ema(df["close"], length=50)
+        # Medias (Using 'ta' library - certified stable)
+        df["ema_50"] = EMAIndicator(close=df["close"], window=50).ema_indicator()
         
         # Bias HTF: EMA 300 en 5m (Equivalente a EMA 100 en 15m)
-        df["ema_htf"] = ta.ema(df["close"], length=300)
+        df["ema_htf"] = EMAIndicator(close=df["close"], window=300).ema_indicator()
         
         # RSI y ATR
-        df["rsi"] = ta.rsi(df["close"], length=14)
-        df["atr"] = ta.atr(df["high"], df["low"], df["close"], length=14)
+        df["rsi"] = RSIIndicator(close=df["close"], window=14).rsi()
+        df["atr"] = AverageTrueRange(high=df["high"], low=df["low"], close=df["close"], window=14).average_true_range()
         
         # Filtro de Volatilidad Relativa
         df["atr_sma_50"] = df["atr"].rolling(50).mean()
