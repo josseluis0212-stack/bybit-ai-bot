@@ -4,6 +4,7 @@ import logging
 import time
 from api.bybit_client import bybit_client
 from strategy.base_strategy import strategy
+from ta.trend import EMAIndicator
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +60,6 @@ class MarketScanner:
             if df_bias is None or len(df_bias) < 101: return None
             
             # Calcular EMA 100 en 15m
-            from ta.trend import EMAIndicator
             ema_series = EMAIndicator(close=df_bias["close"], window=100).ema_indicator()
             if ema_series.empty or pd.isna(ema_series.iloc[-1]):
                 return None
@@ -77,8 +77,7 @@ class MarketScanner:
             if signal:
                 return signal
             return None
-        except Exception as e:
-            # Silenciar errores individuales de pares para no saturar logs
+        except Exception:
             return None
 
     async def scan_market(self):
