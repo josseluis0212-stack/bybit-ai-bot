@@ -179,26 +179,27 @@ class AnalyticsManager:
 
         if df_full is not None and not df_full.empty:
             def calc_sub_stats(sub_df):
-                if sub_df.empty: return 0.0, 0.0, 0
+                if sub_df.empty: return 0.0, 0.0, 0, 0, 0
                 pnl = sub_df["closedPnl"].sum()
                 wins = len(sub_df[sub_df["closedPnl"] > 0])
+                losses = len(sub_df[sub_df["closedPnl"] <= 0])
                 wr = (wins / len(sub_df)) * 100
-                return float(pnl), float(wr), len(sub_df)
+                return float(pnl), float(wr), len(sub_df), wins, losses
 
             # Total
-            stats["total"]["pnl"], stats["total"]["wr"], stats["total"]["count"] = calc_sub_stats(df_full)
+            stats["total"]["pnl"], stats["total"]["wr"], stats["total"]["count"], stats["total"]["wins"], stats["total"]["losses"] = calc_sub_stats(df_full)
             
             # Diario
             df_day = df_full[df_full["updatedTime"] >= start_day]
-            stats["daily"]["pnl"], stats["daily"]["wr"], stats["daily"]["count"] = calc_sub_stats(df_day)
+            stats["daily"]["pnl"], stats["daily"]["wr"], stats["daily"]["count"], stats["daily"]["wins"], stats["daily"]["losses"] = calc_sub_stats(df_day)
             
             # Semanal
             df_week = df_full[df_full["updatedTime"] >= start_week]
-            stats["weekly"]["pnl"], stats["weekly"]["wr"], stats["weekly"]["count"] = calc_sub_stats(df_week)
+            stats["weekly"]["pnl"], stats["weekly"]["wr"], stats["weekly"]["count"], stats["weekly"]["wins"], stats["weekly"]["losses"] = calc_sub_stats(df_week)
             
             # Mensual
             df_month = df_full[df_full["updatedTime"] >= start_month]
-            stats["monthly"]["pnl"], stats["monthly"]["wr"], stats["monthly"]["count"] = calc_sub_stats(df_month)
+            stats["monthly"]["pnl"], stats["monthly"]["wr"], stats["monthly"]["count"], stats["monthly"]["wins"], stats["monthly"]["losses"] = calc_sub_stats(df_month)
 
         return stats
 

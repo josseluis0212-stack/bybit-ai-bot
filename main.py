@@ -11,10 +11,27 @@ from strategy.market_scanner import market_scanner
 from strategy.base_strategy import strategy
 from execution_engine.executor import executor
 
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
-)
+# Configuración de logs
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Manejador para enviar logs al dashboard via Socket.io
+class SocketIOLogHandler(logging.Handler):
+    def emit(self, record):
+        try:
+            log_entry = self.format(record)
+            color = "text-text-muted"
+            if "SEÑAL" in log_entry: color = "neon-text-green font-black"
+            elif "Error" in log_entry or "FALLIDA" in log_entry: color = "text-danger"
+            elif "Escaneo" in log_entry: color = "text-cyan"
+            
+            asyncio.create_task(sio.emit("bot_log", {"msg": log_entry, "color": color}))
+        except:
+            pass
+
+socket_handler = SocketIOLogHandler()
+socket_handler.setFormatter(logging.Formatter('%H:%M:%S - %message'))
+logging.getLogger().addHandler(socket_handler)
 
 sio = socketio.AsyncServer(async_mode="aiohttp")
 
