@@ -10,6 +10,10 @@ class AnalyticsManager:
         # Fecha de reinicio del historial: 2026-03-28 (Hoy)
         self.reset_date = datetime(2026, 3, 28, tzinfo=timezone.utc)
 
+    def reset_date_now(self):
+        self.reset_date = datetime.now(timezone.utc)
+        logger.info(f"AnalyticsManager: Reset date actualizado a {self.reset_date}")
+
     # ─────────────────────────────────────────────
     # Helpers internos
     # ─────────────────────────────────────────────

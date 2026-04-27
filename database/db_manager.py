@@ -94,4 +94,16 @@ class DBManager:
         finally:
             session.close()
 
+    def reset_all_stats(self):
+        session = self.Session()
+        try:
+            session.query(Trade).delete()
+            session.commit()
+            logger.info("Base de datos reseteada por completo.")
+        except Exception as e:
+            logger.error(f"Error reseteando base de datos: {e}")
+            session.rollback()
+        finally:
+            session.close()
+
 db_manager = DBManager()

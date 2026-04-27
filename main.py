@@ -156,9 +156,11 @@ async def handle_panic_close(request):
 
 
 async def handle_reset(request):
+    from analytics.analytics_manager import analytics_manager
     try:
         await executor.emergency_close_all()
         db_manager.reset_all_stats()
+        analytics_manager.reset_date_now()
         return web.json_response({"status": "success", "message": "Reset completo"})
     except Exception as e:
         return web.json_response({"status": "error", "message": str(e)}, status=500)
