@@ -236,7 +236,7 @@ async def init_web_server():
     app = web.Application()
     sio.attach(app)
 
-    app.router.add_get("/", handle_health_check)
+    app.router.add_get("/", httpd_handle_static_index)
     app.router.add_get("/health", handle_health_check)
     app.router.add_get("/api/status", handle_status)
     app.router.add_get("/api/trigger-scan", handle_trigger_scan)
