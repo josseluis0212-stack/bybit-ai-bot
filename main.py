@@ -257,7 +257,7 @@ async def init_web_server():
     runner = web.AppRunner(app)
     await runner.setup()
 
-    port = int(os.environ.get("PORT", "10000"))
+    port = int(os.environ.get("PORT", "7860"))  # 7860 = Hugging Face Spaces default
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
     logger.info(f"Servidor web + Socket.IO activo en puerto {port}")
