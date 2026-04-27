@@ -201,29 +201,22 @@ class ExecutionEngine:
                 else:
                     exit_price = float(ticker_info["lastPrice"])
 
-                # Aproximación de pnl (LONG vs SHORT)
-                if trade.side == "LONG":
-                    pnl_usdt = (exit_price - trade.entry_price) * trade.qty
-                    reason = (
-                        "TAKE PROFIT"
-                        if exit_price >= trade.take_profit
-                        else (
-                            "STOP LOSS"
-                            if exit_price <= trade.stop_loss
-                            else "SINCRONIZADA"
-                        )
-                    )
+                # Intentar obtener PnL real desde Bybit para incluir comisiones
+                actual_pnl_data = bybit_client.get_closed_pnl(symbol=symbol, limit=1)
+                if actual_pnl_data and actual_pnl_data.get("retCode") == 0 and actual_pnl_data["result"]["list"]:
+                    real_pnl_item = actual_pnl_data["result"]["list"][0]
+                    pnl_usdt = float(real_pnl_item.get("closedPnl", 0))
+                    exit_price = float(real_pnl_item.get("avgExitPrice", exit_price))
                 else:
-                    pnl_usdt = (trade.entry_price - exit_price) * trade.qty
-                    reason = (
-                        "TAKE PROFIT"
-                        if exit_price <= trade.take_profit
-                        else (
-                            "STOP LOSS"
-                            if exit_price >= trade.stop_loss
-                            else "SINCRONIZADA"
-                        )
-                    )
+                    # Fallback a cálculo manual si Bybit no responde a tiempo
+                    if trade.side == "LONG":
+                        pnl_usdt = (exit_price - trade.entry_price) * trade.qty
+                    else:
+                        pnl_usdt = (trade.entry_price - exit_price) * trade.qty
+                    
+                    # Restar comisiones estimadas (0.11% total taker entry+exit)
+                    fees_est = (trade.entry_price * trade.qty) * 0.0011
+                    pnl_usdt -= fees_est
 
                 pnl_pct = (
                     (pnl_usdt / (trade.entry_price * trade.qty)) * 100 * trade.leverage
@@ -294,11 +287,11 @@ class ExecutionEngine:
                     ):
                         should_be_be = True
 
-                if should_be_be:
-                    # SL mínimo = entrada + spread para cubrir comisiones (0.1%)
-                    min_profit = entry * settings.BREAKEVEN_SPREAD
-                    be_sl = entry + min_profit if is_long else entry - min_profit
+                # SL mínimo = entrada + spread para cubrir comisiones (0.1%)
+                min_profit = entry * settings.BREAKEVEN_SPREAD
+                be_sl = entry + min_profit if is_long else entry - min_profit
 
+                if should_be_be:
                     logger.info(
                         f"Protegiendo {symbol}: Precio alcanzó 1.5:1 RR. Moviendo SL a breakeven + spread ({be_sl:.4f})."
                     )
@@ -441,28 +434,24 @@ class ExecutionEngine:
                     else trade.entry_price
                 )
 
-                if trade.side == "LONG":
-                    pnl_usdt = (exit_price - trade.entry_price) * trade.qty
-                    reason = (
-                        "TAKE PROFIT"
-                        if exit_price >= trade.take_profit
-                        else (
-                            "STOP LOSS"
-                            if exit_price <= trade.stop_loss
-                            else "SINCRONIZADA"
-                        )
-                    )
+                # Intentar obtener PnL real desde Bybit
+                actual_pnl_data = bybit_client.get_closed_pnl(symbol=symbol, limit=1)
+                if actual_pnl_data and actual_pnl_data.get("retCode") == 0 and actual_pnl_data["result"]["list"]:
+                    real_pnl_item = actual_pnl_data["result"]["list"][0]
+                    pnl_usdt = float(real_pnl_item.get("closedPnl", 0))
+                    exit_price = float(real_pnl_item.get("avgExitPrice", exit_price))
+                    reason = "BYBIT_SYNC"
                 else:
-                    pnl_usdt = (trade.entry_price - exit_price) * trade.qty
-                    reason = (
-                        "TAKE PROFIT"
-                        if exit_price <= trade.take_profit
-                        else (
-                            "STOP LOSS"
-                            if exit_price >= trade.stop_loss
-                            else "SINCRONIZADA"
-                        )
-                    )
+                    if trade.side == "LONG":
+                        pnl_usdt = (exit_price - trade.entry_price) * trade.qty
+                        reason = "TAKE PROFIT" if exit_price >= trade.take_profit else ("STOP LOSS" if exit_price <= trade.stop_loss else "SINCRONIZADA")
+                    else:
+                        pnl_usdt = (trade.entry_price - exit_price) * trade.qty
+                        reason = "TAKE PROFIT" if exit_price <= trade.take_profit else ("STOP LOSS" if exit_price >= trade.stop_loss else "SINCRONIZADA")
+                    
+                    # Restar comisiones estimadas
+                    fees_est = (trade.entry_price * trade.qty) * 0.0011
+                    pnl_usdt -= fees_est
 
                 pnl_pct = (
                     (pnl_usdt / (trade.entry_price * trade.qty)) * 100 * trade.leverage

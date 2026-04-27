@@ -164,6 +164,26 @@ async def handle_reset(request):
         return web.json_response({"status": "error", "message": str(e)}, status=500)
 
 
+async def handle_performance(request):
+    from analytics.analytics_manager import analytics_manager
+    stats = analytics_manager.get_dashboard_stats()
+    return web.json_response(stats)
+
+
+async def handle_trades(request):
+    active_positions = bybit_client.get_active_positions()
+    trades = []
+    for p in active_positions:
+        trades.append({
+            "symbol": p["symbol"],
+            "side": p["side"],
+            "entry": float(p["avgPrice"]),
+            "qty": float(p["size"]),
+            "pnl": float(p["unrealisedPnl"])
+        })
+    return web.json_response(trades)
+
+
 async def handle_history(request):
     closed_trades = db_manager.get_history(limit=50)
     history = []
@@ -199,12 +219,16 @@ async def init_web_server():
     app.router.add_get("/api/status", handle_status)
     app.router.add_get("/api/trigger-scan", handle_trigger_scan)
     app.router.add_post("/api/panic-close", handle_panic_close)
+    app.router.add_get("/api/reset", handle_reset)
     app.router.add_post("/api/reset", handle_reset)
     app.router.add_get("/api/history", handle_history)
+    app.router.add_get("/api/performance", handle_performance)
+    app.router.add_get("/api/trades", handle_trades)
 
     app.router.add_get("/app", httpd_handle_static_index)
 
-    app.router.add_static('/static/', path='dashboard/', name='static')
+    dashboard_path = os.path.join(os.path.dirname(__file__), 'dashboard')
+    app.router.add_static('/static/', path=dashboard_path, name='static')
 
     runner = web.AppRunner(app)
     await runner.setup()

@@ -21,3 +21,9 @@ Este archivo es el registro persistente de las decisiones estratégicas, prefere
 - Render Instance: `bybit-ai-bot-kr6d`.
 - Database: SQLite (`database/trading_bot.db`).
 - Notificaciones: Telegram activo para reportes periódicos.
+
+## 🛠️ Estado del Sistema y Pendientes (Abril 2026)
+- **Sincronización de PnL**: Se identificó la necesidad de usar `closedPnl` real de Bybit para incluir comisiones (Maker 0.02%, Taker 0.055%) en el historial local.
+- **Corrección de Dashboard**: Las rutas `/api/performance` y `/api/trades` están pendientes de implementación en `main.py` para reactivar los contadores de la APK/Dashboard.
+- **Estado de Despliegue**: El bot está sincronizado con GitHub y desplegado en Render (`bybit-ai-bot-kr6d`).
+- **Incidencia Crítica (Abril 2026)**: Se detectó un error `401 Unauthorized` persistente al conectar con Bybit Demo. Esto indica que las API Keys son inválidas o no tienen los permisos necesarios para el entorno Demo o el tipo de cuenta `UNIFIED`.
