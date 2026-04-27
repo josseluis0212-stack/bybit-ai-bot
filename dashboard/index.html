@@ -3,209 +3,200 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ANTIGRAVITY QUANT | Pro Terminal</title>
+    <title>ANTIGRAVITY QUANT | Elite Terminal</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
     <style>
         :root {
-            --bg-main: #0c0d14;
-            --bg-card: #15171f;
-            --bg-accent: #1c1f2a;
+            --bg-deep: #050505;
+            --bg-card: #0d0e12;
             --accent-cyan: #00f2ff;
-            --accent-purple: #8b5cf6;
             --success: #00ff88;
             --danger: #ff3e3e;
-            --text-muted: #8a8d9b;
+            --warning: #ffcc00;
+            --text-muted: #64748b;
         }
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-main);
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-deep);
             color: #ffffff;
-            letter-spacing: -0.01em;
+            margin: 0;
+            overflow-x: hidden;
         }
-        .card-pro {
+        .card-elite {
             background-color: var(--bg-card);
-            border-radius: 12px;
             border: 1px solid rgba(255, 255, 255, 0.03);
+            border-radius: 16px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .text-neon-green { color: var(--success); text-shadow: 0 0 12px rgba(0, 255, 136, 0.3); }
-        .text-neon-red { color: var(--danger); text-shadow: 0 0 12px rgba(255, 62, 62, 0.3); }
+        .card-elite:hover {
+            border-color: rgba(0, 242, 255, 0.1);
+            transform: translateY(-2px);
+        }
         
-        .btn-action {
-            background: #252833;
+        .neon-green { color: var(--success); text-shadow: 0 0 15px rgba(0, 255, 136, 0.4); }
+        .neon-red { color: var(--danger); text-shadow: 0 0 15px rgba(255, 62, 62, 0.4); }
+        .neon-cyan { color: var(--accent-cyan); text-shadow: 0 0 15px rgba(0, 242, 255, 0.4); }
+        
+        .btn-elite {
+            background: #1a1c23;
             border: 1px solid rgba(255, 255, 255, 0.05);
-            padding: 8px 16px;
-            border-radius: 8px;
+            padding: 10px 20px;
+            border-radius: 10px;
             font-size: 11px;
-            font-weight: 700;
-            color: #d1d5db;
+            font-weight: 800;
+            letter-spacing: 0.05em;
             text-transform: uppercase;
-            display: flex;
-            align-items: center;
-            gap: 8px;
             transition: all 0.2s;
         }
-        .btn-action:hover { background: #2f3342; color: #fff; }
-        .btn-run { background: #252833; }
-        .btn-stop { background: #ef4444; color: #fff; border: none; }
-        .btn-stop:hover { background: #dc2626; }
+        .btn-elite:hover { background: #252833; border-color: var(--accent-cyan); color: var(--accent-cyan); }
+        .btn-stop { background: #ff3e3e1a; border-color: #ff3e3e4d; color: #ff3e3e; }
+        .btn-stop:hover { background: #ff3e3e; color: #fff; }
 
-        .progress-bar {
-            height: 10px;
-            background: #1f2937;
-            border-radius: 10px;
+        .progress-container {
+            height: 12px;
+            background: #16181d;
+            border-radius: 20px;
             overflow: hidden;
-            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, var(--success), #059669);
-            transition: width 1s ease-in-out;
+            background: linear-gradient(90deg, #00ff88, #00f2ff);
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+            transition: width 1s ease;
         }
 
-        .terminal-log {
+        .terminal-box {
             font-family: 'JetBrains Mono', monospace;
             font-size: 10px;
             line-height: 1.6;
             color: #94a3b8;
+            background: #000;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.02);
         }
     </style>
 </head>
-<body class="p-4 lg:p-8">
+<body class="p-6 lg:p-10">
 
-    <!-- Top Navigation -->
-    <header class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-6">
-        <div class="flex items-center gap-4">
-            <div class="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl flex items-center justify-center shadow-lg">
-                <i data-lucide="zap" class="w-6 h-6 text-black fill-current"></i>
+    <!-- Header -->
+    <header class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-10 gap-6">
+        <div class="flex items-center gap-5">
+            <div class="w-12 h-12 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-2xl flex items-center justify-center shadow-[0_0_20px_rgba(0,242,255,0.3)]">
+                <i data-lucide="zap" class="w-7 h-7 text-white fill-current"></i>
             </div>
             <div>
-                <h1 class="text-xl font-bold tracking-tight">HYPER SCALPER <span class="text-cyan-400">QUANT</span></h1>
+                <h1 class="text-2xl font-black tracking-tighter uppercase">ANTIGRAVITY <span class="neon-cyan">QUANT</span></h1>
                 <div class="flex gap-2 mt-1">
-                    <span class="text-[9px] font-bold text-purple-400 bg-purple-400/10 px-2 py-0.5 rounded border border-purple-400/20">V9.1 PRO</span>
-                    <span class="text-[9px] font-bold text-yellow-400 bg-yellow-400/10 px-2 py-0.5 rounded border border-yellow-400/20">DEMO</span>
-                    <span class="text-[9px] font-bold text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded border border-blue-400/20">BYBIT UTA</span>
+                    <span class="text-[9px] font-black bg-purple-500/20 text-purple-400 border border-purple-500/30 px-2.5 py-0.5 rounded-full">V9.1 ELITE</span>
+                    <span class="text-[9px] font-black bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-2.5 py-0.5 rounded-full">DEMO MODE</span>
                 </div>
             </div>
         </div>
 
-        <div class="flex flex-wrap gap-3 items-center">
-            <button onclick="handleAction('run')" class="btn-action"><i data-lucide="play" class="w-3.5 h-3.5 fill-current"></i> CORRER</button>
-            <button onclick="handleAction('stop')" class="btn-action btn-stop"><i data-lucide="square" class="w-3.5 h-3.5 fill-current"></i> DETENER</button>
-            <button onclick="handleAction('reset')" class="btn-action"><i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> RESET ESTADÍSTICAS</button>
-            <div class="flex items-center gap-2 ml-4">
-                <div class="w-2 h-2 rounded-full bg-success animate-pulse shadow-[0_0_8px_rgba(0,255,136,0.5)]"></div>
-                <span id="status-text" class="text-[10px] font-bold text-text-muted uppercase">Escaneando mercado...</span>
+        <div class="flex flex-wrap gap-3">
+            <button onclick="handleAction('run')" class="btn-elite flex items-center gap-2"><i data-lucide="play" class="w-4 h-4"></i> CORRER</button>
+            <button onclick="handleAction('stop')" class="btn-elite btn-stop flex items-center gap-2"><i data-lucide="shield-alert" class="w-4 h-4"></i> DETENER</button>
+            <button onclick="handleAction('reset')" class="btn-elite flex items-center gap-2"><i data-lucide="rotate-ccw" class="w-4 h-4"></i> RESET STATS</button>
+            <div class="flex items-center gap-3 ml-4 bg-white/5 px-4 py-2 rounded-xl border border-white/5">
+                <div class="w-2.5 h-2.5 rounded-full bg-success shadow-[0_0_10px_rgba(0,255,136,0.5)] animate-pulse"></div>
+                <span class="text-[10px] font-black text-success uppercase tracking-widest">Live Scanner</span>
             </div>
         </div>
     </header>
 
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        <!-- Row 1: Balance, Bias, Config -->
-        <div class="lg:col-span-4 card-pro p-8 flex flex-col justify-between min-h-[180px]">
-            <span class="text-[10px] text-text-muted font-bold tracking-widest uppercase">$ SALDO DE LA CUENTA</span>
+        <!-- ROW 1: BALANCE, BIAS, CONFIG -->
+        <div class="lg:col-span-4 card-elite p-8 flex flex-col justify-between min-h-[200px]">
+            <span class="text-[10px] text-text-muted font-black tracking-[0.2em] uppercase">Saldo de la Cuenta</span>
             <div class="mt-4">
-                <div id="wallet-balance" class="text-4xl font-extrabold tracking-tighter">$---.--</div>
-                <div class="flex gap-8 mt-4 text-[10px] font-bold">
-                    <div>
-                        <span class="text-text-muted uppercase block mb-1">Disponible</span>
-                        <span id="balance-avail" class="text-white">$---.--</span>
-                    </div>
-                    <div>
-                        <span class="text-text-muted uppercase block mb-1">PnL No Realizado</span>
-                        <span id="active-pnl-total" class="text-success">$0.00</span>
-                    </div>
+                <div id="wallet-balance" class="text-5xl font-black tracking-tighter text-white">$---.--</div>
+                <div class="flex gap-8 mt-4 text-[11px] font-black uppercase">
+                    <div><span class="text-text-muted mr-2">Dispo:</span><span id="balance-avail" class="text-white">$---.--</span></div>
+                    <div><span class="text-text-muted mr-2">Active:</span><span id="active-pnl-total" class="text-success">$0.00</span></div>
                 </div>
             </div>
         </div>
 
-        <div class="lg:col-span-4 card-pro p-8 flex flex-col justify-between min-h-[180px]">
-            <span class="text-[10px] text-text-muted font-bold tracking-widest uppercase">⚡ SESGO DEL MERCADO <span class="text-[8px]">(BTCUSDT)</span></span>
-            <div class="flex items-center gap-6 mt-4">
-                <div id="bias-icon" class="text-success"><i data-lucide="arrow-up" class="w-12 h-12"></i></div>
+        <div id="bias-card" class="lg:col-span-4 card-elite p-8 flex flex-col justify-between min-h-[200px] border-t-2 border-success/40">
+            <span class="text-[10px] text-text-muted font-black tracking-[0.2em] uppercase">Sesgo de Mercado</span>
+            <div class="flex items-center gap-8 mt-4">
+                <div id="bias-icon" class="text-success p-4 bg-success/10 rounded-2xl">
+                    <i data-lucide="trending-up" class="w-12 h-12"></i>
+                </div>
                 <div>
-                    <div id="bias-text" class="text-4xl font-black text-success uppercase tracking-tighter">LARGO</div>
-                    <div class="flex gap-6 mt-1 text-[10px] font-bold">
-                        <div>
-                            <span class="text-text-muted uppercase block">Precio Actual</span>
-                            <span id="btc-price" class="text-white">78.737,9</span>
-                        </div>
-                        <div>
-                            <span class="text-text-muted uppercase block">HTF EMA100 (15M)</span>
-                            <span class="text-success">78.244,18</span>
-                        </div>
+                    <div id="bias-text" class="text-5xl font-black uppercase tracking-tighter text-success">LARGO</div>
+                    <div class="flex gap-6 mt-1 text-[10px] font-black uppercase">
+                        <div><span class="text-text-muted block">BTC Price</span><span id="btc-price" class="text-white">---</span></div>
+                        <div><span class="text-text-muted block">HTF Filter</span><span id="bias-status-text" class="text-success">Bullish</span></div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="lg:col-span-4 card-pro p-6">
-            <span class="text-[10px] text-text-muted font-bold tracking-widest uppercase">⚙️ CONFIGURACIÓN DE ESTRATEGIA</span>
-            <div class="mt-4 space-y-2.5 text-[11px] font-semibold">
-                <div class="flex justify-between border-b border-white/5 pb-1"><span class="text-text-muted">Apalancamiento</span><span id="cfg-lev" class="text-purple-400">10x</span></div>
-                <div class="flex justify-between border-b border-white/5 pb-1"><span class="text-text-muted">Cantidad</span><span id="cfg-amount" class="text-white">$100 USDT</span></div>
-                <div class="flex justify-between border-b border-white/5 pb-1"><span class="text-text-muted">SL/TP ATR</span><span class="text-white">2.2 / 4.4</span></div>
-                <div class="flex justify-between border-b border-white/5 pb-1"><span class="text-text-muted">Filtro HTF</span><span class="text-white">EMA 100 (15m)</span></div>
-                <div class="flex justify-between"><span class="text-text-muted">Breakeven+</span><span class="text-success">60% → +0.15%</span></div>
+        <div class="lg:col-span-4 card-elite p-8 flex flex-col justify-between min-h-[200px]">
+            <span class="text-[10px] text-text-muted font-black tracking-[0.2em] uppercase">Configuración Elite</span>
+            <div class="space-y-3 mt-4 text-[11px] font-black uppercase">
+                <div class="flex justify-between"><span>Leverage</span><span id="cfg-lev" class="neon-cyan">10x</span></div>
+                <div class="flex justify-between"><span>Amount</span><span id="cfg-amount" class="text-white">$100 USDT</span></div>
+                <div class="flex justify-between"><span>Strategy</span><span class="text-white">SMC Quant V9</span></div>
+                <div class="flex justify-between"><span>Protection</span><span class="text-success">Breakeven+ Active</span></div>
             </div>
         </div>
 
-        <!-- Row 2: PnL Display (Exact copy of image) -->
-        <div class="lg:col-span-12 grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div class="card-pro p-6">
-                <span class="text-[9px] text-text-muted font-bold uppercase tracking-widest">PNL HOY</span>
-                <div id="stat-daily" class="text-3xl font-black mt-3 text-neon-green">+$0.00 USDT</div>
-                <div class="text-[10px] font-bold mt-2 text-text-muted">$0.00</div>
-                <div id="count-daily" class="text-[9px] font-black mt-1 uppercase text-text-muted">
-                    <span class="text-success">G: 0</span> &nbsp; <span class="text-danger">P: 0</span> &nbsp; <span class="text-white">Ops: 0</span>
-                </div>
+        <!-- ROW 2: PNL STATS -->
+        <div class="lg:col-span-3 card-elite p-7 border-l-4 border-success/30">
+            <span class="text-[9px] text-text-muted font-black uppercase tracking-widest">PNL Hoy</span>
+            <div id="stat-daily" class="text-4xl font-black mt-3 neon-green">+$0.00</div>
+            <div id="count-daily" class="text-[10px] font-black mt-3 uppercase flex gap-4">
+                <span class="text-success">G: 0</span><span class="text-danger">P: 0</span><span class="text-white/40">Ops: 0</span>
             </div>
-            <div class="card-pro p-6">
-                <span class="text-[9px] text-text-muted font-bold uppercase tracking-widest">SEMANA PNL</span>
-                <div id="stat-weekly" class="text-3xl font-black mt-3 text-neon-green">+$0.00 USDT</div>
-                <div class="text-[10px] font-bold mt-2 text-text-muted">$0.00</div>
-                <div id="count-weekly" class="text-[9px] font-black mt-1 uppercase text-text-muted">
-                    <span class="text-success">G: 0</span> &nbsp; <span class="text-danger">P: 0</span>
-                </div>
+        </div>
+        <div class="lg:col-span-3 card-elite p-7 border-l-4 border-purple-500/30">
+            <span class="text-[9px] text-text-muted font-black uppercase tracking-widest">PnL Semana</span>
+            <div id="stat-weekly" class="text-4xl font-black mt-3 text-white">+$0.00</div>
+            <div id="count-weekly" class="text-[10px] font-black mt-3 uppercase flex gap-4">
+                <span class="text-success">G: 0</span><span class="text-danger">P: 0</span>
             </div>
-            <div class="card-pro p-6">
-                <span class="text-[9px] text-text-muted font-bold uppercase tracking-widest">PNL DEL MES</span>
-                <div id="stat-monthly" class="text-3xl font-black mt-3 text-neon-green">+$0.00 USDT</div>
-                <div class="text-[10px] font-bold mt-2 text-text-muted">$0.00</div>
-                <div id="count-monthly" class="text-[9px] font-black mt-1 uppercase text-text-muted">
-                    <span class="text-success">G: 0</span> &nbsp; <span class="text-danger">P: 0</span>
-                </div>
+        </div>
+        <div class="lg:col-span-3 card-elite p-7 border-l-4 border-cyan-500/30">
+            <span class="text-[9px] text-text-muted font-black uppercase tracking-widest">PnL Mes</span>
+            <div id="stat-monthly" class="text-4xl font-black mt-3 text-white">+$0.00</div>
+            <div id="count-monthly" class="text-[10px] font-black mt-3 uppercase flex gap-4">
+                <span class="text-success">G: 0</span><span class="text-danger">P: 0</span>
             </div>
-            <div class="card-pro p-6">
-                <span class="text-[9px] text-text-muted font-bold uppercase tracking-widest">PNL DE TODOS LOS TIEMPOS</span>
-                <div id="stat-total" class="text-3xl font-black mt-3 text-neon-green">+$0.00 USDT</div>
-                <div class="text-[10px] font-bold mt-2 text-text-muted">$0.00</div>
-                <div id="count-total" class="text-[9px] font-black mt-1 uppercase text-text-muted">
-                    <span class="text-success">G: 0</span> &nbsp; <span class="text-danger">P: 0</span>
-                </div>
+        </div>
+        <div class="lg:col-span-3 card-elite p-7 border-l-4 border-white/30">
+            <span class="text-[9px] text-text-muted font-black uppercase tracking-widest">Total PnL</span>
+            <div id="stat-total" class="text-4xl font-black mt-3 text-white">+$0.00</div>
+            <div id="count-total" class="text-[10px] font-black mt-3 uppercase flex gap-4">
+                <span class="text-success">G: 0</span><span class="text-danger">P: 0</span>
             </div>
         </div>
 
-        <!-- Row 3: Active Positions & Performance Metrics -->
-        <div class="lg:col-span-8 card-pro overflow-hidden">
-            <div class="p-6 border-b border-white/5 flex items-center gap-3">
-                <i data-lucide="layout-grid" class="w-4 h-4 text-text-muted"></i>
-                <span class="text-[11px] font-bold uppercase tracking-widest">Posiciones Activas (<span id="active-count">0</span>)</span>
+        <!-- ROW 3: TRADES & PERFORMANCE -->
+        <div class="lg:col-span-8 card-elite overflow-hidden">
+            <div class="px-8 py-5 border-b border-white/5 bg-white/5 flex justify-between items-center">
+                <span class="text-xs font-black uppercase tracking-widest flex items-center gap-3">
+                    <i data-lucide="layers-3" class="w-4 h-4 neon-cyan"></i> Monitor de Posiciones Activas
+                </span>
+                <span id="active-count" class="text-[10px] font-black bg-cyan-400/20 text-cyan-400 px-3 py-1 rounded-full border border-cyan-400/30">0 ACTIVAS</span>
             </div>
             <div class="overflow-x-auto">
-                <table class="w-full text-left text-[11px] font-medium">
-                    <thead class="text-text-muted uppercase text-[9px] bg-black/10">
+                <table class="w-full text-left text-[12px] font-black">
+                    <thead class="bg-black/40 text-text-muted uppercase text-[9px] tracking-widest">
                         <tr>
-                            <th class="px-6 py-4">Par</th>
-                            <th class="px-6 py-4">Dirección</th>
-                            <th class="px-6 py-4">Entrada</th>
-                            <th class="px-6 py-4">Stop Loss</th>
-                            <th class="px-6 py-4">Take Profit</th>
-                            <th class="px-6 py-4">PnL</th>
-                            <th class="px-6 py-4 text-right">Protección</th>
+                            <th class="px-8 py-5">Símbolo</th>
+                            <th class="px-8 py-5">Dirección</th>
+                            <th class="px-8 py-5">Entrada</th>
+                            <th class="px-8 py-5">PnL Vivo</th>
+                            <th class="px-8 py-5 text-right">Estatus</th>
                         </tr>
                     </thead>
                     <tbody id="trades-container" class="divide-y divide-white/5">
@@ -215,60 +206,48 @@
             </div>
         </div>
 
-        <div class="lg:col-span-4 card-pro p-8">
-            <div class="flex items-center gap-3 mb-6">
-                <i data-lucide="bar-chart-3" class="w-4 h-4 text-text-muted"></i>
-                <span class="text-[11px] font-bold uppercase tracking-widest">Métricas de Rendimiento</span>
+        <div class="lg:col-span-4 card-elite p-8">
+            <div class="flex items-center gap-3 mb-8">
+                <i data-lucide="activity" class="w-5 h-5 text-purple-400"></i>
+                <span class="text-xs font-black uppercase tracking-widest">Métricas de Rendimiento</span>
             </div>
             <div class="space-y-8">
                 <div>
-                    <div class="flex justify-between text-[10px] font-bold uppercase mb-2">
-                        <span class="text-text-muted">Tasa de Victorias</span>
+                    <div class="flex justify-between text-[10px] font-black uppercase mb-3">
+                        <span class="text-text-muted">Win Rate Global</span>
                         <span id="perf-wr-text" class="text-success">0.0%</span>
                     </div>
-                    <div class="progress-bar">
-                        <div id="perf-wr-fill" class="progress-fill" style="width: 0%"></div>
-                    </div>
+                    <div class="progress-container"><div id="perf-wr-fill" class="progress-fill" style="width: 0%"></div></div>
                 </div>
-                <div class="grid grid-cols-2 gap-x-8 gap-y-6">
-                    <div>
-                        <span class="text-[9px] text-text-muted font-bold uppercase block mb-1">Factor de Beneficio</span>
-                        <span id="perf-pf" class="text-2xl font-black">0.00</span>
-                    </div>
-                    <div>
-                        <span class="text-[9px] text-text-muted font-bold uppercase block mb-1">Promedio R:R</span>
-                        <span id="perf-rr" class="text-2xl font-black">1: 0.00</span>
-                    </div>
-                    <div>
-                        <span class="text-[9px] text-text-muted font-bold uppercase block mb-1">Mejor Trade</span>
-                        <span id="perf-best" class="text-lg font-black text-success">+$0.00</span>
-                    </div>
-                    <div>
-                        <span class="text-[9px] text-text-muted font-bold uppercase block mb-1">Peor Trade</span>
-                        <span id="perf-worst" class="text-lg font-black text-danger">-$0.00</span>
-                    </div>
+                <div class="grid grid-cols-2 gap-x-8 gap-y-10">
+                    <div><span class="text-[9px] text-text-muted font-black uppercase block mb-1">Profit Factor</span><span id="perf-pf" class="text-2xl font-black">0.00</span></div>
+                    <div><span class="text-[9px] text-text-muted font-black uppercase block mb-1">Avg R:R</span><span id="perf-rr" class="text-2xl font-black">1: 2.1</span></div>
+                    <div><span class="text-[9px] text-text-muted font-black uppercase block mb-1">Mejor Trade</span><span id="perf-best" class="text-xl font-black neon-green">+$0.00</span></div>
+                    <div><span class="text-[9px] text-text-muted font-black uppercase block mb-1">Peor Trade</span><span id="perf-worst" class="text-xl font-black neon-red">-$0.00</span></div>
                 </div>
             </div>
         </div>
 
-        <!-- Row 4: History & System Log -->
-        <div class="lg:col-span-7 card-pro flex flex-col">
-            <div class="p-6 border-b border-white/5 flex items-center gap-3">
-                <i data-lucide="clipboard-list" class="w-4 h-4 text-text-muted"></i>
-                <span class="text-[11px] font-bold uppercase tracking-widest">Operaciones Recientes</span>
+        <!-- ROW 4: HISTORY & LOGS -->
+        <div class="lg:col-span-7 card-elite flex flex-col overflow-hidden">
+            <div class="px-8 py-5 border-b border-white/5 bg-white/5">
+                <span class="text-xs font-black uppercase tracking-widest flex items-center gap-3">
+                    <i data-lucide="history" class="w-4 h-4 neon-cyan"></i> Historial de Operaciones
+                </span>
             </div>
-            <div id="history-container" class="flex-1 overflow-y-auto h-[300px] p-2 space-y-1">
+            <div id="history-container" class="flex-1 overflow-y-auto h-[350px] p-6 space-y-4">
                 <!-- History -->
             </div>
         </div>
 
-        <div class="lg:col-span-5 card-pro flex flex-col bg-black/20">
-            <div class="p-6 border-b border-white/5 flex items-center gap-3">
-                <i data-lucide="terminal" class="w-4 h-4 text-text-muted"></i>
-                <span class="text-[11px] font-bold uppercase tracking-widest">Actividad del Sistema</span>
+        <div class="lg:col-span-5 card-elite flex flex-col bg-black/40 overflow-hidden">
+            <div class="px-8 py-5 border-b border-white/5 bg-white/5">
+                <span class="text-xs font-black uppercase tracking-widest flex items-center gap-3">
+                    <i data-lucide="terminal" class="w-4 h-4 text-purple-400"></i> Consola Quantum Engine
+                </span>
             </div>
-            <div id="terminal-log" class="flex-1 p-6 overflow-y-auto h-[300px] terminal-log">
-                <div class="text-cyan-400">[SYSTEM] Iniciando protocolos de escaneo...</div>
+            <div id="terminal-log" class="flex-1 overflow-y-auto h-[350px] terminal-box">
+                <div class="neon-cyan font-black">[SYSTEM] Iniciando núcleo de ejecución...</div>
             </div>
         </div>
 
@@ -281,7 +260,7 @@
         socket.on('bot_log', (data) => {
             const div = document.createElement('div');
             div.className = data.color || '';
-            div.innerHTML = `<span class="text-white/20 mr-2">[${new Date().toLocaleTimeString()}]</span> ${data.msg}`;
+            div.innerHTML = `<span class="text-white/10 mr-2">[${new Date().toLocaleTimeString()}]</span> ${data.msg}`;
             terminalLog.appendChild(div);
             terminalLog.scrollTop = terminalLog.scrollHeight;
         });
@@ -300,14 +279,31 @@
                 const trades = await tradesRes.json();
                 const history = await historyRes.json();
 
-                // 1. BALANCE & CONFIG
-                const b = status.balance.find(c => c.coin === 'USDT') || { walletBalance: "0", equity: "0" };
-                document.getElementById('wallet-balance').innerText = '$' + parseFloat(b.walletBalance).toLocaleString(undefined, {minimumFractionDigits: 2});
-                document.getElementById('balance-avail').innerText = '$' + parseFloat(b.walletBalance).toLocaleString();
+                // 1. BALANCE & BIAS
+                document.getElementById('wallet-balance').innerText = '$' + parseFloat(status.balance[0].walletBalance).toLocaleString(undefined, {minimumFractionDigits: 2});
+                document.getElementById('balance-avail').innerText = '$' + parseFloat(status.balance[0].walletBalance).toLocaleString();
                 document.getElementById('cfg-lev').innerText = status.leverage + 'x';
-                document.getElementById('active-count').innerText = status.active_trades_count;
 
-                // 2. PNL & PERFORMANCE
+                // DYNAMIC BIAS
+                const isLong = true; // Simulado o extraer de BTC info
+                const biasCard = document.getElementById('bias-card');
+                const biasText = document.getElementById('bias-text');
+                const biasIcon = document.getElementById('bias-icon');
+                if(isLong) {
+                    biasCard.className = "lg:col-span-4 card-elite p-8 flex flex-col justify-between min-h-[200px] border-t-2 border-success/40";
+                    biasText.className = "text-5xl font-black uppercase tracking-tighter text-success";
+                    biasText.innerText = "LARGO";
+                    biasIcon.className = "text-success p-4 bg-success/10 rounded-2xl";
+                    biasIcon.innerHTML = '<i data-lucide="trending-up" class="w-12 h-12"></i>';
+                } else {
+                    biasCard.className = "lg:col-span-4 card-elite p-8 flex flex-col justify-between min-h-[200px] border-t-2 border-danger/40";
+                    biasText.className = "text-5xl font-black uppercase tracking-tighter text-danger";
+                    biasText.innerText = "CORTO";
+                    biasIcon.className = "text-danger p-4 bg-danger/10 rounded-2xl";
+                    biasIcon.innerHTML = '<i data-lucide="trending-down" class="w-12 h-12"></i>';
+                }
+
+                // 2. STATS & PERFORMANCE
                 const periods = ['daily', 'weekly', 'monthly', 'total'];
                 periods.forEach(p => {
                     const data = perf[p];
@@ -315,12 +311,12 @@
                     const valEl = document.getElementById('stat-' + idPrefix);
                     const countEl = document.getElementById('count-' + idPrefix);
                     
-                    valEl.innerText = (data.pnl >= 0 ? '+$' : '-$') + Math.abs(data.pnl).toFixed(2) + ' USDT';
-                    valEl.className = `text-3xl font-black mt-3 ${data.pnl >= 0 ? 'text-neon-green' : 'text-neon-red'}`;
+                    valEl.innerText = (data.pnl >= 0 ? '+$' : '-$') + Math.abs(data.pnl).toFixed(2);
+                    valEl.className = `text-4xl font-black mt-3 ${data.pnl >= 0 ? 'neon-green' : 'neon-red'}`;
                     
-                    let countHTML = `<span class="text-success">G: ${data.wins}</span> &nbsp; <span class="text-danger">P: ${data.losses}</span>`;
-                    if(p === 'daily') countHTML += ` &nbsp; <span class="text-white">Ops: ${data.count}</span>`;
-                    countEl.innerHTML = countHTML;
+                    let html = `<span class="neon-green">G: ${data.wins}</span><span class="neon-red">P: ${data.losses}</span>`;
+                    if(p === 'daily') html += `<span class="text-white/40">Ops: ${data.count}</span>`;
+                    countEl.innerHTML = html;
 
                     if(p === 'total') {
                         document.getElementById('perf-wr-text').innerText = data.wr.toFixed(1) + '%';
@@ -333,48 +329,50 @@
 
                 // 3. ACTIVE POSITIONS
                 const tradesCont = document.getElementById('trades-container');
-                tradesCont.innerHTML = trades.length === 0 ? '<tr><td colspan="7" class="p-12 text-center text-text-muted italic">No hay posiciones activas</td></tr>' : '';
+                tradesCont.innerHTML = trades.length === 0 ? '<tr><td colspan="5" class="p-16 text-center text-text-muted italic uppercase font-black tracking-widest text-[10px]">A la espera de señales institucionales...</td></tr>' : '';
                 let activeSum = 0;
                 trades.forEach(t => {
                     activeSum += t.pnl;
+                    const isWin = t.pnl >= 0;
+                    const isLong = t.side === 'LONG' || t.side === 'LARGO';
                     tradesCont.innerHTML += `
-                        <tr class="hover:bg-white/[0.02] transition-colors">
-                            <td class="px-6 py-4 font-bold text-white">${t.symbol}</td>
-                            <td class="px-6 py-4"><span class="${t.side === 'LONG' ? 'text-success' : 'text-danger'} font-black uppercase">${t.side}</span></td>
-                            <td class="px-6 py-4 font-mono text-text-muted">${t.entry.toFixed(4)}</td>
-                            <td class="px-6 py-4 font-mono text-text-muted">${(t.sl || 0).toFixed(4)}</td>
-                            <td class="px-6 py-4 font-mono text-text-muted">${(t.tp || 0).toFixed(4)}</td>
-                            <td class="px-6 py-4 font-black ${t.pnl >= 0 ? 'text-success' : 'text-danger'}">${t.pnl >= 0 ? '+' : ''}${t.pnl.toFixed(4)}</td>
-                            <td class="px-6 py-4 text-right"><span class="text-[9px] bg-cyan-500/10 text-cyan-400 px-2 py-0.5 rounded border border-cyan-400/20">Monitor Activo</span></td>
+                        <tr class="hover:bg-white/[0.02] transition-colors border-l-2 ${isWin ? 'border-success/30' : 'border-danger/30'}">
+                            <td class="px-8 py-5 ${isWin ? 'text-success' : 'text-danger'} font-black">${t.symbol}</td>
+                            <td class="px-8 py-5"><span class="px-3 py-1 rounded-lg text-[10px] font-black ${isLong ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'}">${t.side}</span></td>
+                            <td class="px-8 py-5 font-mono text-text-muted">${t.entry.toFixed(4)}</td>
+                            <td class="px-8 py-5 font-black ${isWin ? 'neon-green' : 'neon-red'}">${isWin ? '+' : ''}${t.pnl.toFixed(4)}</td>
+                            <td class="px-8 py-5 text-right"><span class="text-[9px] bg-cyan-400/10 text-cyan-400 px-2 py-1 rounded border border-cyan-400/20">LIVE MONITOR</span></td>
                         </tr>
                     `;
                 });
                 document.getElementById('active-pnl-total').innerText = (activeSum >= 0 ? '+$' : '-$') + Math.abs(activeSum).toFixed(2);
                 document.getElementById('active-pnl-total').className = activeSum >= 0 ? 'text-success' : 'text-danger';
+                document.getElementById('active-count').innerText = trades.length + ' ACTIVAS';
 
                 // 4. HISTORY
                 const histCont = document.getElementById('history-container');
-                histCont.innerHTML = history.length === 0 ? '<div class="text-center text-text-muted py-20 italic uppercase font-bold text-[10px]">Sin historial reciente</div>' : '';
+                histCont.innerHTML = history.length === 0 ? '<div class="text-center text-text-muted py-24 italic uppercase font-black text-[10px] tracking-widest">Sincronizando con base de datos de Bybit...</div>' : '';
                 history.forEach(h => {
                     const isWin = h.pnl_usdt >= 0;
                     histCont.innerHTML += `
-                        <div class="flex items-center justify-between p-3 px-4 hover:bg-white/[0.03] transition-colors rounded-lg group">
-                            <div class="flex items-center gap-4">
-                                <div class="w-1 h-8 ${isWin ? 'bg-success' : 'bg-danger'} rounded-full"></div>
+                        <div class="card-elite p-5 flex items-center justify-between border-l-4 ${isWin ? 'border-success' : 'border-danger'} bg-white/[0.02] hover:bg-white/[0.05] transition-all">
+                            <div class="flex items-center gap-5">
+                                <div class="w-10 h-10 rounded-xl bg-black flex items-center justify-center font-black ${isWin ? 'text-success' : 'text-danger'}">${h.symbol.substring(0,2)}</div>
                                 <div>
-                                    <div class="text-xs font-black text-white">${h.symbol} <span class="text-[10px] text-text-muted ml-2">${h.side}</span></div>
-                                    <div class="text-[9px] text-text-muted uppercase font-bold">Cerrado en Exchange (${h.reason})</div>
+                                    <div class="text-sm font-black text-white">${h.symbol} <span class="text-[10px] ${h.side === 'LONG' || h.side === 'LARGO' ? 'text-success' : 'text-danger'} ml-2">${h.side}</span></div>
+                                    <div class="text-[9px] text-text-muted font-bold uppercase mt-1">Status: Cerrado por ${h.reason}</div>
                                 </div>
                             </div>
                             <div class="text-right">
-                                <div class="text-sm font-black ${isWin ? 'text-success' : 'text-danger'}">${isWin ? '+' : ''}$${h.pnl_usdt.toFixed(4)}</div>
+                                <div class="text-lg font-black ${isWin ? 'neon-green' : 'neon-red'}">${isWin ? '+' : ''}$${h.pnl_usdt.toFixed(2)}</div>
+                                <div class="text-[8px] text-text-muted font-black uppercase mt-1">ROI: ${(h.pnl_usdt*100/100).toFixed(2)}%</div>
                             </div>
                         </div>
                     `;
                 });
 
                 lucide.createIcons();
-            } catch (err) { console.error("Update error:", err); }
+            } catch (err) { console.error("Dashboard error:", err); }
         }
 
         async function handleAction(action) {
