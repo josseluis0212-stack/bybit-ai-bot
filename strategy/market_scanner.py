@@ -12,7 +12,7 @@ class MarketScanner:
     def __init__(self):
         self.exec_tf = "5"  # 5 minutos para ejecución
         self.bias_tf = "15" # 15 minutos para Filtro HTF (EMA 100)
-        self.limit = 120
+        self.limit = 150    # Aumentado para asegurar datos para EMA 100
 
     async def get_klines(self, symbol, interval):
         try:
@@ -34,8 +34,10 @@ class MarketScanner:
                     ],
                 )
                 df = df.iloc[::-1].reset_index(drop=True)
-                df[['open', 'high', 'low', 'close', 'volume']] = df[['open', 'high', 'low', 'close', 'volume']].apply(pd.to_numeric)
-                return df
+                numeric_cols = ['open', 'high', 'low', 'close', 'volume']
+                for col in numeric_cols:
+                    df[col] = pd.to_numeric(df[col], errors='coerce')
+                return df.dropna(subset=numeric_cols)
             return None
         except Exception as e:
             logger.error(f"Error klines {symbol}: {e}")
@@ -54,11 +56,15 @@ class MarketScanner:
 
             # 1. Obtener datos de 15m para Bias (HTF)
             df_bias = await self.get_klines(symbol, self.bias_tf)
-            if df_bias is None or len(df_bias) < 100: return None
+            if df_bias is None or len(df_bias) < 101: return None
             
             # Calcular EMA 100 en 15m
             from ta.trend import EMAIndicator
-            ema_100_15m = EMAIndicator(close=df_bias["close"], window=100).ema_indicator().iloc[-1]
+            ema_series = EMAIndicator(close=df_bias["close"], window=100).ema_indicator()
+            if ema_series.empty or pd.isna(ema_series.iloc[-1]):
+                return None
+                
+            ema_100_15m = float(ema_series.iloc[-1])
             price_now = float(df_bias["close"].iloc[-1])
             htf_bias = "LONG" if price_now > ema_100_15m else "SHORT"
 
@@ -72,6 +78,7 @@ class MarketScanner:
                 return signal
             return None
         except Exception as e:
+            # Silenciar errores individuales de pares para no saturar logs
             return None
 
     async def scan_market(self):
@@ -86,7 +93,7 @@ class MarketScanner:
                 and t["symbol"].endswith("USDT")
             ]
             
-            logger.info(f"🔍 Escaneando {len(active_symbols)} pares con volumen > $30M...")
+            logger.info(f"🔍 Escaneando {len(active_symbols)} pares (Bias HTF 15m + Exec 5m)...")
             
             tasks = [self.analyze_symbol(item) for item in active_symbols]
             results = await asyncio.gather(*tasks)
