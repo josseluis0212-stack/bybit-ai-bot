@@ -166,7 +166,7 @@ class BybitClient:
             logger.error(f"Error obteniendo historial de PnL: {e}")
             return None
 
-    def place_order(self, symbol, side, order_type, qty, price=None, take_profit=None, stop_loss=None, reduce_only=False):
+    def place_order(self, symbol, side, order_type, qty, price=None, take_profit=None, stop_loss=None, reduce_only=False, time_in_force="GTC"):
         try:
             order_params = {
                 "category": "linear",
@@ -174,7 +174,8 @@ class BybitClient:
                 "side": side,
                 "orderType": order_type,
                 "qty": str(qty),
-                "reduceOnly": reduce_only
+                "reduceOnly": reduce_only,
+                "timeInForce": time_in_force
             }
             if price and order_type == "Limit":
                 order_params["price"] = str(price)

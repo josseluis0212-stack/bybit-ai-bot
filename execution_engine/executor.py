@@ -76,7 +76,8 @@ class ExecutionEngine:
         response = bybit_client.place_order(
             symbol=symbol, side=side, order_type="Limit",
             qty=qty_str, price=str(entry_price),
-            take_profit=tp_str, stop_loss=sl_str
+            take_profit=tp_str, stop_loss=sl_str,
+            time_in_force="PostOnly"
         )
 
         if response and response.get("retCode") == 0:
