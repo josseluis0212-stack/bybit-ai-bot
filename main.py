@@ -115,11 +115,14 @@ async def bot_loop():
 
     while True:
         try:
+            logger.info("🔍 [CICLO] Monitoreando posiciones y analizando oportunidades...")
             await executor.check_open_positions()
+            
+            logger.info("📡 [SCANNER] Escaneando mercado con filtros Elite (5m / $10M)...")
             signals = await market_scanner.scan_market()
 
             if signals:
-                logger.info(f"Señales encontradas: {len(signals)} - Procesando...")
+                logger.info(f"✨ [SEÑAL] Se han detectado {len(signals)} oportunidades potenciales!")
                 for sig in signals:
                     logger.info(
                         f"Ejecutando: {sig['symbol']} {sig['signal']} @ {sig['entry_price']}"

@@ -7,13 +7,25 @@ logger = logging.getLogger(__name__)
 
 class AnalyticsManager:
     def __init__(self):
-        # Fecha de reinicio por defecto: Inicio del día de hoy (UTC)
+        self.reset_file = "database/reset_date.txt"
+        self.reset_date = self._load_reset_date()
+
+    def _load_reset_date(self):
+        if os.path.exists(self.reset_file):
+            try:
+                with open(self.reset_file, "r") as f:
+                    ts = float(f.read().strip())
+                    return datetime.fromtimestamp(ts, tz=timezone.utc)
+            except:
+                pass
         now = datetime.now(timezone.utc)
-        self.reset_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        return now.replace(hour=0, minute=0, second=0, microsecond=0)
 
     def reset_date_now(self):
         self.reset_date = datetime.now(timezone.utc)
-        logger.info(f"AnalyticsManager: Reset date actualizado a {self.reset_date}")
+        with open(self.reset_file, "w") as f:
+            f.write(str(self.reset_date.timestamp()))
+        logger.info(f"AnalyticsManager: Reset date persistido en {self.reset_date}")
 
     # ─────────────────────────────────────────────
     # Helpers internos
