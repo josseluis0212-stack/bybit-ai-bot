@@ -1,10 +1,10 @@
+pandas-ta
 pybit>=5.8.0
 python-telegram-bot>=20.8
 python-dotenv>=1.0.1
-pandas>=2.2.1
+pandas>=2.1.4
 numpy>=1.26.4
 SQLAlchemy>=2.0.29
-pandas-ta==0.3.14b
 aiohttp>=3.9.0
 pytz>=2024.1
 python-socketio>=5.11.0
