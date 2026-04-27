@@ -126,14 +126,7 @@ class ExecutionEngine:
         for trade in open_trades:
             symbol = trade.symbol
             
-            # 1. CIERRE POR TIEMPO (V9.1: 15 MINUTOS)
-            now_utc = datetime.now(timezone.utc)
-            ot_utc = trade.open_time.replace(tzinfo=timezone.utc)
-            if (now_utc - ot_utc).total_seconds() > 900:
-                await self._force_close_and_notify(trade, "TIME_EXIT")
-                continue
-
-            # 2. SINCRONIZACIÓN CON BYBIT (SL/TP TOCADOS)
+            # 1. SINCRONIZACIÓN CON BYBIT (SL/TP TOCADOS)
             if symbol not in real_positions:
                 ticker_info = ticker_map.get(symbol)
                 exit_price = float(ticker_info["lastPrice"]) if ticker_info else trade.entry_price
@@ -151,6 +144,13 @@ class ExecutionEngine:
 
                 pnl_pct = (pnl_usdt / (trade.entry_price * trade.qty)) * 100 * trade.leverage if (trade.entry_price * trade.qty) != 0 else 0
                 db_manager.close_trade(trade.id, exit_price, pnl_usdt, pnl_pct, reason)
+                continue
+
+            # 2. CIERRE POR TIEMPO (V9.1: 15 MINUTOS)
+            now_utc = datetime.now(timezone.utc)
+            ot_utc = trade.open_time.replace(tzinfo=timezone.utc)
+            if (now_utc - ot_utc).total_seconds() > 900:
+                await self._force_close_and_notify(trade, "TIME_EXIT")
                 continue
 
             # 3. GESTIÓN ACTIVA (BREAKEVEN+ Y TRAILING)
