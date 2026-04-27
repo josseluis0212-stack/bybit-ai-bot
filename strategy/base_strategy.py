@@ -96,6 +96,11 @@ class HyperQuantStrategy:
                 sl = price - (atr * 2.2) # Ajuste a 2.2 ATR
                 tp = price + (atr * 4.4) # Ajuste a 4.4 ATR
 
+                # MODO PROFIT INFINITO (V9.1): Si volumen > 1.5x promedio
+                if vol_ratio > 1.5:
+                    tp = None 
+                    logger.info(f"🚀 {symbol} MODO PROFIT INFINITO ACTIVADO (Vol: {vol_ratio:.1f}x)")
+
                 return {
                     "symbol": symbol,
                     "signal": "LONG",
@@ -120,6 +125,11 @@ class HyperQuantStrategy:
             if sweep or fvg:
                 sl = price + (atr * 2.2) # Ajuste a 2.2 ATR
                 tp = price - (atr * 4.4) # Ajuste a 4.4 ATR
+
+                # MODO PROFIT INFINITO (V9.1): Si volumen > 1.5x promedio
+                if vol_ratio > 1.5:
+                    tp = None
+                    logger.info(f"🚀 {symbol} MODO PROFIT INFINITO ACTIVADO (Vol: {vol_ratio:.1f}x)")
 
                 return {
                     "symbol": symbol,
