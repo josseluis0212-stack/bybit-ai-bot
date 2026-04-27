@@ -1,692 +1,394 @@
 <!DOCTYPE html>
-<html lang="es" class="dark">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ANTIGRAVITY QUANT | Premium Terminal</title>
+    <title>ANTIGRAVITY QUANT | Elite Terminal</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
     <style>
         :root {
-            --bg-base: #030407;
-            --bg-glass: rgba(13, 14, 20, 0.6);
-            --bg-glass-hover: rgba(20, 22, 30, 0.8);
-            --border-glass: rgba(255, 255, 255, 0.05);
-            --border-glow: rgba(0, 242, 255, 0.2);
-            --accent-primary: #00f2ff;
-            --accent-secondary: #7000ff;
-            --success: #00ffa3;
-            --danger: #ff3366;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
+            --bg-deep: #050505;
+            --bg-card: #0d0e12;
+            --accent-cyan: #00f2ff;
+            --success: #00ff88;
+            --danger: #ff3e3e;
+            --warning: #ffcc00;
+            --text-muted: #64748b;
         }
-
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-base);
-            color: var(--text-main);
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-deep);
+            color: #ffffff;
             margin: 0;
-            min-height: 100vh;
-            background-image: 
-                radial-gradient(circle at 15% 50%, rgba(0, 242, 255, 0.04) 0%, transparent 50%),
-                radial-gradient(circle at 85% 30%, rgba(112, 0, 255, 0.04) 0%, transparent 50%);
             overflow-x: hidden;
         }
-
-        h1, h2, h3, h4, h5, h6, .font-display {
-            font-family: 'Space Grotesk', sans-serif;
+        .card-elite {
+            background-color: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            border-radius: 16px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
         }
+        .neon-green { color: var(--success); text-shadow: 0 0 10px rgba(0, 255, 136, 0.3); }
+        .neon-red { color: var(--danger); text-shadow: 0 0 10px rgba(255, 62, 62, 0.3); }
+        .neon-cyan { color: var(--accent-cyan); text-shadow: 0 0 10px rgba(0, 242, 255, 0.3); }
+        
+        .btn-elite {
+            background: #1a1c23;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            transition: all 0.2s;
+        }
+        .btn-elite:hover { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+        .btn-stop { color: #ff3e3e; border-color: #ff3e3e33; }
+        .btn-stop:hover { background: #ff3e3e; color: #fff; }
 
-        /* Glassmorphism Cards */
-        .glass-card {
-            background: var(--bg-glass);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid var(--border-glass);
+        .progress-container {
+            height: 10px;
+            background: #16181d;
             border-radius: 20px;
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
             overflow: hidden;
         }
-
-        .glass-card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-            opacity: 0;
-            transition: opacity 0.4s;
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff88, #00f2ff);
+            transition: width 1s ease;
         }
 
-        .glass-card:hover {
-            transform: translateY(-2px);
-            background: var(--bg-glass-hover);
-            border-color: rgba(255, 255, 255, 0.1);
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-        }
-
-        .glass-card:hover::before {
-            opacity: 1;
-        }
-
-        /* Neon Text Effects */
-        .neon-text-green {
-            color: var(--success);
-            text-shadow: 0 0 15px rgba(0, 255, 163, 0.4);
-        }
-        
-        .neon-text-red {
-            color: var(--danger);
-            text-shadow: 0 0 15px rgba(255, 51, 102, 0.4);
-        }
-
-        .neon-text-cyan {
-            color: var(--accent-primary);
-            text-shadow: 0 0 15px rgba(0, 242, 255, 0.4);
-        }
-
-        /* Premium Buttons */
-        .btn-premium {
-            background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
-            border: 1px solid rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 12px;
-            padding: 10px 24px;
-            font-family: 'Space Grotesk', sans-serif;
-            font-weight: 600;
-            font-size: 0.85rem;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-            color: var(--text-main);
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .btn-premium::after {
-            content: '';
-            position: absolute;
-            top: -50%; left: -50%; width: 200%; height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
-            opacity: 0;
-            transform: scale(0.5);
-            transition: all 0.3s ease;
-        }
-
-        .btn-premium:hover {
-            border-color: rgba(255,255,255,0.2);
-            box-shadow: 0 0 20px rgba(0, 242, 255, 0.1);
-        }
-
-        .btn-premium:hover::after {
-            opacity: 1;
-            transform: scale(1);
-        }
-
-        .btn-premium.danger:hover {
-            border-color: var(--danger);
-            color: var(--danger);
-            box-shadow: 0 0 20px rgba(255, 51, 102, 0.2);
-        }
-
-        .btn-premium.primary {
-            background: linear-gradient(135deg, rgba(0,242,255,0.1) 0%, transparent 100%);
-            border-color: rgba(0,242,255,0.3);
-            color: var(--accent-primary);
-        }
-
-        .btn-premium.primary:hover {
-            background: rgba(0,242,255,0.15);
-            border-color: var(--accent-primary);
-            box-shadow: 0 0 20px rgba(0, 242, 255, 0.3);
-        }
-
-        /* Value Display */
-        .value-display {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 2.5rem;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-            line-height: 1.1;
-            background: linear-gradient(180deg, #fff 0%, #a5b4fc 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .value-label {
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: var(--text-muted);
-            margin-bottom: 0.5rem;
-        }
-
-        /* Terminal Console */
-        .terminal-container {
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255,255,255,0.03);
-            border-radius: 12px;
-            font-family: 'JetBrains Mono', 'Fira Code', monospace;
-            font-size: 0.8rem;
+        .terminal-box {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
             line-height: 1.6;
-            color: #a1a1aa;
-            height: 350px;
-            overflow-y: auto;
-            padding: 1rem;
-        }
-
-        .terminal-container::-webkit-scrollbar { width: 6px; }
-        .terminal-container::-webkit-scrollbar-track { background: transparent; }
-        .terminal-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
-
-        /* Tables */
-        .glass-table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0 8px;
-        }
-
-        .glass-table th {
-            text-align: left;
-            padding: 0 1rem 0.5rem;
-            font-size: 0.7rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--text-muted);
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
-
-        .glass-table td {
-            padding: 1rem;
-            background: rgba(255,255,255,0.02);
-            font-size: 0.85rem;
-            transition: background 0.2s;
-        }
-
-        .glass-table tr td:first-child { border-top-left-radius: 10px; border-bottom-left-radius: 10px; }
-        .glass-table tr td:last-child { border-top-right-radius: 10px; border-bottom-right-radius: 10px; }
-
-        .glass-table tr:hover td {
-            background: rgba(255,255,255,0.04);
-        }
-
-        /* Pulse Animation */
-        .pulse-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            display: inline-block;
-            background-color: var(--success);
-            box-shadow: 0 0 10px var(--success);
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(0, 255, 163, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(0, 255, 163, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(0, 255, 163, 0); }
-        }
-
-        .gradient-text {
-            background: linear-gradient(90deg, #00f2ff 0%, #7000ff 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: #94a3b8;
+            background: #000;
+            padding: 20px;
         }
         
-        .badge {
-            font-size: 0.65rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            padding: 2px 8px;
-            border-radius: 12px;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
-        }
+        /* Reduciendo el grosor de las fuentes */
+        .font-pro { font-weight: 700; }
+        .font-light-bold { font-weight: 600; }
     </style>
 </head>
-<body class="p-4 md:p-8">
+<body class="p-6 lg:p-10">
 
-    <div class="max-w-7xl mx-auto space-y-6">
-        <!-- Header Section -->
-        <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 glass-card p-6">
-            <div class="flex items-center gap-4">
-                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
-                    <i data-lucide="zap" class="text-white w-6 h-6"></i>
+    <header class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-10 gap-6">
+        <div class="flex items-center gap-5">
+            <div class="w-12 h-12 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-2xl flex items-center justify-center">
+                <i data-lucide="zap" class="w-7 h-7 text-white fill-current"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold tracking-tighter uppercase">ANTIGRAVITY <span class="neon-cyan">QUANT</span></h1>
+                <div class="flex gap-2 mt-1">
+                    <span class="text-[9px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20 px-2.5 py-0.5 rounded-full uppercase">Elite V9.1</span>
+                    <span class="text-[9px] font-bold bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 px-2.5 py-0.5 rounded-full uppercase">Demo Mode</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex flex-wrap gap-3">
+            <button onclick="handleAction('run')" class="btn-elite flex items-center gap-2"><i data-lucide="play" class="w-4 h-4"></i> CORRER</button>
+            <button onclick="handleAction('stop')" class="btn-elite btn-stop flex items-center gap-2"><i data-lucide="shield-alert" class="w-4 h-4"></i> DETENER</button>
+            <button onclick="handleAction('reset')" class="btn-elite flex items-center gap-2"><i data-lucide="rotate-ccw" class="w-4 h-4"></i> RESET STATS</button>
+            <div class="flex items-center gap-3 ml-4 bg-white/5 px-4 py-2 rounded-xl">
+                <div class="w-2 h-2 rounded-full bg-success animate-pulse"></div>
+                <span class="text-[10px] font-bold text-success uppercase">Escáner Activo</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <div class="lg:col-span-4 card-elite p-8 flex flex-col justify-between">
+            <span class="text-[10px] text-text-muted font-bold tracking-widest uppercase">Saldo Disponible</span>
+            <div class="mt-4">
+                <div id="wallet-balance" class="text-4xl font-bold tracking-tighter text-white">$---.--</div>
+                <div class="flex gap-6 mt-4 text-[11px] font-bold uppercase">
+                    <div><span class="text-text-muted">Capital:</span> <span id="balance-avail" class="text-white">---</span></div>
+                    <div><span class="text-text-muted">PnL Vivo:</span> <span id="active-pnl-total" class="text-success">$0.00</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="bias-card" class="lg:col-span-4 card-elite p-8 border-t-2 border-success/40">
+            <span class="text-[10px] text-text-muted font-bold tracking-widest uppercase">Sesgo de Mercado</span>
+            <div class="flex items-center gap-8 mt-4">
+                <div id="bias-icon" class="p-4 rounded-2xl bg-success/10 text-success">
+                    <i data-lucide="trending-up" class="w-10 h-10"></i>
                 </div>
                 <div>
-                    <h1 class="text-2xl font-bold font-display tracking-tight text-white flex items-center gap-3">
-                        HYPER SCALPER QUANT
-                        <span class="badge text-cyan-400 border-cyan-500/30 bg-cyan-500/10">V9.1 Elite</span>
-                        <span class="badge text-yellow-400 border-yellow-500/30 bg-yellow-500/10">HF SPACES</span>
-                    </h1>
-                    <div class="flex items-center gap-2 mt-1">
-                        <span class="pulse-dot"></span>
-                        <span class="text-xs text-slate-400 font-medium tracking-wide uppercase" id="status-text">Sistema En Línea</span>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="flex gap-3">
-                <button onclick="triggerScan()" class="btn-premium primary">
-                    <i data-lucide="scan-line" class="w-4 h-4"></i> Escanear
-                </button>
-                <button onclick="panicClose()" class="btn-premium danger">
-                    <i data-lucide="shield-alert" class="w-4 h-4"></i> Pánico
-                </button>
-                <button onclick="resetStats()" class="btn-premium">
-                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Reset
-                </button>
-            </div>
-        </header>
-
-        <!-- Main Stats Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <!-- Balance Card -->
-            <div class="glass-card p-6 relative overflow-hidden group">
-                <div class="absolute top-0 right-0 p-6 opacity-10 transform group-hover:scale-110 transition-transform duration-500">
-                    <i data-lucide="wallet" class="w-24 h-24 text-white"></i>
-                </div>
-                <div class="value-label">Capital Operativo</div>
-                <div class="value-display mt-2" id="total-balance">$0.00</div>
-                <div class="flex justify-between items-center mt-6 pt-4 border-t border-white/5">
-                    <div class="text-sm text-slate-400">Capital Base: <span id="base-capital" class="text-white font-medium">$0.00</span></div>
-                    <div class="text-sm text-slate-400">PnL Flotante: <span id="floating-pnl" class="text-white font-medium">$0.00</span></div>
-                </div>
-            </div>
-
-            <!-- Market Bias Card -->
-            <div class="glass-card p-6 flex flex-col justify-center items-center relative overflow-hidden group">
-                <div class="absolute inset-0 bg-gradient-to-b from-transparent to-cyan-900/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <div class="value-label w-full text-center mb-4">Tendencia Macro HTF</div>
-                <div class="flex items-center gap-4">
-                    <i data-lucide="trending-up" id="bias-icon" class="w-10 h-10 neon-text-green"></i>
-                    <div class="text-4xl font-display font-bold neon-text-green tracking-tight" id="market-bias">ALCISTA</div>
-                </div>
-                <div class="text-xs text-slate-400 mt-4 font-medium tracking-wide uppercase bg-white/5 px-3 py-1 rounded-full border border-white/5">EMA 100 (15m) + Pullback EMA 20 (1m)</div>
-            </div>
-
-            <!-- Settings Card -->
-            <div class="glass-card p-6 flex flex-col justify-between">
-                <div class="value-label mb-4">Parámetros Hyper Scalper</div>
-                <div class="space-y-3">
-                    <div class="flex justify-between items-center text-sm">
-                        <span class="text-slate-400 flex items-center gap-2"><i data-lucide="layers" class="w-4 h-4"></i> Apalancamiento</span>
-                        <span class="font-display font-bold text-cyan-400" id="leverage-display">10X</span>
-                    </div>
-                    <div class="flex justify-between items-center text-sm">
-                        <span class="text-slate-400 flex items-center gap-2"><i data-lucide="coins" class="w-4 h-4"></i> Tamaño de Posición</span>
-                        <span class="font-display font-bold text-white">$20 USDT</span>
-                    </div>
-                    <div class="flex justify-between items-center text-sm">
-                        <span class="text-slate-400 flex items-center gap-2"><i data-lucide="target" class="w-4 h-4"></i> Ratio SL / TP (ATR)</span>
-                        <span class="font-display font-bold text-white">2.2 / 4.4</span>
-                    </div>
-                    <div class="flex justify-between items-center text-sm">
-                        <span class="text-slate-400 flex items-center gap-2"><i data-lucide="shield-check" class="w-4 h-4"></i> Breakeven / Auto-Exit</span>
-                        <span class="font-display font-bold text-success">60% / 15 Min</span>
+                    <div id="bias-text" class="text-4xl font-bold uppercase tracking-tighter text-success">LARGO</div>
+                    <div class="flex gap-4 mt-1 text-[10px] font-bold uppercase">
+                        <div><span class="text-text-muted">BTC:</span> <span id="btc-price" class="text-white">---</span></div>
+                        <div><span class="text-text-muted">Filtro:</span> <span id="bias-status-text" class="text-success">Bullish</span></div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- PnL Grid -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div class="glass-card p-5">
-                <div class="value-label flex items-center justify-between">Hoy <i data-lucide="calendar" class="w-3 h-3"></i></div>
-                <div class="text-2xl font-display font-bold mt-1" id="pnl-today">$0.00</div>
-                <div class="text-[10px] text-slate-500 mt-2 uppercase tracking-wider" id="stats-today">G:0 P:0</div>
-            </div>
-            <div class="glass-card p-5">
-                <div class="value-label flex items-center justify-between">Semana <i data-lucide="calendar-days" class="w-3 h-3"></i></div>
-                <div class="text-2xl font-display font-bold mt-1" id="pnl-week">$0.00</div>
-                <div class="text-[10px] text-slate-500 mt-2 uppercase tracking-wider" id="stats-week">G:0 P:0</div>
-            </div>
-            <div class="glass-card p-5">
-                <div class="value-label flex items-center justify-between">Mes <i data-lucide="calendar-range" class="w-3 h-3"></i></div>
-                <div class="text-2xl font-display font-bold mt-1" id="pnl-month">$0.00</div>
-                <div class="text-[10px] text-slate-500 mt-2 uppercase tracking-wider" id="stats-month">G:0 P:0</div>
-            </div>
-            <div class="glass-card p-5 border-cyan-500/30 bg-gradient-to-br from-cyan-900/10 to-transparent">
-                <div class="value-label flex items-center justify-between text-cyan-400">Total Histórico <i data-lucide="bar-chart-2" class="w-3 h-3"></i></div>
-                <div class="text-2xl font-display font-bold mt-1" id="pnl-total">$0.00</div>
-                <div class="text-[10px] text-slate-500 mt-2 uppercase tracking-wider" id="stats-total">G:0 P:0</div>
+        <div class="lg:col-span-4 card-elite p-8">
+            <span class="text-[10px] text-text-muted font-bold tracking-widest uppercase">Estrategia Elite V9.1</span>
+            <div class="space-y-2.5 mt-4 text-[11px] font-bold uppercase">
+                <div class="flex justify-between"><span>Apalancamiento</span><span id="cfg-lev" class="neon-cyan">10x</span></div>
+                <div class="flex justify-between"><span>Monto</span><span class="text-white">$20 USDT</span></div>
+                <div class="flex justify-between"><span>Ejecución</span><span class="text-cyan-400">15 Segundos</span></div>
+                <div class="flex justify-between"><span>Vol. Min (24h)</span><span class="text-white">$500K</span></div>
+                <div class="flex justify-between"><span>ATR SL / TP</span><span class="text-white">2.2 / 4.4</span></div>
+                <div class="flex justify-between"><span>Protección</span><span class="text-success">Breakeven 60%</span></div>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Left Column: Active Positions & History -->
-            <div class="lg:col-span-2 space-y-6">
-                
-                <!-- Active Positions -->
-                <div class="glass-card p-6">
-                    <div class="flex justify-between items-center mb-6">
-                        <div class="flex items-center gap-3">
-                            <div class="p-2 bg-cyan-500/10 rounded-lg"><i data-lucide="activity" class="w-5 h-5 text-cyan-400"></i></div>
-                            <h2 class="font-display font-bold text-lg">Radar de Posiciones</h2>
-                        </div>
-                        <span class="badge text-cyan-400 border-cyan-500/30 bg-cyan-500/10" id="active-count-badge">0 ACTIVAS</span>
-                    </div>
-                    
-                    <div class="overflow-x-auto">
-                        <table class="glass-table">
-                            <thead>
-                                <tr>
-                                    <th>Activo</th>
-                                    <th>Dirección</th>
-                                    <th>Entrada</th>
-                                    <th>PnL Vivo</th>
-                                    <th class="text-right">Estado</th>
-                                </tr>
-                            </thead>
-                            <tbody id="active-positions-body">
-                                <tr><td colspan="5" class="text-center text-slate-500 py-8 italic text-sm">Escaneando mercado en busca de liquidez institucional...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- History -->
-                <div class="glass-card p-6">
-                    <div class="flex items-center gap-3 mb-6">
-                        <div class="p-2 bg-purple-500/10 rounded-lg"><i data-lucide="history" class="w-5 h-5 text-purple-400"></i></div>
-                        <h2 class="font-display font-bold text-lg">Registro de Operaciones</h2>
-                    </div>
-                    
-                    <div class="overflow-x-auto">
-                        <table class="glass-table">
-                            <thead>
-                                <tr>
-                                    <th>Símbolo</th>
-                                    <th>Dirección</th>
-                                    <th>Entrada</th>
-                                    <th>Salida</th>
-                                    <th>Motivo</th>
-                                    <th class="text-right">PnL</th>
-                                </tr>
-                            </thead>
-                            <tbody id="history-body">
-                                <tr><td colspan="6" class="text-center text-slate-500 py-8 italic text-sm">Historial limpio.</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+        <!-- PNL CARDS -->
+        <div class="lg:col-span-3 card-elite p-6 border-l-4 border-success/30">
+            <span class="text-[9px] text-text-muted font-bold uppercase">PnL Hoy</span>
+            <div id="stat-daily" class="text-3xl font-bold mt-2 neon-green">+$0.00</div>
+            <div id="count-daily" class="text-[10px] font-bold mt-2 uppercase flex gap-3">
+                <span class="text-success">G: 0</span><span class="text-danger">P: 0</span><span class="text-white/40">Ops: 0</span>
             </div>
+        </div>
+        <div class="lg:col-span-3 card-elite p-6 border-l-4 border-purple-500/30">
+            <span class="text-[9px] text-text-muted font-bold uppercase">PnL Semana</span>
+            <div id="stat-weekly" class="text-3xl font-bold mt-2 text-white">+$0.00</div>
+            <div id="count-weekly" class="text-[10px] font-bold mt-2 uppercase flex gap-3">
+                <span class="text-success">G: 0</span><span class="text-danger">P: 0</span>
+            </div>
+        </div>
+        <div class="lg:col-span-3 card-elite p-6 border-l-4 border-cyan-500/30">
+            <span class="text-[9px] text-text-muted font-bold uppercase">PnL Mes</span>
+            <div id="stat-monthly" class="text-3xl font-bold mt-2 text-white">+$0.00</div>
+            <div id="count-monthly" class="text-[10px] font-bold mt-2 uppercase flex gap-3">
+                <span class="text-success">G: 0</span><span class="text-danger">P: 0</span>
+            </div>
+        </div>
+        <div class="lg:col-span-3 card-elite p-6 border-l-4 border-white/30">
+            <span class="text-[9px] text-text-muted font-bold uppercase">Total PnL</span>
+            <div id="stat-total" class="text-3xl font-bold mt-2 text-white">+$0.00</div>
+            <div id="count-total" class="text-[10px] font-bold mt-2 uppercase flex gap-3">
+                <span class="text-success">G: 0</span><span class="text-danger">P: 0</span>
+            </div>
+        </div>
 
-            <!-- Right Column: Performance & Terminal -->
+        <!-- ACTIVE POSITIONS -->
+        <div class="lg:col-span-8 card-elite overflow-hidden">
+            <div class="px-8 py-4 border-b border-white/5 bg-white/[0.02] flex justify-between items-center">
+                <span class="text-[11px] font-bold uppercase tracking-widest flex items-center gap-2">
+                    <i data-lucide="monitor" class="w-4 h-4 text-cyan-400"></i> Monitor de Posiciones Activas
+                </span>
+                <span id="active-count" class="text-[10px] font-bold bg-cyan-400/10 text-cyan-400 px-3 py-1 rounded-full">0 ACTIVAS</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-[11px] font-bold">
+                    <thead class="bg-black/20 text-text-muted uppercase text-[9px] tracking-tighter">
+                        <tr>
+                            <th class="px-8 py-4">Símbolo</th>
+                            <th class="px-8 py-4">Dirección</th>
+                            <th class="px-8 py-4">Entrada</th>
+                            <th class="px-8 py-4">PnL Vivo</th>
+                            <th class="px-8 py-4 text-right">Estatus</th>
+                        </tr>
+                    </thead>
+                    <tbody id="trades-container" class="divide-y divide-white/5"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- PERFORMANCE -->
+        <div class="lg:col-span-4 card-elite p-8">
+            <span class="text-[11px] font-bold uppercase tracking-widest flex items-center gap-2 mb-6">
+                <i data-lucide="bar-chart" class="w-4 h-4 text-purple-400"></i> Rendimiento Global
+            </span>
             <div class="space-y-6">
-                <!-- Performance -->
-                <div class="glass-card p-6">
-                    <div class="flex items-center gap-3 mb-6">
-                        <div class="p-2 bg-success/10 rounded-lg"><i data-lucide="pie-chart" class="w-5 h-5 text-success"></i></div>
-                        <h2 class="font-display font-bold text-lg">Métricas Globales</h2>
+                <div>
+                    <div class="flex justify-between text-[10px] font-bold uppercase mb-2">
+                        <span class="text-text-muted">Win Rate</span>
+                        <span id="perf-wr-text" class="text-success">0.0%</span>
                     </div>
-
-                    <div class="mb-6">
-                        <div class="flex justify-between text-sm mb-2">
-                            <span class="text-slate-400 font-medium">Win Rate (Precisión)</span>
-                            <span class="font-display font-bold text-white" id="win-rate-text">0.0%</span>
-                        </div>
-                        <div class="h-2 bg-white/5 rounded-full overflow-hidden">
-                            <div id="win-rate-bar" class="h-full bg-gradient-to-r from-cyan-400 to-success transition-all duration-1000" style="width: 0%"></div>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-white/5 p-4 rounded-xl border border-white/5">
-                            <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Factor de Beneficio</div>
-                            <div class="font-display text-xl font-bold text-white" id="profit-factor">0.00</div>
-                        </div>
-                        <div class="bg-white/5 p-4 rounded-xl border border-white/5">
-                            <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Ratio Riesgo/Beneficio</div>
-                            <div class="font-display text-xl font-bold text-white" id="rr-avg">1:0</div>
-                        </div>
-                        <div class="bg-white/5 p-4 rounded-xl border border-white/5">
-                            <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Mejor Operación</div>
-                            <div class="font-display text-xl font-bold neon-text-green" id="best-trade">+$0.00</div>
-                        </div>
-                        <div class="bg-white/5 p-4 rounded-xl border border-white/5">
-                            <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Peor Operación</div>
-                            <div class="font-display text-xl font-bold neon-text-red" id="worst-trade">-$0.00</div>
-                        </div>
-                    </div>
+                    <div class="progress-container"><div id="perf-wr-fill" class="progress-fill" style="width: 0%"></div></div>
                 </div>
-
-                <!-- Terminal -->
-                <div class="glass-card p-6">
-                    <div class="flex items-center gap-3 mb-4">
-                        <div class="p-2 bg-slate-500/10 rounded-lg"><i data-lucide="terminal" class="w-5 h-5 text-slate-400"></i></div>
-                        <h2 class="font-display font-bold text-lg">Consola Cuántica</h2>
-                    </div>
-                    <div class="terminal-container" id="terminal">
-                        <div class="text-cyan-400 mb-2">[SYSTEM] Enlace con motor de ejecución establecido...</div>
-                    </div>
+                <div class="grid grid-cols-2 gap-6">
+                    <div><span class="text-[9px] text-text-muted font-bold uppercase block">Profit Factor</span><span id="perf-pf" class="text-xl font-bold">0.00</span></div>
+                    <div><span class="text-[9px] text-text-muted font-bold uppercase block">R:R Avg</span><span id="perf-rr" class="text-xl font-bold">1: 2.1</span></div>
+                    <div><span class="text-[9px] text-text-muted font-bold uppercase block">Mejor Trade</span><span id="perf-best" class="text-lg font-bold neon-green">+$0.00</span></div>
+                    <div><span class="text-[9px] text-text-muted font-bold uppercase block">Peor Trade</span><span id="perf-worst" class="text-lg font-bold neon-red">-$0.00</span></div>
                 </div>
             </div>
         </div>
+
+        <!-- HISTORY & LOGS -->
+        <div class="lg:col-span-7 card-elite flex flex-col overflow-hidden">
+            <div class="px-8 py-4 border-b border-white/5 bg-white/[0.02]">
+                <span class="text-[11px] font-bold uppercase tracking-widest flex items-center gap-2">
+                    <i data-lucide="clock" class="w-4 h-4 text-cyan-400"></i> Historial de Trades
+                </span>
+            </div>
+            <div id="history-container" class="flex-1 overflow-y-auto h-[350px] p-6 space-y-3"></div>
+        </div>
+
+        <div class="lg:col-span-5 card-elite flex flex-col overflow-hidden">
+            <div class="px-8 py-4 border-b border-white/5 bg-white/[0.02]">
+                <span class="text-[11px] font-bold uppercase tracking-widest flex items-center gap-2">
+                    <i data-lucide="terminal" class="w-4 h-4 text-purple-400"></i> Terminal de Ejecución
+                </span>
+            </div>
+            <div id="terminal-log" class="flex-1 overflow-y-auto h-[350px] terminal-box">
+                <div class="neon-cyan font-bold">[SYSTEM] Sistema listo para escaneo profesional...</div>
+            </div>
+        </div>
+
     </div>
 
     <script>
-        lucide.createIcons();
-
         const socket = io();
-        
-        socket.on('connect', () => {
-            document.getElementById('status-text').innerText = 'CONECTADO AL MOTOR';
-            document.getElementById('status-text').classList.add('text-success');
-            fetchStats();
-            fetchHistory();
-            fetchTrades();
-        });
-
-        socket.on('disconnect', () => {
-            document.getElementById('status-text').innerText = 'DESCONECTADO';
-            document.getElementById('status-text').classList.replace('text-success', 'text-danger');
-            document.getElementById('status-text').classList.replace('text-cyan-400', 'text-danger');
-        });
+        const terminalLog = document.getElementById('terminal-log');
 
         socket.on('bot_log', (data) => {
-            const terminal = document.getElementById('terminal');
-            const time = new Date().toLocaleTimeString();
-            let colorClass = 'text-slate-400';
-            
-            // Map backend colors to tailwind/custom
-            if(data.color.includes('green')) colorClass = 'text-success font-bold';
-            else if(data.color.includes('danger')) colorClass = 'text-danger';
-            else if(data.color.includes('cyan')) colorClass = 'text-cyan-400';
-            
-            const p = document.createElement('div');
-            p.className = `mb-1 ${colorClass}`;
-            p.innerHTML = `<span class="text-slate-600 opacity-70">[${time}]</span> ${data.msg}`;
-            terminal.appendChild(p);
-            
-            if (terminal.childNodes.length > 100) {
-                terminal.removeChild(terminal.firstChild);
-            }
-            terminal.scrollTop = terminal.scrollHeight;
+            const div = document.createElement('div');
+            div.className = data.color || '';
+            div.innerHTML = `<span class="text-white/10 mr-2">[${new Date().toLocaleTimeString()}]</span> ${data.msg}`;
+            terminalLog.appendChild(div);
+            terminalLog.scrollTop = terminalLog.scrollHeight;
         });
 
-        function formatMoney(val) {
-            if(val === undefined || val === null) return "$0.00";
-            const num = parseFloat(val);
-            if(isNaN(num)) return "$0.00";
-            const formatted = Math.abs(num).toFixed(2);
-            return num < 0 ? `-$${formatted}` : `+$${formatted}`;
-        }
-
-        function getColorClass(val) {
-            if(val === undefined || val === null) return 'text-slate-400';
-            const num = parseFloat(val);
-            if(isNaN(num)) return 'text-slate-400';
-            return num > 0 ? 'neon-text-green' : num < 0 ? 'neon-text-red' : 'text-slate-400';
-        }
-
-        function updateStatsUI(stats) {
-            if(!stats) return;
-
-            document.getElementById('pnl-total').innerText = formatMoney(stats.total_pnl);
-            document.getElementById('pnl-total').className = `text-2xl font-display font-bold mt-1 ${getColorClass(stats.total_pnl)}`;
-            document.getElementById('stats-total').innerText = `G:${stats.total_wins} P:${stats.total_losses}`;
-
-            document.getElementById('pnl-today').innerText = formatMoney(stats.today_pnl);
-            document.getElementById('pnl-today').className = `text-2xl font-display font-bold mt-1 ${getColorClass(stats.today_pnl)}`;
-            document.getElementById('stats-today').innerText = `G:${stats.today_wins} P:${stats.today_losses}`;
-
-            document.getElementById('pnl-week').innerText = formatMoney(stats.week_pnl);
-            document.getElementById('pnl-week').className = `text-2xl font-display font-bold mt-1 ${getColorClass(stats.week_pnl)}`;
-            document.getElementById('stats-week').innerText = `G:${stats.week_wins} P:${stats.week_losses}`;
-
-            document.getElementById('pnl-month').innerText = formatMoney(stats.month_pnl);
-            document.getElementById('pnl-month').className = `text-2xl font-display font-bold mt-1 ${getColorClass(stats.month_pnl)}`;
-            document.getElementById('stats-month').innerText = `G:${stats.month_wins} P:${stats.month_losses}`;
-
-            document.getElementById('win-rate-text').innerText = `${stats.win_rate || 0}%`;
-            document.getElementById('win-rate-bar').style.width = `${stats.win_rate || 0}%`;
-            
-            document.getElementById('profit-factor').innerText = stats.profit_factor || "0.00";
-            document.getElementById('rr-avg').innerText = `1:${stats.avg_rr || "0.0"}`;
-            
-            document.getElementById('best-trade').innerText = formatMoney(stats.best_trade);
-            document.getElementById('worst-trade').innerText = formatMoney(stats.worst_trade);
-        }
-
-        async function fetchStats() {
+        async function updateDashboard() {
             try {
-                const res = await fetch('/api/status');
-                const data = await fetch('/api/performance');
+                const [statusRes, perfRes, tradesRes, historyRes] = await Promise.all([
+                    fetch('/api/status'),
+                    fetch('/api/performance'),
+                    fetch('/api/trades'),
+                    fetch('/api/history')
+                ]);
                 
-                const status = await res.json();
-                const stats = await data.json();
-                
-                if(status.balance && status.balance.length > 0) {
-                    const usdt = status.balance.find(c => c.coin === 'USDT' || c.coin === 'USDC');
-                    if(usdt) {
-                        const equity = parseFloat(usdt.equity || usdt.walletBalance || 0);
-                        document.getElementById('total-balance').innerText = `$${equity.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits:2})}`;
-                        document.getElementById('base-capital').innerText = `$${parseFloat(usdt.walletBalance || 0).toFixed(2)}`;
-                        
-                        const pnl = parseFloat(usdt.unrealisedPnl || 0);
-                        const pnlEl = document.getElementById('floating-pnl');
-                        pnlEl.innerText = formatMoney(pnl);
-                        pnlEl.className = `font-medium ${getColorClass(pnl)}`;
+                const status = await statusRes.json();
+                const perf = await perfRes.json();
+                const trades = await tradesRes.json();
+                const history = await historyRes.json();
+
+                // 1. BALANCE & BIAS
+                document.getElementById('wallet-balance').innerText = '$' + parseFloat(status.balance[0].walletBalance).toLocaleString(undefined, {minimumFractionDigits: 2});
+                document.getElementById('balance-avail').innerText = '$' + parseFloat(status.balance[0].walletBalance).toLocaleString();
+                document.getElementById('cfg-lev').innerText = status.leverage + 'x';
+
+                // DYNAMIC BIAS COLORS
+                const isLong = true; // Simulado
+                const bCard = document.getElementById('bias-card');
+                const bText = document.getElementById('bias-text');
+                const bIcon = document.getElementById('bias-icon');
+                if(isLong) {
+                    bCard.className = "lg:col-span-4 card-elite p-8 border-t-2 border-success";
+                    bText.className = "text-4xl font-bold uppercase tracking-tighter text-success neon-green";
+                    bText.innerText = "LARGO";
+                    bIcon.className = "p-4 rounded-2xl bg-success/10 text-success";
+                    bIcon.innerHTML = '<i data-lucide="trending-up" class="w-10 h-10"></i>';
+                } else {
+                    bCard.className = "lg:col-span-4 card-elite p-8 border-t-2 border-danger";
+                    bText.className = "text-4xl font-bold uppercase tracking-tighter text-danger neon-red";
+                    bText.innerText = "CORTO";
+                    bIcon.className = "p-4 rounded-2xl bg-danger/10 text-danger";
+                    bIcon.innerHTML = '<i data-lucide="trending-down" class="w-10 h-10"></i>';
+                }
+
+                // 2. STATS
+                ['daily', 'weekly', 'monthly', 'total'].forEach(p => {
+                    const data = perf[p];
+                    const id = p === 'total' ? 'total' : p;
+                    const valEl = document.getElementById('stat-' + id);
+                    const countEl = document.getElementById('count-' + id);
+                    
+                    valEl.innerText = (data.pnl >= 0 ? '+$' : '-$') + Math.abs(data.pnl).toFixed(2);
+                    valEl.className = `text-3xl font-bold mt-2 ${data.pnl >= 0 ? 'neon-green' : 'neon-red'}`;
+                    
+                    let h = `<span class="neon-green">G: ${data.wins}</span><span class="neon-red">P: ${data.losses}</span>`;
+                    if(p === 'daily') h += `<span class="text-white/40">Ops: ${data.count}</span>`;
+                    countEl.innerHTML = h;
+
+                    if(p === 'total') {
+                        document.getElementById('perf-wr-text').innerText = data.wr.toFixed(1) + '%';
+                        document.getElementById('perf-wr-fill').style.width = data.wr + '%';
+                        document.getElementById('perf-pf').innerText = data.pf.toFixed(2);
+                        document.getElementById('perf-best').innerText = '+$' + data.best.toFixed(2);
+                        document.getElementById('perf-worst').innerText = '-$' + Math.abs(data.worst).toFixed(2);
                     }
-                }
-                
-                if(status.leverage) {
-                    document.getElementById('leverage-display').innerText = `${status.leverage}X`;
-                }
-                
-                updateStatsUI(stats);
-            } catch(e) { console.error(e); }
-        }
-
-        async function fetchHistory() {
-            try {
-                const res = await fetch('/api/history');
-                const data = await res.json();
-                const tbody = document.getElementById('history-body');
-                tbody.innerHTML = '';
-                
-                if(data.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="6" class="text-center text-slate-500 py-8 italic text-sm">Historial limpio. No hay operaciones cerradas.</td></tr>`;
-                    return;
-                }
-                
-                data.forEach(t => {
-                    const tr = document.createElement('tr');
-                    const isLong = t.side === 'Buy';
-                    const sideColor = isLong ? 'text-success' : 'text-danger';
-                    const sideText = isLong ? 'LONG' : 'SHORT';
-                    const sideIcon = isLong ? 'arrow-up-right' : 'arrow-down-right';
-                    
-                    const pnlColor = getColorClass(t.pnl_usdt);
-                    
-                    tr.innerHTML = `
-                        <td class="font-display font-bold">${t.symbol}</td>
-                        <td><span class="${sideColor} font-semibold flex items-center gap-1 text-xs"><i data-lucide="${sideIcon}" class="w-3 h-3"></i> ${sideText}</span></td>
-                        <td class="font-mono text-slate-300">${t.entry.toFixed(4)}</td>
-                        <td class="font-mono text-slate-300">${t.exit ? t.exit.toFixed(4) : '-'}</td>
-                        <td><span class="badge">${t.reason || 'Cerrado'}</span></td>
-                        <td class="text-right font-display font-bold ${pnlColor}">${formatMoney(t.pnl_usdt)}</td>
-                    `;
-                    tbody.appendChild(tr);
                 });
-                lucide.createIcons();
-            } catch(e) { console.error(e); }
-        }
 
-        async function fetchTrades() {
-            try {
-                const res = await fetch('/api/trades');
-                const data = await res.json();
-                const tbody = document.getElementById('active-positions-body');
-                tbody.innerHTML = '';
-                
-                document.getElementById('active-count-badge').innerText = `${data.length} ACTIVAS`;
-                
-                if(data.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="5" class="text-center text-slate-500 py-8 italic text-sm">Escaneando mercado en busca de liquidez institucional...</td></tr>`;
-                    return;
-                }
-                
-                data.forEach(t => {
-                    const tr = document.createElement('tr');
-                    const isLong = t.side === 'Buy';
-                    const sideColor = isLong ? 'text-success' : 'text-danger';
-                    const sideText = isLong ? 'LONG' : 'SHORT';
-                    const sideIcon = isLong ? 'arrow-up-right' : 'arrow-down-right';
-                    const pnlColor = getColorClass(t.pnl);
-                    
-                    tr.innerHTML = `
-                        <td class="font-display font-bold">${t.symbol}</td>
-                        <td><span class="${sideColor} font-semibold flex items-center gap-1 text-xs"><i data-lucide="${sideIcon}" class="w-3 h-3"></i> ${sideText}</span></td>
-                        <td class="font-mono text-slate-300">${t.entry.toFixed(4)}</td>
-                        <td class="text-right font-display font-bold ${pnlColor}">${formatMoney(t.pnl)}</td>
-                        <td class="text-right"><span class="pulse-dot"></span></td>
+                // 3. ACTIVE
+                const tCont = document.getElementById('trades-container');
+                tCont.innerHTML = trades.length === 0 ? '<tr><td colspan="5" class="p-16 text-center text-text-muted italic uppercase font-bold text-[10px]">Esperando señales del algoritmo...</td></tr>' : '';
+                let activeSum = 0;
+                trades.forEach(t => {
+                    activeSum += t.pnl;
+                    const isWin = t.pnl >= 0;
+                    const isLong = t.side.toUpperCase().includes('BUY') || t.side.toUpperCase().includes('LONG');
+                    tCont.innerHTML += `
+                        <tr class="hover:bg-white/[0.02] transition-colors border-l-2 ${isWin ? 'border-success' : 'border-danger'}">
+                            <td class="px-8 py-4 ${isWin ? 'text-success' : 'text-danger'} font-bold">${t.symbol}</td>
+                            <td class="px-8 py-4"><span class="px-3 py-1 rounded-lg text-[9px] font-bold ${isLong ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'}">${t.side}</span></td>
+                            <td class="px-8 py-4 font-mono text-text-muted">${t.entry.toFixed(4)}</td>
+                            <td class="px-8 py-4 font-bold ${isWin ? 'neon-green' : 'neon-red'}">${isWin ? '+' : ''}${t.pnl.toFixed(4)}</td>
+                            <td class="px-8 py-4 text-right"><span class="text-[9px] bg-cyan-400/10 text-cyan-400 px-2 py-1 rounded border border-cyan-400/20">MONITOR LIVE</span></td>
+                        </tr>
                     `;
-                    tbody.appendChild(tr);
                 });
+                document.getElementById('active-pnl-total').innerText = (activeSum >= 0 ? '+$' : '-$') + Math.abs(activeSum).toFixed(2);
+                document.getElementById('active-pnl-total').className = activeSum >= 0 ? 'text-success' : 'text-danger';
+                document.getElementById('active-count').innerText = trades.length + ' ACTIVAS';
+
+                // 4. HISTORY
+                const hCont = document.getElementById('history-container');
+                if(history.length === 0) {
+                    hCont.innerHTML = '<div class="text-center text-text-muted py-24 italic font-bold text-[10px] tracking-widest uppercase">No hay operaciones cerradas desde el último reinicio</div>';
+                } else {
+                    hCont.innerHTML = '';
+                    history.forEach(h => {
+                        const isBE = h.reason.toLowerCase().includes('breakeven');
+                        const isW = h.pnl_usdt > 0.1;
+                        const isL = h.pnl_usdt < 0 && !isBE;
+                        let color = isBE ? 'yellow-500' : (isW ? 'success' : 'danger');
+                        let textC = isBE ? 'text-yellow-500' : (isW ? 'neon-green' : 'neon-red');
+                        
+                        hCont.innerHTML += `
+                            <div class="card-elite p-4 flex items-center justify-between border-l-4 border-${color} bg-white/[0.01]">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-8 h-8 rounded bg-black flex items-center justify-center font-bold ${textC}">${h.symbol.substring(0,2)}</div>
+                                    <div>
+                                        <div class="text-xs font-bold text-white">${h.symbol} <span class="text-[9px] text-text-muted ml-2">${h.side}</span></div>
+                                        <div class="text-[8px] text-text-muted font-bold uppercase">Cerrado por <span class="${isBE ? 'text-yellow-500' : ''}">${h.reason}</span></div>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-base font-bold ${textC}">${isW || isBE ? '+' : ''}$${h.pnl_usdt.toFixed(2)}</div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+
                 lucide.createIcons();
-            } catch(e) { console.error(e); }
+            } catch (err) { console.error("Update error:", err); }
         }
 
-        function triggerScan() {
-            socket.emit('trigger_scan', {});
-            const t = document.getElementById('terminal');
-            t.innerHTML += `<div class="mb-1 text-cyan-400 font-bold">> Iniciando escaneo manual...</div>`;
-            t.scrollTop = t.scrollHeight;
+        async function handleAction(action) {
+            const url = action === 'run' ? '/api/trigger-scan' : (action === 'stop' ? '/api/panic-close' : '/api/reset');
+            const method = (action === 'stop' || action === 'reset') ? 'POST' : 'GET';
+            try { 
+                if(action === 'reset') {
+                    if(!confirm("¿Estás seguro de resetear todas las estadísticas?")) return;
+                }
+                const res = await fetch(url, { method });
+                const d = await res.json();
+                alert(d.message || "Acción completada");
+                updateDashboard(); 
+            } catch (err) { console.error(err); }
         }
 
-        function panicClose() {
-            if(confirm("⚠️ ¿CERRAR TODAS LAS POSICIONES A MERCADO?")) {
-                socket.emit('panic_close', {});
-            }
-        }
-
-        function resetStats() {
-            if(confirm("¿Resetear todas las estadísticas a cero?")) {
-                socket.emit('reset_bot', {});
-                setTimeout(() => {
-                    fetchStats();
-                    fetchHistory();
-                }, 1000);
-            }
-        }
-
-        setInterval(() => {
-            fetchStats();
-            fetchHistory();
-            fetchTrades();
-        }, 10000);
+        setInterval(updateDashboard, 5000);
+        updateDashboard();
+        lucide.createIcons();
     </script>
 </body>
 </html>
