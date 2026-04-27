@@ -7,8 +7,9 @@ logger = logging.getLogger(__name__)
 
 class AnalyticsManager:
     def __init__(self):
-        # Fecha de reinicio del historial: 2026-03-28 (Hoy)
-        self.reset_date = datetime(2026, 3, 28, tzinfo=timezone.utc)
+        # Fecha de reinicio por defecto: Inicio del día de hoy (UTC)
+        now = datetime.now(timezone.utc)
+        self.reset_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
     def reset_date_now(self):
         self.reset_date = datetime.now(timezone.utc)
