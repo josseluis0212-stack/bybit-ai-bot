@@ -104,18 +104,28 @@ class ExecutionEngine:
 
         side = "Buy" if signal == "LONG" else "Sell"
 
-        # 3.5 Establecer Apalancamiento para la moneda antes de la primera orden
+        # 3.6 Filtro de Funding Rate Profesional
+        funding = bybit_client.get_funding_rate(symbol)
+        if signal == "LONG" and funding > 0.0001: # > 0.01%
+             logger.warning(f"Omitiendo LONG en {symbol} - Funding demasiado alto: {funding:.6f}")
+             return False
+        if signal == "SHORT" and funding < -0.0001: # < -0.01%
+             logger.warning(f"Omitiendo SHORT en {symbol} - Funding demasiado bajo: {funding:.6f}")
+             return False
+
+        # 3.7 Establecer Apalancamiento
         bybit_client.set_leverage(symbol, settings.LEVERAGE)
 
         logger.info(
-            f"🚀 Ejecutando {signal} en {symbol} | Qty: {qty_str} | SL: {sl_str} | TP: {tp_str}"
+            f"🚀 Ejecutando {signal} LIMIT en {symbol} | Qty: {qty_str} | Price: {entry_price:.4f}"
         )
 
         response = bybit_client.place_order(
             symbol=symbol,
             side=side,
-            order_type="Market",  # Entramos Market porque la vela ya cerró confirmando señal
+            order_type="Limit",
             qty=qty_str,
+            price=str(entry_price),
             take_profit=tp_str,
             stop_loss=sl_str,
         )

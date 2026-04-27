@@ -211,4 +211,15 @@ class BybitClient:
             logger.error(f"Error configurando trading stop en {symbol}: {e}")
             return None
 
+    def get_funding_rate(self, symbol):
+        """Obtiene la tasa de financiación actual del símbolo."""
+        try:
+            response = self.session.get_tickers(category="linear", symbol=symbol)
+            if response and response.get("retCode") == 0 and response["result"]["list"]:
+                return float(response["result"]["list"][0].get("fundingRate", 0))
+            return 0.0
+        except Exception as e:
+            logger.error(f"Error obteniendo funding rate para {symbol}: {e}")
+            return 0.0
+
 bybit_client = BybitClient()

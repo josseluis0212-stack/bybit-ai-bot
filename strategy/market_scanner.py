@@ -10,8 +10,8 @@ logger = logging.getLogger(__name__)
 
 class MarketScanner:
     def __init__(self):
-        self.exec_tf = "1"  # 1 minuto para ejecución
-        self.bias_tf = "15"  # 15 minutos para tendencia
+        self.exec_tf = "5"  # 5 minutos para ejecución (MÁS ESTABLE)
+        self.bias_tf = "15"
         self.limit = 120
 
     async def get_klines(self, symbol, interval):
@@ -44,6 +44,14 @@ class MarketScanner:
     async def analyze_symbol(self, item):
         symbol = item["symbol"]
         try:
+            # Filtro de Spread Profesional (< 0.1%)
+            bid = float(item.get("bid1Price", 0))
+            ask = float(item.get("ask1Price", 0))
+            if bid > 0:
+                spread_pct = (ask - bid) / bid
+                if spread_pct > 0.001: # 0.1%
+                    return None
+
             df_exec = await self.get_klines(symbol, self.exec_tf)
             if df_exec is None or len(df_exec) < 50:
                 return None
@@ -51,7 +59,7 @@ class MarketScanner:
             signal = strategy.analyze(symbol, df_exec)
             if signal:
                 logger.info(
-                    f"SEÑAL: {signal['signal']} {symbol} @ {signal['entry_price']:.6f}"
+                    f"SEÑAL (5m): {signal['signal']} {symbol} @ {signal['entry_price']:.6f}"
                 )
                 return signal
             return None
@@ -59,14 +67,15 @@ class MarketScanner:
             return None
 
     async def scan_market(self):
-        logger.info("Escaneo GLOBAL iniciado...")
+        logger.info("Escaneo PROFESIONAL (5m) iniciado...")
         start = time.time()
 
         tickers = bybit_client.get_tickers()
         if not tickers:
             return []
 
-        tickers = [t for t in tickers if float(t.get("turnover24h", 0)) >= 30000000]
+        # Volumen Profesional > 50M USDT
+        tickers = [t for t in tickers if float(t.get("turnover24h", 0)) >= 50000000]
         tickers = sorted(
             tickers, key=lambda x: float(x.get("turnover24h", 0)), reverse=True
         )[:100]
