@@ -147,7 +147,7 @@ async def handle_status(request):
 
     status = {
         "status": "Running",
-        "strategy": "Institutional SMC Quantum v5.2",
+        "strategy": "Institutional SMC Quantum v5.3",
         "balance": balance_info["result"]["list"][0]["coin"]
         if balance_info and balance_info.get("retCode") == 0
         else [],

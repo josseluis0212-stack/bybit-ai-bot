@@ -2,29 +2,27 @@ import pandas as pd
 import numpy as np
 import logging
 from datetime import datetime, timezone
-from ta.trend import EMAIndicator
-from ta.momentum import RSIIndicator
-from ta.volatility import AverageTrueRange
+import pandas_ta as ta
 
 logger = logging.getLogger(__name__)
 
 class BaseStrategy:
-    def __init__(self, name="Institutional SMC Quantum v5.2"):
+    def __init__(self, name="Institutional SMC Quantum v5.3"):
         self.name = name
 
     def calculate_indicators(self, df: pd.DataFrame) -> pd.DataFrame:
         if df.empty: return df
         df = df.copy()
         
-        # Medias (Using 'ta' library)
-        df["ema_50"] = EMAIndicator(close=df["close"], window=50).ema_indicator()
+        # Medias (Using pandas-ta)
+        df["ema_50"] = ta.ema(df["close"], length=50)
         
         # Bias HTF: EMA 300 en 5m (Equivalente a EMA 100 en 15m)
-        df["ema_htf"] = EMAIndicator(close=df["close"], window=300).ema_indicator()
+        df["ema_htf"] = ta.ema(df["close"], length=300)
         
         # RSI y ATR
-        df["rsi"] = RSIIndicator(close=df["close"], window=14).rsi()
-        df["atr"] = AverageTrueRange(high=df["high"], low=df["low"], close=df["close"], window=14).average_true_range()
+        df["rsi"] = ta.rsi(df["close"], length=14)
+        df["atr"] = ta.atr(df["high"], df["low"], df["close"], length=14)
         
         # Filtro de Volatilidad Relativa
         df["atr_sma_50"] = df["atr"].rolling(50).mean()
@@ -40,7 +38,7 @@ class BaseStrategy:
 
     def analyze_symbol(self, symbol, df: pd.DataFrame):
         """
-        Analiza un símbolo con lógica SMC v5.2 (Optimized HTF).
+        Analiza un símbolo con lógica SMC v5.3 (Final Hybrid).
         """
         if len(df) < 301: return None
         
@@ -89,7 +87,7 @@ class BaseStrategy:
                 return {
                     "symbol": symbol, "signal": "LONG", "entry_price": price,
                     "sl": sl, "tp": tp, "atr": atr,
-                    "info": f"SMC v5.2 LONG | RSI:{rsi:.1f} | HTF:OK"
+                    "info": f"SMC v5.3 LONG | RSI:{rsi:.1f} | HTF:OK"
                 }
 
         else: # SHORT
@@ -110,7 +108,7 @@ class BaseStrategy:
                 return {
                     "symbol": symbol, "signal": "SHORT", "entry_price": price,
                     "sl": sl, "tp": tp, "atr": atr,
-                    "info": f"SMC v5.2 SHORT | RSI:{rsi:.1f} | HTF:OK"
+                    "info": f"SMC v5.3 SHORT | RSI:{rsi:.1f} | HTF:OK"
                 }
 
         return None
