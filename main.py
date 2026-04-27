@@ -226,6 +226,8 @@ async def init_web_server():
     app.router.add_get("/api/trades", handle_trades)
 
     app.router.add_get("/app", httpd_handle_static_index)
+    app.router.add_get("/app/", httpd_handle_static_index)
+    app.router.add_get("/app/index.html", httpd_handle_static_index)
 
     dashboard_path = os.path.join(os.path.dirname(__file__), 'dashboard')
     app.router.add_static('/static/', path=dashboard_path, name='static')
