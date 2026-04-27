@@ -4,16 +4,14 @@ import logging
 import time
 from api.bybit_client import bybit_client
 from strategy.base_strategy import strategy
-from ta.trend import EMAIndicator
 
 logger = logging.getLogger(__name__)
 
 
 class MarketScanner:
     def __init__(self):
-        self.exec_tf = "5"  # 5 minutos para ejecución
-        self.bias_tf = "15" # 15 minutos para Filtro HTF (EMA 100)
-        self.limit = 150    # Aumentado para asegurar datos para EMA 100
+        self.exec_tf = "5"  # 5 minutos
+        self.limit = 400    # Aumentado para permitir EMA 300 (Bias HTF)
 
     async def get_klines(self, symbol, interval):
         try:
@@ -55,25 +53,10 @@ class MarketScanner:
                 if spread_pct > 0.001: 
                     return None
 
-            # 1. Obtener datos de 15m para Bias (HTF)
-            df_bias = await self.get_klines(symbol, self.bias_tf)
-            if df_bias is None or len(df_bias) < 101: return None
-            
-            # Calcular EMA 100 en 15m
-            ema_series = EMAIndicator(close=df_bias["close"], window=100).ema_indicator()
-            if ema_series.empty or pd.isna(ema_series.iloc[-1]):
-                return None
-                
-            ema_100_15m = float(ema_series.iloc[-1])
-            price_now = float(df_bias["close"].iloc[-1])
-            htf_bias = "LONG" if price_now > ema_100_15m else "SHORT"
-
-            # 2. Obtener datos de 5m para Ejecución
             df_exec = await self.get_klines(symbol, self.exec_tf)
-            if df_exec is None or len(df_exec) < 50: return None
+            if df_exec is None or len(df_exec) < 301: return None
 
-            # Pasar el bias HTF a la estrategia
-            signal = strategy.analyze_symbol(symbol, df_exec, htf_bias=htf_bias)
+            signal = strategy.analyze_symbol(symbol, df_exec)
             if signal:
                 return signal
             return None
@@ -92,7 +75,7 @@ class MarketScanner:
                 and t["symbol"].endswith("USDT")
             ]
             
-            logger.info(f"🔍 Escaneando {len(active_symbols)} pares (Bias HTF 15m + Exec 5m)...")
+            logger.info(f"🔍 Escaneando {len(active_symbols)} pares (Optimized EMA 300 Bias)...")
             
             tasks = [self.analyze_symbol(item) for item in active_symbols]
             results = await asyncio.gather(*tasks)

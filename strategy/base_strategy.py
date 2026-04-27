@@ -9,7 +9,7 @@ from ta.volatility import AverageTrueRange
 logger = logging.getLogger(__name__)
 
 class BaseStrategy:
-    def __init__(self, name="Institutional SMC Quantum v5.1"):
+    def __init__(self, name="Institutional SMC Quantum v5.2"):
         self.name = name
 
     def calculate_indicators(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -18,6 +18,9 @@ class BaseStrategy:
         
         # Medias (Using 'ta' library)
         df["ema_50"] = EMAIndicator(close=df["close"], window=50).ema_indicator()
+        
+        # Bias HTF: EMA 300 en 5m (Equivalente a EMA 100 en 15m)
+        df["ema_htf"] = EMAIndicator(close=df["close"], window=300).ema_indicator()
         
         # RSI y ATR
         df["rsi"] = RSIIndicator(close=df["close"], window=14).rsi()
@@ -35,11 +38,11 @@ class BaseStrategy:
 
         return df
 
-    def analyze_symbol(self, symbol, df: pd.DataFrame, htf_bias=None):
+    def analyze_symbol(self, symbol, df: pd.DataFrame):
         """
-        Analiza un símbolo con lógica SMC v5.1 e integración de Bias HTF (15m).
+        Analiza un símbolo con lógica SMC v5.2 (Optimized HTF).
         """
-        if len(df) < 50: return None
+        if len(df) < 301: return None
         
         df = self.calculate_indicators(df)
         curr = df.iloc[-1]
@@ -52,11 +55,13 @@ class BaseStrategy:
         
         if pd.isna(atr) or pd.isna(atr_avg): return None
 
-        # 1. FILTRO DE VOLATILIDAD (ATR > Promedio 50 velas)
+        # 1. FILTRO DE VOLATILIDAD
         if atr < (atr_avg * 0.9): return None
 
-        # 2. SESGO HTF (Integración de MarketScanner)
-        bias = htf_bias if htf_bias else ("LONG" if price > float(curr["ema_50"]) else "SHORT")
+        # 2. SESGO HTF (EMA 300 en 5m)
+        ema_htf = float(curr["ema_htf"])
+        if pd.isna(ema_htf): return None
+        bias = "LONG" if price > ema_htf else "SHORT"
         
         # 3. FILTRO DE VOLUMEN
         vol_avg = df["volume"].rolling(20).mean().iloc[-1]
@@ -67,17 +72,11 @@ class BaseStrategy:
         atr_tp_mult = 6.0
 
         if bias == "LONG":
-            # Filtro de Fatiga RSI (Dashboard: 35-65)
             if rsi > 65: return None
             
-            # Liquidity Sweep
             recent_lows = df["low"].iloc[-15:-1].min()
             sweep = curr["low"] < recent_lows and curr["close"] > recent_lows
-            
-            # FVG (Fair Value Gap)
             fvg = curr["low"] > prev2["high"]
-            
-            # Mitigación de OB
             ob_mitigation = not pd.isna(curr['bullish_ob']) and curr['low'] <= curr['bullish_ob'] and curr['close'] > curr['bullish_ob']
 
             if sweep or fvg or ob_mitigation:
@@ -90,7 +89,7 @@ class BaseStrategy:
                 return {
                     "symbol": symbol, "signal": "LONG", "entry_price": price,
                     "sl": sl, "tp": tp, "atr": atr,
-                    "info": f"SMC v5.1 LONG | RSI:{rsi:.1f} | HTF:{bias}"
+                    "info": f"SMC v5.2 LONG | RSI:{rsi:.1f} | HTF:OK"
                 }
 
         else: # SHORT
@@ -111,7 +110,7 @@ class BaseStrategy:
                 return {
                     "symbol": symbol, "signal": "SHORT", "entry_price": price,
                     "sl": sl, "tp": tp, "atr": atr,
-                    "info": f"SMC v5.1 SHORT | RSI:{rsi:.1f} | HTF:{bias}"
+                    "info": f"SMC v5.2 SHORT | RSI:{rsi:.1f} | HTF:OK"
                 }
 
         return None
