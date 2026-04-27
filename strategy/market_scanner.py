@@ -74,8 +74,8 @@ class MarketScanner:
         if not tickers:
             return []
 
-        # Volumen Ajustado > 10M USDT
-        tickers = [t for t in tickers if float(t.get("turnover24h", 0)) >= 10000000]
+        # Volumen Ajustado > 30M USDT
+        tickers = [t for t in tickers if float(t.get("turnover24h", 0)) >= 30000000]
         tickers = sorted(
             tickers, key=lambda x: float(x.get("turnover24h", 0)), reverse=True
         )[:100]
