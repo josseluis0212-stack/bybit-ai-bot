@@ -10,21 +10,19 @@ logger = logging.getLogger(__name__)
 
 class MarketScanner:
     def __init__(self):
-        self.exec_tf = "5"  # 5 minutos para ejecución (MÁS ESTABLE)
-        self.bias_tf = "15"
+        self.exec_tf = "5"  # 5 minutos para ejecución
+        self.bias_tf = "15" # 15 minutos para Filtro HTF (EMA 100)
         self.limit = 120
 
     async def get_klines(self, symbol, interval):
         try:
-            response = await bybit_client.get_klines_async(
-                symbol=symbol, interval=interval, limit=self.limit
+            resp = bybit_client.session.get_kline(
+                category="linear", symbol=symbol, interval=interval, limit=self.limit
             )
-            if response and response.get("retCode") == 0:
-                list_data = response["result"]["list"]
-                if not list_data:
-                    return None
+            if resp and resp.get("retCode") == 0:
+                data = resp["result"]["list"]
                 df = pd.DataFrame(
-                    list_data,
+                    data,
                     columns=[
                         "timestamp",
                         "open",
@@ -36,9 +34,11 @@ class MarketScanner:
                     ],
                 )
                 df = df.iloc[::-1].reset_index(drop=True)
+                df[['open', 'high', 'low', 'close', 'volume']] = df[['open', 'high', 'low', 'close', 'volume']].apply(pd.to_numeric)
                 return df
             return None
         except Exception as e:
+            logger.error(f"Error klines {symbol}: {e}")
             return None
 
     async def analyze_symbol(self, item):
@@ -49,53 +49,53 @@ class MarketScanner:
             ask = float(item.get("ask1Price", 0))
             if bid > 0:
                 spread_pct = (ask - bid) / bid
-                if spread_pct > 0.001: # 0.1%
+                if spread_pct > 0.001: 
                     return None
 
-            df_exec = await self.get_klines(symbol, self.exec_tf)
-            if df_exec is None or len(df_exec) < 50:
-                return None
+            # 1. Obtener datos de 15m para Bias (HTF)
+            df_bias = await self.get_klines(symbol, self.bias_tf)
+            if df_bias is None or len(df_bias) < 100: return None
+            
+            # Calcular EMA 100 en 15m
+            from ta.trend import EMAIndicator
+            ema_100_15m = EMAIndicator(close=df_bias["close"], window=100).ema_indicator().iloc[-1]
+            price_now = float(df_bias["close"].iloc[-1])
+            htf_bias = "LONG" if price_now > ema_100_15m else "SHORT"
 
-            signal = strategy.analyze(symbol, df_exec)
+            # 2. Obtener datos de 5m para Ejecución
+            df_exec = await self.get_klines(symbol, self.exec_tf)
+            if df_exec is None or len(df_exec) < 50: return None
+
+            # Pasar el bias HTF a la estrategia
+            signal = strategy.analyze_symbol(symbol, df_exec, htf_bias=htf_bias)
             if signal:
-                logger.info(
-                    f"SEÑAL (5m): {signal['signal']} {symbol} @ {signal['entry_price']:.6f}"
-                )
                 return signal
             return None
         except Exception as e:
             return None
 
     async def scan_market(self):
-        logger.info("Escaneo PROFESIONAL (5m) iniciado...")
-        start = time.time()
-
-        tickers = bybit_client.get_tickers()
-        if not tickers:
+        try:
+            tickers = bybit_client.get_tickers()
+            if not tickers: return []
+            
+            # Filtro de volumen institucional ($30M+)
+            active_symbols = [
+                t for t in tickers 
+                if float(t.get("turnover24h", 0)) > 30000000 
+                and t["symbol"].endswith("USDT")
+            ]
+            
+            logger.info(f"🔍 Escaneando {len(active_symbols)} pares con volumen > $30M...")
+            
+            tasks = [self.analyze_symbol(item) for item in active_symbols]
+            results = await asyncio.gather(*tasks)
+            
+            signals = [r for r in results if r is not None]
+            logger.info(f"✅ Escaneo completado. Señales detectadas: {len(signals)}")
+            return signals
+        except Exception as e:
+            logger.error(f"Error en scan: {e}")
             return []
-
-        # Volumen Ajustado > 30M USDT
-        tickers = [t for t in tickers if float(t.get("turnover24h", 0)) >= 30000000]
-        tickers = sorted(
-            tickers, key=lambda x: float(x.get("turnover24h", 0)), reverse=True
-        )[:100]
-        logger.info(f"Analizando {len(tickers)} pares...")
-
-        semaphore = asyncio.Semaphore(20)
-
-        async def bounded_analyze(item):
-            async with semaphore:
-                return await self.analyze_symbol(item)
-
-        tasks = [bounded_analyze(item) for item in tickers]
-        results = await asyncio.gather(*tasks)
-
-        signals = [r for r in results if r is not None]
-
-        elapsed = time.time() - start
-        logger.info(f"Escaneo completado en {elapsed:.1f}s. Señales: {len(signals)}")
-
-        return signals
-
 
 market_scanner = MarketScanner()
