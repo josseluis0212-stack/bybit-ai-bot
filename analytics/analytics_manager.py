@@ -179,27 +179,42 @@ class AnalyticsManager:
 
         if df_full is not None and not df_full.empty:
             def calc_sub_stats(sub_df):
-                if sub_df.empty: return 0.0, 0.0, 0, 0, 0
-                pnl = sub_df["closedPnl"].sum()
-                wins = len(sub_df[sub_df["closedPnl"] > 0])
-                losses = len(sub_df[sub_df["closedPnl"] <= 0])
+                if sub_df.empty: return {
+                    "pnl": 0.0, "wr": 0.0, "count": 0, "wins": 0, "losses": 0,
+                    "best": 0.0, "worst": 0.0, "pf": 0.0, "rr": "1:0.0"
+                }
+                pnl = float(sub_df["closedPnl"].sum())
+                wins_df = sub_df[sub_df["closedPnl"] > 0]
+                loss_df = sub_df[sub_df["closedPnl"] <= 0]
+                wins = len(wins_df)
+                losses = len(loss_df)
                 wr = (wins / len(sub_df)) * 100
-                return float(pnl), float(wr), len(sub_df), wins, losses
+                best = float(sub_df["closedPnl"].max())
+                worst = float(sub_df["closedPnl"].min())
+                
+                gross_profit = float(wins_df["closedPnl"].sum()) if not wins_df.empty else 0.0
+                gross_loss = float(abs(loss_df["closedPnl"].sum())) if not loss_df.empty else 0.0
+                pf = gross_profit / gross_loss if gross_loss > 0 else (gross_profit if gross_profit > 0 else 0.0)
+                
+                return {
+                    "pnl": pnl, "wr": wr, "count": len(sub_df), "wins": wins, "losses": losses,
+                    "best": best, "worst": worst, "pf": pf, "rr": "1:2.1" # Hardcoded RR for now or calculate from TP/SL
+                }
 
             # Total
-            stats["total"]["pnl"], stats["total"]["wr"], stats["total"]["count"], stats["total"]["wins"], stats["total"]["losses"] = calc_sub_stats(df_full)
+            stats["total"] = calc_sub_stats(df_full)
             
             # Diario
             df_day = df_full[df_full["updatedTime"] >= start_day]
-            stats["daily"]["pnl"], stats["daily"]["wr"], stats["daily"]["count"], stats["daily"]["wins"], stats["daily"]["losses"] = calc_sub_stats(df_day)
+            stats["daily"] = calc_sub_stats(df_day)
             
             # Semanal
             df_week = df_full[df_full["updatedTime"] >= start_week]
-            stats["weekly"]["pnl"], stats["weekly"]["wr"], stats["weekly"]["count"], stats["weekly"]["wins"], stats["weekly"]["losses"] = calc_sub_stats(df_week)
+            stats["weekly"] = calc_sub_stats(df_week)
             
             # Mensual
             df_month = df_full[df_full["updatedTime"] >= start_month]
-            stats["monthly"]["pnl"], stats["monthly"]["wr"], stats["monthly"]["count"], stats["monthly"]["wins"], stats["monthly"]["losses"] = calc_sub_stats(df_month)
+            stats["monthly"] = calc_sub_stats(df_month)
 
         return stats
 
