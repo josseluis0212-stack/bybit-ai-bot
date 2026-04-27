@@ -68,11 +68,6 @@ class ExecutionEngine:
 
         if float(qty_str) <= 0: return False
 
-        # Filtro de Funding
-        funding = bybit_client.get_funding_rate(symbol)
-        if signal == "LONG" and funding > 0.0001: return False
-        if signal == "SHORT" and funding < -0.0001: return False
-
         bybit_client.set_leverage(symbol, settings.LEVERAGE)
         side = "Buy" if signal == "LONG" else "Sell"
 
