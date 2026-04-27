@@ -54,6 +54,9 @@ class HyperQuantStrategy:
         df["ema_50"] = df["close"].ewm(span=self.ema_trend_period, adjust=False).mean()
         df["ema_100"] = df["close"].ewm(span=self.ema_bias_period, adjust=False).mean()
         df["rsi"] = self._calculate_rsi(df)
+        
+        # Filtro de Volumen Relativo
+        df["vol_sma"] = df["volume"].rolling(20).mean()
 
         curr = df.iloc[-1]
         prev = df.iloc[-2]
@@ -66,42 +69,32 @@ class HyperQuantStrategy:
         rsi = curr["rsi"]
         atr = curr["atr"]
         atr_sma = curr["atr_sma"]
+        vol_ratio = curr["volume"] / curr["vol_sma"] if curr["vol_sma"] > 0 else 1.0
 
         if pd.isna(rsi) or pd.isna(atr) or atr == 0:
             return None
 
-        volatility_ratio = atr / atr_sma if not pd.isna(atr_sma) else 1.0
-
-        if volatility_ratio < 0.3:
-            logger.debug(f"Omitiendo {symbol} - Baja volatilidad (ratio: {volatility_ratio:.2f})")
+        # Filtros Institucionales
+        if vol_ratio < 1.1: # Necesitamos volumen real
             return None
 
         bias = "LONG" if price > ema_100 else "SHORT"
         trend = "LONG" if ema_50 > ema_100 else "SHORT"
 
         if bias == "LONG":
-            if trend == "SHORT":
-                return None
+            if trend == "SHORT": return None
+            if rsi > 65 or rsi < 35: return None # Rango 35-65 solicitado
 
-            if rsi > self.rsi_long_max:
-                return None
-
+            # SMC Entry: Sweep de Liquidez
             recent_lows = df["low"].iloc[-15:-1].min()
-            sweep = curr["low"] < recent_lows and prev["close"] > recent_lows
-
-            fvg_gap = curr["low"] - prev2["high"]
-            fvg_pct = fvg_gap / price if price > 0 else 0
-            fvg = fvg_gap > 0 and fvg_pct > self.fvg_min_pct
-
-            pullback = (
-                price > ema_20 and prev["low"] <= ema_20 and curr["close"] > ema_20
-            )
-
-            rsi_confluence = rsi < 60 and rsi > 30
-
-            if (sweep and fvg) or pullback:
-                sl = price - (atr * 1.5)
-                tp = price + (atr * 3.75)
+            sweep = curr["low"] < recent_lows and curr["close"] > recent_lows
+            
+            # FVG (Fair Value Gap)
+            fvg = curr["low"] > prev2["high"]
+            
+            if sweep or fvg:
+                sl = price - (atr * 2.2) # Ajuste a 2.2 ATR
+                tp = price + (atr * 4.4) # Ajuste a 4.4 ATR
 
                 return {
                     "symbol": symbol,
@@ -110,32 +103,23 @@ class HyperQuantStrategy:
                     "sl": sl,
                     "tp": tp,
                     "atr": atr,
-                    "info": f"V10 LONG | RSI:{rsi:.1f} | ATR:{atr:.4f} | R:R 2.5:1",
+                    "info": f"QUANT ELITE LONG | RSI:{rsi:.1f} | Vol:{vol_ratio:.1f} | R:R 2:1",
                 }
 
-        else:
-            if trend == "LONG":
-                return None
+        else: # SHORT
+            if trend == "LONG": return None
+            if rsi < 35 or rsi > 65: return None # Rango 35-65 solicitado
 
-            if rsi < self.rsi_short_min:
-                return None
-
+            # SMC Entry: Sweep de Liquidez
             recent_highs = df["high"].iloc[-15:-1].max()
-            sweep = curr["high"] > recent_highs and prev["close"] < recent_highs
+            sweep = curr["high"] > recent_highs and curr["close"] < recent_highs
+            
+            # FVG (Fair Value Gap)
+            fvg = curr["high"] < prev2["low"]
 
-            fvg_gap = prev2["low"] - curr["high"]
-            fvg_pct = fvg_gap / price if price > 0 else 0
-            fvg = fvg_gap > 0 and fvg_pct > self.fvg_min_pct
-
-            pullback = (
-                price < ema_20 and prev["high"] >= ema_20 and curr["close"] < ema_20
-            )
-
-            rsi_confluence = rsi > 40 and rsi < 70
-
-            if (sweep and fvg) or pullback:
-                sl = price + (atr * 1.5)
-                tp = price - (atr * 3.75)
+            if sweep or fvg:
+                sl = price + (atr * 2.2) # Ajuste a 2.2 ATR
+                tp = price - (atr * 4.4) # Ajuste a 4.4 ATR
 
                 return {
                     "symbol": symbol,
@@ -144,7 +128,7 @@ class HyperQuantStrategy:
                     "sl": sl,
                     "tp": tp,
                     "atr": atr,
-                    "info": f"V10 SHORT | RSI:{rsi:.1f} | ATR:{atr:.4f} | R:R 2.5:1",
+                    "info": f"QUANT ELITE SHORT | RSI:{rsi:.1f} | Vol:{vol_ratio:.1f} | R:R 2:1",
                 }
 
         return None

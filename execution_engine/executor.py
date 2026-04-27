@@ -297,89 +297,48 @@ class ExecutionEngine:
                     )
 
                     # Formatear el nuevo SL según el tickSize del instrumento
-                    inst_info = bybit_client.get_instruments_info(symbol=symbol)
-                    if inst_info and symbol in inst_info:
-                        new_sl_str = self._format_step(
-                            be_sl, inst_info[symbol]["tickSize"]
-                        )
-                    else:
-                        new_sl_str = f"{be_sl:.4f}"
+                target_dist = abs(trade.take_profit - trade.entry_price)
+                current_profit_dist = (cur_price - trade.entry_price) if is_long else (trade.entry_price - cur_price)
+                profit_pct_of_target = (current_profit_dist / target_dist) if target_dist > 0 else 0
+                
+                # Parametros de la foto: Breakeven al 60% -> +0.15%
+                be_trigger = 0.60 
+                be_offset_pct = 0.0015 # 0.15%
+                
+                new_sl = None
+                
+                # FASE 1: BREAKEVEN+
+                if profit_pct_of_target >= be_trigger:
+                    be_price = trade.entry_price * (1 + be_offset_pct) if is_long else trade.entry_price * (1 - be_offset_pct)
+                    
+                    # Solo mover si el SL actual es inferior (para long) o superior (para short) al BE
+                    if is_long and (current_sl_bybit < be_price or current_sl_bybit == 0):
+                        new_sl = be_price
+                    elif not is_long and (current_sl_bybit > be_price or current_sl_bybit == 0):
+                        new_sl = be_price
 
+                # FASE 2: TRAILING STOP (Cuando supera el 85% del TP, perseguimos con ATR)
+                if profit_pct_of_target >= 0.85:
+                    atr_dist = risk * 1.5 # Usamos el risk (que es ATR) como base
+                    trail_sl = cur_price - atr_dist if is_long else cur_price + atr_dist
+                    
+                    if is_long:
+                        new_sl = max(new_sl or 0, trail_sl, current_sl_bybit)
+                    else:
+                        # Para short, queremos el más bajo
+                        valid_current = current_sl_bybit if current_sl_bybit > 0 else 999999
+                        new_sl = min(new_sl or 999999, trail_sl, valid_current)
+
+                # EJECUTAR CAMBIO SI ES NECESARIO
+                inst_info = bybit_client.get_instruments_info(symbol=symbol)
+                if new_sl and abs(new_sl - current_sl_bybit) > (new_sl * 0.0005): # Evitar spam de mini-cambios
+                    new_sl_str = self._format_step(new_sl, inst_info[symbol]["tickSize"]) if inst_info else f"{new_sl:.4f}"
                     resp = bybit_client.set_trading_stop(symbol, stop_loss=new_sl_str)
                     if resp and resp.get("retCode") == 0:
-                        await telegram_notifier.send_message(
-                            f"🛡️ <b>BREAKEVEN ACTIVADO</b>\n{symbol}: SL → {new_sl_str} (+{min_profit:.2f} profit mínimo para comisiones)"
-                        )
-                    else:
-                        logger.error(f"Error al aplicar Breakeven en {symbol}: {resp}")
+                        logger.info(f"PROTECCIÓN: {symbol} SL movido a {new_sl_str} (Target: {profit_pct_of_target:.1%})")
+                        await telegram_notifier.send_message(f"🛡️ <b>PROTECCIÓN QUANT</b>\n{symbol}: SL ajustado a {new_sl_str}\nObjetivo alcanzado: {profit_pct_of_target:.1%}")
 
-                # --- LÓGICA DE TRAILING STOP ESTRUCTURAL ---
-                elif (
-                    is_long
-                    and current_sl_bybit >= be_sl
-                    and cur_price >= (entry + risk * 2.5)
-                ):
-                    # Buscar el último fractal alcista cercano para mover el SL
-                    df = await bybit_client.get_klines_async(
-                        symbol=symbol, interval="15", limit=20
-                    )
-                    if df and df.get("result") and df["result"]["list"]:
-                        # Convertir a DF y buscar el último Low Fractal
-                        prices = [
-                            float(x[3]) for x in df["result"]["list"][::-1]
-                        ]  # Lows
-                        new_structural_sl = min(
-                            prices[:5]
-                        )  # Mínimo de las últimas 5 velas 15m
-                        if new_structural_sl > current_sl_bybit:
-                            new_sl_str = (
-                                self._format_step(
-                                    new_structural_sl, inst_info[symbol]["tickSize"]
-                                )
-                                if inst_info
-                                else f"{new_structural_sl:.4f}"
-                            )
-                            resp = bybit_client.set_trading_stop(
-                                symbol, stop_loss=new_sl_str
-                            )
-                            if resp and resp.get("retCode") == 0:
-                                await telegram_notifier.send_message(
-                                    f"📈 <b>TRAILING ESTRUCTURAL</b>\nProtegiendo beneficios en <b>{symbol}</b>. Nuevo SL: {new_sl_str}"
-                                )
-
-                elif (
-                    not is_long
-                    and current_sl_bybit <= be_sl
-                    and current_sl_bybit > 0
-                    and cur_price <= (entry - risk * 2.5)
-                ):
-                    df = await bybit_client.get_klines_async(
-                        symbol=symbol, interval="15", limit=20
-                    )
-                    if df and df.get("result") and df["result"]["list"]:
-                        prices = [
-                            float(x[2]) for x in df["result"]["list"][::-1]
-                        ]  # Highs
-                        new_structural_sl = max(
-                            prices[:5]
-                        )  # Máximo de las últimas 5 velas
-                        if new_structural_sl < current_sl_bybit:
-                            new_sl_str = (
-                                self._format_step(
-                                    new_structural_sl, inst_info[symbol]["tickSize"]
-                                )
-                                if inst_info
-                                else f"{new_structural_sl:.4f}"
-                            )
-                            resp = bybit_client.set_trading_stop(
-                                symbol, stop_loss=new_sl_str
-                            )
-                            if resp and resp.get("retCode") == 0:
-                                await telegram_notifier.send_message(
-                                    f"📉 <b>TRAILING ESTRUCTURAL</b>\nProtegiendo beneficios en <b>{symbol}</b>. Nuevo SL: {new_sl_str}"
-                                )
-
-            # REPORTE CADA 10 OPERACIONES (Enviamos el pack completo: Diario, Semanal y Mensual)
+            # REPORTE CADA 10 OPERACIONES
             closed_count = db_manager.get_closed_trades_count()
             if (
                 closed_count > 0
