@@ -130,17 +130,21 @@ class ExecutionEngine:
             if symbol not in real_positions:
                 ticker_info = ticker_map.get(symbol)
                 exit_price = float(ticker_info["lastPrice"]) if ticker_info else trade.entry_price
-                actual_pnl_data = bybit_client.get_closed_pnl(symbol=symbol, limit=1)
+                
+                # Fetch closed PnL since the trade was opened
+                open_time_ms = int(trade.open_time.replace(tzinfo=timezone.utc).timestamp() * 1000)
+                actual_pnl_data = bybit_client.get_closed_pnl(symbol=symbol, limit=50, start_time=open_time_ms)
                 
                 if actual_pnl_data and actual_pnl_data.get("retCode") == 0 and actual_pnl_data["result"]["list"]:
-                    real_pnl_item = actual_pnl_data["result"]["list"][0]
-                    pnl_usdt = float(real_pnl_item.get("closedPnl", 0))
-                    exit_price = float(real_pnl_item.get("avgExitPrice", exit_price))
-                    reason = "BYBIT_SYNC"
+                    # Sumar todos los cierres desde que se abrió
+                    pnl_usdt = sum(float(item.get("closedPnl", 0)) for item in actual_pnl_data["result"]["list"])
+                    exit_price = float(actual_pnl_data["result"]["list"][0].get("avgExitPrice", exit_price))
+                    reason = "Cerrada en Exchange (TP/SL/Trailing)"
                 else:
+                    # Fallback si Bybit tarda en actualizar el PnL, usamos el SL o TP más cercano al lastPrice
                     pnl_usdt = (exit_price - trade.entry_price) * trade.qty if trade.side == "LONG" else (trade.entry_price - exit_price) * trade.qty
-                    pnl_usdt -= (trade.entry_price * trade.qty) * 0.0011 # Fees
-                    reason = "CERRADA"
+                    pnl_usdt -= (trade.entry_price * trade.qty) * 0.0012 # Fees aproximados
+                    reason = "Cerrada (Pendiente Sincronización)"
 
                 pnl_pct = (pnl_usdt / (trade.entry_price * trade.qty)) * 100 * trade.leverage if (trade.entry_price * trade.qty) != 0 else 0
                 db_manager.close_trade(trade.id, exit_price, pnl_usdt, pnl_pct, reason)
