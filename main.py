@@ -147,6 +147,28 @@ async def bot_loop():
             await asyncio.sleep(60)
 
 
+async def keep_alive():
+    """Pings the bot itself to prevent Render Free Tier from sleeping."""
+    url = os.environ.get("RENDER_EXTERNAL_URL")
+    if not url:
+        # Intentar construirla si no está la variable (algunas veces no está por defecto)
+        # O simplemente omitir si no estamos en Render
+        return
+
+    logger.info(f"🛠️ Sistema Keep-Alive activado para: {url}")
+    await asyncio.sleep(60) # Esperar a que el server suba
+    
+    async with aiohttp.ClientSession() as session:
+        while True:
+            try:
+                async with session.get(f"{url}/health") as resp:
+                    if resp.status == 200:
+                        logger.info("💤 Keep-alive: El bot sigue despierto.")
+            except Exception as e:
+                logger.debug(f"Keep-alive error: {e}")
+            await asyncio.sleep(600) # Cada 10 minutos (Render duerme a los 15)
+
+
 async def handle_status(request):
     balance_info = bybit_client.get_wallet_balance()
     active_positions = bybit_client.get_active_positions()
@@ -295,6 +317,7 @@ async def init_web_server():
 
 async def main():
     asyncio.create_task(bot_loop())
+    asyncio.create_task(keep_alive())
     await init_web_server()
 
     while True:
