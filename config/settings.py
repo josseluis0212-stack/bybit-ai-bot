@@ -19,7 +19,7 @@ class Settings:
 
     # Parámetros de Riesgo Base
     LEVERAGE = 10
-    TRADE_AMOUNT_USDT = 20.0
+    TRADE_AMOUNT_USDT = 200.0
     MAX_CONCURRENT_TRADES = 10
 
     # PnL directo del exchange — sin simulación de fees
