@@ -43,6 +43,21 @@ class BybitClient:
             logger.error(f"Error obteniendo balance: {e}")
             return None
 
+    def get_klines(self, symbol, interval="5", limit=100):
+        try:
+            response = self.session.get_kline(
+                category="linear",
+                symbol=symbol,
+                interval=interval,
+                limit=limit
+            )
+            if response and response.get("retCode") != 0:
+                logger.warning(f"Bybit Error klines {symbol}: {response.get('retMsg')}")
+            return response
+        except Exception as e:
+            logger.error(f"Excepcion en klines {symbol}: {e}")
+            return None
+
     def get_tickers(self, category="linear"):
         try:
             response = self.session.get_tickers(category=category)
