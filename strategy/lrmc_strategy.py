@@ -63,9 +63,9 @@ class LRMCStrategy:
         df = df.copy().reset_index(drop=True)
         self._add_columns(df)
 
-        # Filtros de calidad primero (más baratos computacionalmente)
-        if not self._filter_quality(df):
-            return None
+        # Filtros de calidad (DESACTIVADOS PARA PRUEBA)
+        # if not self._filter_quality(df):
+        #     return None
 
         # Detectar setup
         signal = self._detect_sweep_and_entry(df)
@@ -178,29 +178,9 @@ class LRMCStrategy:
         if sweep_candle["low"] >= prev_low:
             return None
 
-        # 2. Cierre dentro del rango (no sigue bajando)
-        if sweep_candle["close"] <= prev_low:
-            return None
-
-        # 3. Mecha inferior válida (≥ 50% del rango)
-        candle_range = sweep_candle["high"] - sweep_candle["low"]
-        if candle_range <= 0:
-            return None
-        lower_wick = min(sweep_candle["open"], sweep_candle["close"]) - sweep_candle["low"]
-        if lower_wick / candle_range < WICK_RATIO_MIN:
-            return None
-
-        # 4. Confirmación: vela siguiente cierra alcista
-        if confirm_candle["close"] <= confirm_candle["open"]:
-            return None
-
-        # 5. No hay continuación bajista (confirmación no rompe el mínimo de la barrida)
-        if confirm_candle["low"] < sweep_candle["low"]:
-            return None
-
-        sl_price = sweep_candle["low"] * 0.9995   # ligeramente por debajo del sweep low
+        # --- FILTROS RELAJADOS PARA PRUEBA ---
+        sl_price = sweep_candle["low"] * 0.9995
         entry_price = confirm_candle["close"]
-
         return ("LONG", sl_price, entry_price)
 
     def _check_bearish_reversal(self, df: pd.DataFrame):
@@ -218,29 +198,9 @@ class LRMCStrategy:
         if sweep_candle["high"] <= prev_high:
             return None
 
-        # 2. Cierre dentro del rango
-        if sweep_candle["close"] >= prev_high:
-            return None
-
-        # 3. Mecha superior válida (≥ 50% del rango)
-        candle_range = sweep_candle["high"] - sweep_candle["low"]
-        if candle_range <= 0:
-            return None
-        upper_wick = sweep_candle["high"] - max(sweep_candle["open"], sweep_candle["close"])
-        if upper_wick / candle_range < WICK_RATIO_MIN:
-            return None
-
-        # 4. Confirmación: vela siguiente cierra bajista
-        if confirm_candle["close"] >= confirm_candle["open"]:
-            return None
-
-        # 5. No hay continuación alcista
-        if confirm_candle["high"] > sweep_candle["high"]:
-            return None
-
-        sl_price = sweep_candle["high"] * 1.0005  # ligeramente por encima del sweep high
+        # --- FILTROS RELAJADOS PARA PRUEBA ---
+        sl_price = sweep_candle["high"] * 1.0005
         entry_price = confirm_candle["close"]
-
         return ("SHORT", sl_price, entry_price)
 
     # ─── FILTROS DE CALIDAD ───────────────────────────────────────────────────
