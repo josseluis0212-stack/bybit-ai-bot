@@ -12,7 +12,7 @@ from strategy.ema_strategy import ema_strategy
 logger = logging.getLogger(__name__)
 
 TIMEFRAME      = "1"    # M1 en Bybit (minutos)
-CANDLES_NEEDED = 100    # Triple EMA Pro requiere mínimo 80 velas
+CANDLES_NEEDED = 150    # Aumentado para satisfacer EMA 100 (mínimo 120 velas)
 TOP_COINS_LIMIT = 70    # Límite de monedas a escanear (Top por volumen)
 
 
