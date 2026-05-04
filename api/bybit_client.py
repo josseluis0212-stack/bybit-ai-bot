@@ -48,9 +48,9 @@ class BybitClient:
             response = self.session.get_tickers(category=category)
             if response.get("retCode") == 0:
                 list_tickers = response["result"]["list"]
-                # Filtrar solo pares USDC (según la cuenta del usuario)
-                usdc_pairs = [item for item in list_tickers if item['symbol'].endswith('USDC')]
-                return usdc_pairs
+                # Filtrar solo pares USDT (según preferencia del usuario)
+                usdt_pairs = [item for item in list_tickers if item['symbol'].endswith('USDT')]
+                return usdt_pairs
             return None
         except Exception as e:
             logger.error(f"Error obteniendo tickers: {e}")
@@ -95,7 +95,7 @@ class BybitClient:
             logger.warning(f"Error en klines {symbol}: {type(e).__name__}")
             return None
             
-    def get_positions(self, category="linear", settleCoin="USDC"):
+    def get_positions(self, category="linear", settleCoin="USDT"):
         try:
             response = self.session.get_positions(category=category, settleCoin=settleCoin)
             return response
@@ -103,7 +103,7 @@ class BybitClient:
             logger.error(f"Error obteniendo posiciones: {e}")
             return None
 
-    def get_active_positions(self, category="linear", settleCoin="USDC"):
+    def get_active_positions(self, category="linear", settleCoin="USDT"):
         """Retorna solo las posiciones con size > 0"""
         response = self.get_positions(category, settleCoin)
         if response and response.get("retCode") == 0:

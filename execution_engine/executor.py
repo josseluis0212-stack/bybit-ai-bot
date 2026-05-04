@@ -353,7 +353,7 @@ class ExecutionEngine:
         await self.check_open_positions()
 
     async def emergency_close_all(self):
-        bybit_client.session.cancel_all_orders(category="linear", settleCoin="USDC")
+        bybit_client.session.cancel_all_orders(category="linear", settleCoin="USDT")
         active = bybit_client.get_active_positions()
         for p in active:
             side = "Sell" if p["side"] == "Buy" else "Buy"
