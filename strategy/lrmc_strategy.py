@@ -67,7 +67,32 @@ class LRMCStrategy:
         # if not self._filter_quality(df):
         #     return None
 
-        # Detectar setup
+        # --- MODO DE PRUEBA: FORZAR ENTRADA INMEDIATA ---
+        direction = "LONG"
+        entry_price = df.iloc[-1]["close"]
+        sl_price = entry_price * 0.99
+        tp1 = entry_price * 1.01
+        tp2 = entry_price * 1.02
+        tp3 = entry_price * 1.03
+        
+        logger.info(f"!!! MODO PRUEBA !!! Forzando entrada en {symbol}")
+        return {
+            "symbol":        symbol,
+            "signal":        direction,
+            "entry_price":   entry_price,
+            "sl":            sl_price,
+            "tp1":           tp1,
+            "tp2":           tp2,
+            "tp3":           tp3,
+            "tp1_pct":       0.50,
+            "tp2_pct":       0.30,
+            "tp3_pct":       0.20,
+            "breakeven_r":   1.0,
+            "sl_distance":   0.01,
+            "strategy":      "TEST_FORCE_ENTRY",
+        }
+
+        # Detectar setup (DESACTIVADO PARA PRUEBA)
         signal = self._detect_sweep_and_entry(df)
         if signal is None:
             return None
