@@ -152,7 +152,7 @@ async def handle_status(request):
 
     status = {
         "status": "Running" if BOT_ACTIVE else "Stopped",
-        "strategy": "EMA CROSSOVER (9/21) — Scalping M1",
+        "strategy": "Triple EMA Pro (9/21/100) — M1 Scalping",
         "balance": [c for c in balance_info["result"]["list"][0]["coin"] if c["coin"] in ["USDT", "USDC"]]
         if balance_info and balance_info.get("retCode") == 0
         else [],
