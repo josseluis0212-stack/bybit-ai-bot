@@ -131,11 +131,19 @@ class ExecutionEngine:
             if not state.get("breakeven_done", False):
                 tp_dist = abs(trade.take_profit - trade.entry_price)
                 cur_dist = (cur_price - trade.entry_price) if is_long else (trade.entry_price - cur_price)
-                if tp_dist > 0 and cur_dist >= tp_dist * 0.4:
+                
+                # Activar Breakeven al 60% del camino al TP (según dashboard)
+                if tp_dist > 0 and cur_dist >= tp_dist * 0.6:
                     be_price = state.get("be_price", trade.entry_price)
                     bybit_client.set_trading_stop(trade.symbol, stop_loss=str(be_price))
                     state["breakeven_done"] = True
-                    logger.info(f"🔒 Breakeven activado {trade.symbol}")
+                    logger.info(f"🔒 Breakeven activado {trade.symbol} (60% alcanzado)")
+
+                # Liberar TP al 90% para dejar correr la tendencia (EMA Trailing)
+                if tp_dist > 0 and cur_dist >= tp_dist * 0.9 and not state.get("tp_released", False):
+                    bybit_client.set_trading_stop(trade.symbol, take_profit="0")
+                    state["tp_released"] = True
+                    logger.info(f"🚀 [TRAIL] TP Liberado en {trade.symbol} para dejar correr tendencia hasta cruce EMA")
 
             from strategy.ema_strategy import ema_strategy
             resp_k = bybit_client.get_klines(trade.symbol, "1", 30)
