@@ -128,7 +128,11 @@ class BybitClient:
     def get_open_orders(self, category="linear", symbol=None):
         try:
             params = {"category": category}
-            if symbol: params["symbol"] = symbol
+            if symbol:
+                params["symbol"] = symbol
+            else:
+                params["settleCoin"] = "USDT"
+            
             response = self.session.get_open_orders(**params)
             if response and response.get("retCode") == 0:
                 return response["result"]["list"]
@@ -147,7 +151,10 @@ class BybitClient:
     def cancel_all_orders(self, category="linear", symbol=None):
         try:
             params = {"category": category}
-            if symbol: params["symbol"] = symbol
+            if symbol:
+                params["symbol"] = symbol
+            else:
+                params["settleCoin"] = "USDT"
             return self.session.cancel_all_orders(**params)
         except Exception as e:
             logger.error(f"Error cancelando todas las órdenes: {e}")
