@@ -65,9 +65,13 @@ class ExecutionEngine:
         available_balance = 0.0
         if balance_info and balance_info.get("retCode") == 0:
             coins = balance_info["result"]["list"][0]["coin"]
-            usdt = next((c for c in coins if c["coin"] == "USDT"), None)
-            if usdt:
-                available_balance = float(usdt["walletBalance"])
+            usdc = next((c for c in coins if c["coin"] == "USDC"), None)
+            if usdc:
+                available_balance = float(usdc["walletBalance"])
+            else:
+                usdt = next((c for c in coins if c["coin"] == "USDT"), None)
+                if usdt:
+                    available_balance = float(usdt["walletBalance"])
 
         if not risk_manager.can_open_new_trade(open_count, available_balance):
             return False
@@ -349,7 +353,7 @@ class ExecutionEngine:
         await self.check_open_positions()
 
     async def emergency_close_all(self):
-        bybit_client.session.cancel_all_orders(category="linear", settleCoin="USDT")
+        bybit_client.session.cancel_all_orders(category="linear", settleCoin="USDC")
         active = bybit_client.get_active_positions()
         for p in active:
             side = "Sell" if p["side"] == "Buy" else "Buy"
