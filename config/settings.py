@@ -22,12 +22,11 @@ class Settings:
     TRADE_AMOUNT_USDT = float(os.getenv("TRADE_AMOUNT_USDT") or 20.0)
     MAX_CONCURRENT_TRADES = int(os.getenv("MAX_CONCURRENT_TRADES") or 10)
 
-    # Cobertura de comisiones (para simular deducción y calcular PNL real)
-    TAKER_FEE = 0.00055  # 0.055% bybit taker fee (entrada + salida = 0.11% aprox)
-    BREAKEVEN_SPREAD = 0.0015  # 0.15% sobre entrada para cubrir comisiones reales
+    # PnL directo del exchange — sin simulación de fees
+    # Las comisiones ya están incluidas en el closedPnl de Bybit
 
     # --- HYPER SCALPER V1 PARAMS ---
-    SCAN_INTERVAL_SECONDS = 15
+    SCAN_INTERVAL_SECONDS = 60  # 1 minuto — LRMC PRO M5
     MIN_VOL_24H_USD = 500000
     TOP_COINS_LIMIT = 70
     

@@ -329,7 +329,7 @@ class ExecutionEngine:
         else:
             pnl_usdt = (exit_price - trade.entry_price) * trade.qty if trade.side == "LONG" \
                        else (trade.entry_price - exit_price) * trade.qty
-            pnl_usdt -= (trade.entry_price * trade.qty) * 0.0012  # Fees
+            # PnL directo — igual al exchange (fees ya incluidos en closedPnl de Bybit)
             reason    = "Cerrada (Sync)"
 
         pnl_pct = (pnl_usdt / (trade.entry_price * trade.qty)) * 100 * trade.leverage \
