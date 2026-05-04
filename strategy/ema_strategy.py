@@ -30,49 +30,41 @@ class EMAStrategy:
         df['ema_fast'] = df['close'].ewm(span=self.fast_period, adjust=False).mean()
         df['ema_slow'] = df['close'].ewm(span=self.slow_period, adjust=False).mean()
 
-        # 2. Buscar si hubo un cruce en las últimas 5 velas cerradas
-        # Miramos desde iloc[-6] hasta iloc[-2]
-        crossover_long = False
-        crossover_short = False
-        
-        for i in range(-6, -1):
-            prev_v = df.iloc[i-1]
-            curr_v = df.iloc[i]
-            
-            if prev_v['ema_fast'] <= prev_v['ema_slow'] and curr_v['ema_fast'] > curr_v['ema_slow']:
-                crossover_long = True
-            if prev_v['ema_fast'] >= prev_v['ema_slow'] and curr_v['ema_fast'] < curr_v['ema_slow']:
-                crossover_short = True
-
-        # 3. Datos actuales para validación de precio
+        # 2. Detectar si las medias están cruzadas (Filtro de Tendencia)
+        curr = df.iloc[-1]
         last_closed = df.iloc[-2]
-        current_price = df.iloc[-1]['close']
+        is_uptrend = curr['ema_fast'] > curr['ema_slow']
+        is_downtrend = curr['ema_fast'] < curr['ema_slow']
 
-        # 🟢 COMPRA (LONG)
-        # Si hubo cruce reciente Y el precio sigue por encima de las medias
-        if crossover_long and current_price > last_closed['ema_fast']:
-            entry_price = current_price
-            recent_low = df.iloc[-10:-1]['low'].min()
-            sl_price = recent_low * 0.9992 # SL un poco más holgado
-            
-            risk = entry_price - sl_price
-            if risk <= 0: return None
-            
-            tp_price = entry_price + (risk * 2.0)
-            logger.info(f"🔥 [EMA] SEÑAL LONG DETECTADA (Cruce reciente) en {symbol}")
+        # Log para las monedas principales (opcional, solo debug interno)
+        if symbol in ["BTCUSDT", "ETHUSDT", "SOLUSDT"]:
+            logger.info(f"📊 [{symbol}] EMA9: {curr['ema_fast']:.2f} | EMA21: {curr['ema_slow']:.2f} | Tendencia: {'UP' if is_uptrend else 'DOWN'}")
+
+        # 3. Detectar cruce reciente (en las últimas 10 velas para ser muy agresivos)
+        recent_cross_up = False
+        recent_cross_down = False
+        for i in range(-11, -1):
+            if df.iloc[i-1]['ema_fast'] <= df.iloc[i-1]['ema_slow'] and df.iloc[i]['ema_fast'] > df.iloc[i]['ema_slow']:
+                recent_cross_up = True
+            if df.iloc[i-1]['ema_fast'] >= df.iloc[i-1]['ema_slow'] and df.iloc[i]['ema_fast'] < df.iloc[i]['ema_slow']:
+                recent_cross_down = True
+
+        # 🟢 ENTRADA LONG (Si hay tendencia alcista y hubo cruce reciente)
+        if is_uptrend and recent_cross_up:
+            entry_price = curr['close']
+            sl_price = df.iloc[-10:-1]['low'].min() * 0.9995
+            if entry_price <= sl_price: return None
+            tp_price = entry_price + (entry_price - sl_price) * 2.0
+            logger.info(f"🚀 [EMA] ¡DISPARANDO LONG! en {symbol}")
             return self._build_signal(symbol, "LONG", entry_price, sl_price, tp_price)
 
-        # 🔴 VENTA (SHORT)
-        if crossover_short and current_price < last_closed['ema_fast']:
-            entry_price = current_price
-            recent_high = df.iloc[-10:-1]['high'].max()
-            sl_price = recent_high * 1.0008
-            
-            risk = sl_price - entry_price
-            if risk <= 0: return None
-            
-            tp_price = entry_price - (risk * 2.0)
-            logger.info(f"🔥 [EMA] SEÑAL SHORT DETECTADA (Cruce reciente) en {symbol}")
+        # 🔴 ENTRADA SHORT (Si hay tendencia bajista y hubo cruce reciente)
+        if is_downtrend and recent_cross_down:
+            entry_price = curr['close']
+            sl_price = df.iloc[-10:-1]['high'].max() * 1.0005
+            if entry_price >= sl_price: return None
+            tp_price = entry_price - (sl_price - entry_price) * 2.0
+            logger.info(f"🚀 [EMA] ¡DISPARANDO SHORT! en {symbol}")
             return self._build_signal(symbol, "SHORT", entry_price, sl_price, tp_price)
 
         return None
