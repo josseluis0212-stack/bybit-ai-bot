@@ -142,7 +142,7 @@ async def bot_loop():
             await asyncio.sleep(settings.SCAN_INTERVAL_SECONDS)
 
         except Exception as e:
-            logger.error(f"Error en bucle: {e}")
+            logger.warning(f"[Scanner] loop error: {e}")
             await asyncio.sleep(60)
 
 
@@ -156,6 +156,8 @@ async def handle_status(request):
         "balance": [c for c in balance_info["result"]["list"][0]["coin"] if c["coin"] in ["USDT", "USDC"]]
         if balance_info and balance_info.get("retCode") == 0
         else [],
+        "usdt_balance": next((float(c['walletBalance']) for c in balance_info["result"]["list"][0]["coin"] if c["coin"] == "USDT"), 0) if balance_info else 0,
+        "usdc_balance": next((float(c['walletBalance']) for c in balance_info["result"]["list"][0]["coin"] if c["coin"] == "USDC"), 0) if balance_info else 0,
         "active_trades_count": len(active_positions),
         "leverage": settings.LEVERAGE,
         "bot_active": BOT_ACTIVE

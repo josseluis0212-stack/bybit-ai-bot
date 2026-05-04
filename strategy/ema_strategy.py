@@ -29,45 +29,39 @@ class EMAStrategy:
         df['ema_fast'] = df['close'].ewm(span=self.fast_period, adjust=False).mean()
         df['ema_slow'] = df['close'].ewm(span=self.slow_period, adjust=False).mean()
 
-        curr = df.iloc[-1]
-        prev = df.iloc[-2]
+        # Analizar basándose en la última vela CERRADA (iloc[-2])
+        # La vela iloc[-1] es la que está en formación
+        curr = df.iloc[-2] 
+        prev = df.iloc[-3]
 
         # 🟢 COMPRA (LONG)
-        # Cruce hacia arriba: EMA9 estaba abajo y ahora está arriba
         long_cross = (prev['ema_fast'] <= prev['ema_slow']) and (curr['ema_fast'] > curr['ema_slow'])
-        price_above = (curr['close'] > curr['ema_fast']) and (curr['close'] > curr['ema_slow'])
+        price_above = (curr['close'] > curr['ema_fast'])
 
         if long_cross and price_above:
-            entry_price = curr['close']
-            # SL: Mínimo de las últimas 3 velas
-            recent_low = df.iloc[-3:]['low'].min()
-            sl_price = recent_low * 0.9998 # Pequeño margen
+            entry_price = df.iloc[-1]['close'] # Entrar al precio actual
+            recent_low = df.iloc[-5:-1]['low'].min()
+            sl_price = recent_low * 0.9995
             
             risk = entry_price - sl_price
             if risk <= 0: return None
             
-            tp_price = entry_price + (risk * 2.0) # 2:1 RR
-            
-            logger.info(f"🚀 [EMA] SEÑAL LONG {symbol} | Entry: {entry_price} SL: {sl_price} TP: {tp_price}")
+            tp_price = entry_price + (risk * 2.0)
             return self._build_signal(symbol, "LONG", entry_price, sl_price, tp_price)
 
         # 🔴 VENTA (SHORT)
-        # Cruce hacia abajo: EMA9 estaba arriba y ahora está abajo
         short_cross = (prev['ema_fast'] >= prev['ema_slow']) and (curr['ema_fast'] < curr['ema_slow'])
-        price_below = (curr['close'] < curr['ema_fast']) and (curr['close'] < curr['ema_slow'])
+        price_below = (curr['close'] < curr['ema_fast'])
 
         if short_cross and price_below:
-            entry_price = curr['close']
-            # SL: Máximo de las últimas 3 velas
-            recent_high = df.iloc[-3:]['high'].max()
-            sl_price = recent_high * 1.0002 # Pequeño margen
+            entry_price = df.iloc[-1]['close']
+            recent_high = df.iloc[-5:-1]['high'].max()
+            sl_price = recent_high * 1.0005
             
             risk = sl_price - entry_price
             if risk <= 0: return None
             
-            tp_price = entry_price - (risk * 2.0) # 2:1 RR
-            
-            logger.info(f"🚀 [EMA] SEÑAL SHORT {symbol} | Entry: {entry_price} SL: {sl_price} TP: {tp_price}")
+            tp_price = entry_price - (risk * 2.0)
             return self._build_signal(symbol, "SHORT", entry_price, sl_price, tp_price)
 
         return None
