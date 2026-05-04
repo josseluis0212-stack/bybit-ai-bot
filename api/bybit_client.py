@@ -125,6 +125,25 @@ class BybitClient:
             return [p for p in response['result']['list'] if float(p['size']) > 0]
         return []
 
+    def get_open_orders(self, category="linear", symbol=None):
+        try:
+            params = {"category": category}
+            if symbol: params["symbol"] = symbol
+            response = self.session.get_open_orders(**params)
+            if response and response.get("retCode") == 0:
+                return response["result"]["list"]
+            return []
+        except Exception as e:
+            logger.error(f"Error obteniendo open orders: {e}")
+            return []
+
+    def cancel_order(self, symbol, order_id, category="linear"):
+        try:
+            return self.session.cancel_order(category=category, symbol=symbol, orderId=order_id)
+        except Exception as e:
+            logger.error(f"Error cancelando order {order_id} de {symbol}: {e}")
+            return None
+
     def get_instruments_info(self, category="linear", symbol=None):
         try:
             params = {"category": category}

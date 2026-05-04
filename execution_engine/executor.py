@@ -42,6 +42,10 @@ class ExecutionEngine:
 
         if any(p["symbol"] == symbol for p in active_positions):
             return False
+            
+        open_orders = bybit_client.get_open_orders()
+        if open_orders and any(o["symbol"] == symbol for o in open_orders):
+            return False
 
         if symbol in self.cooldowns:
             if datetime.now() < self.cooldowns[symbol] + timedelta(minutes=15):
@@ -77,8 +81,8 @@ class ExecutionEngine:
 
         logger.info(f"🚀 [EMA PRO] EJECUTANDO {symbol} {side} | Qty={qty_str}")
         resp = bybit_client.place_order(
-            symbol=symbol, side=side, order_type="Market",
-            qty=qty_str, take_profit=tp_str, stop_loss=sl_str
+            symbol=symbol, side=side, order_type="Limit",
+            qty=qty_str, price=entry_price, take_profit=tp_str, stop_loss=sl_str
         )
 
         if resp and resp.get("retCode") == 0:
@@ -96,6 +100,18 @@ class ExecutionEngine:
         return False
 
     async def check_open_positions(self):
+        # Check and cancel limit orders older than 10 mins
+        open_orders = bybit_client.get_open_orders()
+        if open_orders:
+            for order in open_orders:
+                try:
+                    created = float(order.get("createdTime", 0)) / 1000.0
+                    if datetime.now().timestamp() - created > 600: # 10 mins
+                        bybit_client.cancel_order(order["symbol"], order["orderId"])
+                        logger.info(f"Cancelando orden Limit expirada (>10m) de {order['symbol']}")
+                except Exception as e:
+                    pass
+
         open_trades = db_manager.get_open_trades()
         if not open_trades: return
 

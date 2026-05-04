@@ -26,11 +26,11 @@ class EMAProStrategy:
         self.adx_period  = 14
         self.adx_min     = 20   # Fuerza de tendencia mínima
         self.atr_period  = 14
-        self.atr_sl_mult = 3.0  # SL = 3x ATR (lejos del ruido)
-        self.rr_ratio    = 2.0  # TP = 2x el riesgo → 6x ATR
+        self.atr_sl_mult = 4.0  # SL = 4x ATR (lejos de las instituciones)
+        self.rr_ratio    = 2.0  # TP = 2x el riesgo → 8x ATR
         self.rsi_period  = 14
-        self.rsi_ob      = 65   # RSI overbought (no comprar arriba de esto)
-        self.rsi_os      = 35   # RSI oversold   (no vender abajo de esto)
+        self.rsi_ob      = 70   # RSI overbought (no tan ajustado)
+        self.rsi_os      = 30   # RSI oversold   (no tan ajustado)
         self.vol_window  = 20
         self.cross_window = 4   # Velas máximas desde el cruce
 
@@ -122,8 +122,8 @@ class EMAProStrategy:
             risk  = entry - sl
             if risk <= 0: return None
             tp    = round(entry + risk * self.rr_ratio, 8)
-            # Breakeven: entrada + 0.05% (cubre comisiones)
-            be    = round(entry * 1.0005, 8)
+            # Breakeven: entrada + 0.15% (cubre comisiones y algo de ganancia)
+            be    = round(entry * 1.0015, 8)
             logger.info(f"✅ [EMA PRO] LONG {symbol} | E={entry:.4f} SL={sl:.4f} TP={tp:.4f} ADX={adx:.1f} RSI={rsi:.1f}")
             return self._sig(symbol, "LONG", entry, sl, tp, be, atr, adx, rsi)
 
@@ -137,7 +137,7 @@ class EMAProStrategy:
             risk  = sl - entry
             if risk <= 0: return None
             tp    = round(entry - risk * self.rr_ratio, 8)
-            be    = round(entry * 0.9995, 8)
+            be    = round(entry * 0.9985, 8)
             logger.info(f"✅ [EMA PRO] SHORT {symbol} | E={entry:.4f} SL={sl:.4f} TP={tp:.4f} ADX={adx:.1f} RSI={rsi:.1f}")
             return self._sig(symbol, "SHORT", entry, sl, tp, be, atr, adx, rsi)
 
