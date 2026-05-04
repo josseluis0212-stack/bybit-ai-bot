@@ -37,14 +37,15 @@ class ExecutionEngine:
         be_price    = signal_data.get("breakeven_price")
 
         active_positions = bybit_client.get_active_positions()
-        if len(active_positions) >= self.max_positions:
+        open_orders      = bybit_client.get_open_orders()
+        
+        total_slots_used = len(active_positions) + len(open_orders)
+
+        if total_slots_used >= self.max_positions:
+            logger.info(f"Bloqueo: Límite de 10 operaciones alcanzado (Pos: {len(active_positions)}, Ord: {len(open_orders)})")
             return False
 
-        if any(p["symbol"] == symbol for p in active_positions):
-            return False
-            
-        open_orders = bybit_client.get_open_orders()
-        if open_orders and any(o["symbol"] == symbol for o in open_orders):
+        if any(p["symbol"] == symbol for p in active_positions) or any(o["symbol"] == symbol for o in open_orders):
             return False
 
         if symbol in self.cooldowns:

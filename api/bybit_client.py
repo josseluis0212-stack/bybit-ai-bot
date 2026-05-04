@@ -118,12 +118,17 @@ class BybitClient:
             logger.error(f"Error obteniendo posiciones: {e}")
             return None
 
-    def get_active_positions(self, category="linear", settleCoin="USDT"):
-        """Retorna solo las posiciones con size > 0"""
-        response = self.get_positions(category, settleCoin)
-        if response and response.get("retCode") == 0:
-            return [p for p in response['result']['list'] if float(p['size']) > 0]
-        return []
+    def get_active_positions(self, category="linear"):
+        """Retorna solo las posiciones con size > 0 (USDT y USDC)"""
+        all_active = []
+        for coin in ["USDT", "USDC"]:
+            try:
+                response = self.get_positions(category, settleCoin=coin)
+                if response and response.get("retCode") == 0:
+                    all_active.extend([p for p in response['result']['list'] if float(p['size']) > 0])
+            except:
+                pass
+        return all_active
 
     def get_open_orders(self, category="linear", symbol=None):
         try:
