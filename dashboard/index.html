@@ -93,12 +93,12 @@
         </div>
 
         <div class="flex flex-wrap gap-3">
-            <button onclick="handleAction('run')" class="btn-elite flex items-center gap-2"><i data-lucide="play" class="w-4 h-4"></i> CORRER</button>
-            <button onclick="handleAction('stop')" class="btn-elite btn-stop flex items-center gap-2"><i data-lucide="shield-alert" class="w-4 h-4"></i> DETENER</button>
+            <button id="btn-run" onclick="handleAction('run')" class="btn-elite flex items-center gap-2"><i data-lucide="play" class="w-4 h-4"></i> CORRER</button>
+            <button id="btn-stop" onclick="handleAction('stop')" class="btn-elite btn-stop flex items-center gap-2"><i data-lucide="shield-alert" class="w-4 h-4"></i> DETENER</button>
             <button onclick="handleAction('reset')" class="btn-elite flex items-center gap-2"><i data-lucide="rotate-ccw" class="w-4 h-4"></i> RESET STATS</button>
             <div class="flex items-center gap-3 ml-4 bg-white/5 px-4 py-2 rounded-xl">
-                <div class="w-2 h-2 rounded-full bg-success animate-pulse"></div>
-                <span class="text-[10px] font-bold text-success uppercase">Escáner Activo</span>
+                <div id="status-indicator" class="w-2 h-2 rounded-full bg-success animate-pulse"></div>
+                <span id="status-text" class="text-[10px] font-bold text-success uppercase">Escáner Activo</span>
             </div>
         </div>
     </header>
@@ -268,6 +268,26 @@
                 const perf = await perfRes.json();
                 const trades = await tradesRes.json();
                 const history = await historyRes.json();
+ 
+                // 0. BOT STATUS UI
+                const statusIndicator = document.getElementById('status-indicator');
+                const statusText = document.getElementById('status-text');
+                const btnRun = document.getElementById('btn-run');
+                const btnStop = document.getElementById('btn-stop');
+
+                if (status.bot_active) {
+                    statusIndicator.className = "w-2 h-2 rounded-full bg-success animate-pulse";
+                    statusText.innerText = "Escáner Activo";
+                    statusText.className = "text-[10px] font-bold text-success uppercase";
+                    btnRun.classList.add('opacity-50', 'pointer-events-none');
+                    btnStop.classList.remove('opacity-50', 'pointer-events-none');
+                } else {
+                    statusIndicator.className = "w-2 h-2 rounded-full bg-danger";
+                    statusText.innerText = "Bot Detenido";
+                    statusText.className = "text-[10px] font-bold text-danger uppercase";
+                    btnRun.classList.remove('opacity-50', 'pointer-events-none');
+                    btnStop.classList.add('opacity-50', 'pointer-events-none');
+                }
 
                 // 1. BALANCE & BIAS
                 document.getElementById('wallet-balance').innerText = '$' + parseFloat(status.balance[0].walletBalance).toLocaleString(undefined, {minimumFractionDigits: 2});
@@ -373,15 +393,32 @@
         }
 
         async function handleAction(action) {
-            const url = action === 'run' ? '/api/trigger-scan' : (action === 'stop' ? '/api/panic-close' : '/api/reset');
-            const method = (action === 'stop' || action === 'reset') ? 'POST' : 'GET';
+            let url, method;
+            if (action === 'run') {
+                url = '/api/start';
+                method = 'POST';
+            } else if (action === 'stop') {
+                url = '/api/stop';
+                method = 'POST';
+            } else {
+                url = '/api/reset';
+                method = 'POST';
+            }
+
             try { 
                 if(action === 'reset') {
                     if(!confirm("¿Estás seguro de resetear todas las estadísticas?")) return;
                 }
                 const res = await fetch(url, { method });
                 const d = await res.json();
-                alert(d.message || "Acción completada");
+                
+                // Mostrar notificación visual en vez de alert
+                const div = document.createElement('div');
+                div.className = 'text-cyan-400 font-bold';
+                div.innerHTML = `<span class="text-white/10 mr-2">[${new Date().toLocaleTimeString()}]</span> ${d.message || "Acción completada"}`;
+                terminalLog.appendChild(div);
+                terminalLog.scrollTop = terminalLog.scrollHeight;
+                
                 updateDashboard(); 
             } catch (err) { console.error(err); }
         }

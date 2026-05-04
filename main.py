@@ -15,6 +15,9 @@ from execution_engine.executor import executor
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Estado global del bot
+BOT_ACTIVE = True
+
 # Manejador para enviar logs al dashboard via Socket.io
 class SocketIOLogHandler(logging.Handler):
     def emit(self, record):
@@ -113,6 +116,10 @@ async def bot_loop():
 
     while True:
         try:
+            if not BOT_ACTIVE:
+                await asyncio.sleep(5)
+                continue
+
             logger.info("🔍 [CICLO] Monitoreando posiciones y analizando oportunidades...")
             await executor.check_open_positions()
             
@@ -144,15 +151,31 @@ async def handle_status(request):
     active_positions = bybit_client.get_active_positions()
 
     status = {
-        "status": "Running",
+        "status": "Running" if BOT_ACTIVE else "Stopped",
         "strategy": "LRMC PRO v1.0 — Liquidity Reversion + Momentum",
         "balance": balance_info["result"]["list"][0]["coin"]
         if balance_info and balance_info.get("retCode") == 0
         else [],
         "active_trades_count": len(active_positions),
         "leverage": settings.LEVERAGE,
+        "bot_active": BOT_ACTIVE
     }
     return web.json_response(status)
+
+
+async def handle_start(request):
+    global BOT_ACTIVE
+    BOT_ACTIVE = True
+    logger.info("🚀 Bot ACTIVADO desde el dashboard")
+    return web.json_response({"status": "success", "message": "Bot activado correctamente"})
+
+
+async def handle_stop(request):
+    global BOT_ACTIVE
+    BOT_ACTIVE = False
+    logger.info("🛑 Bot DETENIDO desde el dashboard")
+    await executor.emergency_close_all()
+    return web.json_response({"status": "success", "message": "Bot detenido y posiciones cerradas"})
 
 
 async def handle_trigger_scan(request):
@@ -237,6 +260,10 @@ async def init_web_server():
     app.router.add_get("/", httpd_handle_static_index)
     app.router.add_get("/health", handle_health_check)
     app.router.add_get("/api/status", handle_status)
+    app.router.add_post("/api/start", handle_start)
+    app.router.add_get("/api/start", handle_start)
+    app.router.add_post("/api/stop", handle_stop)
+    app.router.add_get("/api/stop", handle_stop)
     app.router.add_get("/api/trigger-scan", handle_trigger_scan)
     app.router.add_post("/api/panic-close", handle_panic_close)
     app.router.add_get("/api/reset", handle_reset)
