@@ -8,7 +8,7 @@ from config.settings import settings
 from api.bybit_client import bybit_client
 from database.db_manager import db_manager
 from strategy.market_scanner import market_scanner
-from strategy.base_strategy import strategy
+from strategy.lrmc_strategy import lrmc_strategy
 from execution_engine.executor import executor
 
 # Configuración de logs
@@ -102,16 +102,14 @@ async def get_stats(sid, data):
 
 
 async def bot_loop():
-    logger.info("Iniciando Trading Bot Profesional Demo...")
+    logger.info("🚀 Iniciando LRMC PRO — Liquidity Reversion + Momentum Continuation")
     logger.info(
         f"Parámetros: {settings.LEVERAGE}x | Capital/Trade: {settings.TRADE_AMOUNT_USDT} USDT | Max Trades: {settings.MAX_CONCURRENT_TRADES}"
     )
 
     await executor.force_sync_at_startup()
 
-    logger.info(
-        f"Bot Configurado: Killzones={settings.KILLZONE_FILTER}, HTF_Confluence={settings.HTF_CONFLUENCE}"
-    )
+    logger.info("Estrategia: Barrida de Liquidez M5 | TP1=1.5R TP2=2.5R TP3=4R | BE en 1R")
 
     while True:
         try:
@@ -147,7 +145,7 @@ async def handle_status(request):
 
     status = {
         "status": "Running",
-        "strategy": "Institutional SMC Quantum v5.3",
+        "strategy": "LRMC PRO v1.0 — Liquidity Reversion + Momentum",
         "balance": balance_info["result"]["list"][0]["coin"]
         if balance_info and balance_info.get("retCode") == 0
         else [],

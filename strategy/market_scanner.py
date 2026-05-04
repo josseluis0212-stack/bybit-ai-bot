@@ -1,98 +1,94 @@
-import pandas as pd
+"""
+LRMC PRO — Market Scanner
+Escanea los pares BTC, ETH y top altcoins líquidos en M5
+usando la estrategia LRMC (Liquidity Reversion + Momentum Continuation).
+"""
 import asyncio
 import logging
-import time
+import pandas as pd
 from api.bybit_client import bybit_client
-from strategy.base_strategy import strategy
-from config.settings import settings
+from strategy.lrmc_strategy import lrmc_strategy
 
 logger = logging.getLogger(__name__)
 
+# Pares fijos de alta liquidez para LRMC PRO
+LRMC_SYMBOLS = [
+    "BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT",
+    "XRPUSDT", "ADAUSDT", "DOGEUSDT", "AVAXUSDT",
+    "LINKUSDT", "DOTUSDT", "MATICUSDT", "LTCUSDT",
+    "ATOMUSDT", "NEARUSDT", "APTUSDT", "ARBUSDT",
+    "OPUSDT",  "SEIUSDT", "SUIUSDT", "TIAUSDT",
+]
 
-class MarketScanner:
-    def __init__(self):
-        self.tf_ltf = "1"
-        self.tf_htf = "15"
-        self.limit_ltf = 150
-        self.limit_htf = 150
+TIMEFRAME    = "5"    # M5 en Bybit (minutos)
+CANDLES_NEEDED = 60   # Mínimo de velas para análisis confiable
 
-    async def get_klines(self, symbol, interval, limit):
+
+class LRMCScanner:
+    """
+    Escanea todos los pares definidos en LRMC_SYMBOLS,
+    obtiene velas M5 y aplica la estrategia LRMC PRO.
+    """
+
+    async def scan_market(self) -> list[dict]:
+        """
+        Retorna lista de señales válidas encontradas.
+        Cada señal incluye symbol, signal, entry_price, sl, tp1, tp2, tp3.
+        """
+        signals = []
+        tasks = [self._analyze_symbol(sym) for sym in LRMC_SYMBOLS]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        for sym, result in zip(LRMC_SYMBOLS, results):
+            if isinstance(result, Exception):
+                logger.debug(f"[Scanner] Error {sym}: {result}")
+                continue
+            if result is not None:
+                signals.append(result)
+
+        logger.info(f"[Scanner] LRMC scan completo — {len(signals)} señal(es) encontrada(s)")
+        return signals
+
+    async def _analyze_symbol(self, symbol: str) -> dict | None:
+        """Descarga velas M5 y analiza con LRMC strategy."""
         try:
-            resp = bybit_client.session.get_kline(
-                category="linear", symbol=symbol, interval=interval, limit=limit
-            )
-            if resp and resp.get("retCode") == 0:
-                data = resp["result"]["list"]
-                df = pd.DataFrame(
-                    data,
-                    columns=["timestamp", "open", "high", "low", "close", "volume", "turnover"],
-                )
-                df = df.iloc[::-1].reset_index(drop=True)
-                numeric_cols = ['open', 'high', 'low', 'close', 'volume']
-                for col in numeric_cols:
-                    df[col] = pd.to_numeric(df[col], errors='coerce')
-                return df.dropna(subset=numeric_cols)
-            return None
+            df = await asyncio.to_thread(self._get_klines, symbol)
+            if df is None or len(df) < CANDLES_NEEDED:
+                return None
+            return lrmc_strategy.analyze(df, symbol)
         except Exception as e:
-            logger.error(f"Error klines {symbol}: {e}")
+            logger.debug(f"[Scanner] {symbol} error: {e}")
             return None
 
-    async def analyze_symbol(self, item):
-        symbol = item["symbol"]
+    def _get_klines(self, symbol: str) -> pd.DataFrame | None:
+        """Obtiene velas M5 de Bybit y retorna DataFrame OHLCV."""
         try:
-            # Filtro de volumen 24h USD
-            turnover_24h = float(item.get("turnover24h", 0))
-            if turnover_24h < settings.MIN_VOL_24H_USD:
+            resp = bybit_client.get_klines(
+                symbol=symbol,
+                interval=TIMEFRAME,
+                limit=CANDLES_NEEDED + 10,
+            )
+            if not resp or resp.get("retCode") != 0:
                 return None
 
-            # Filtro de Spread
-            bid = float(item.get("bid1Price", 0))
-            ask = float(item.get("ask1Price", 0))
-            if bid > 0:
-                spread_pct = (ask - bid) / bid
-                if spread_pct > 0.0015: 
-                    return None
+            raw = resp["result"]["list"]
+            if not raw:
+                return None
 
-            # Obtener data LTF y HTF concurrente
-            df_ltf, df_htf = await asyncio.gather(
-                self.get_klines(symbol, self.tf_ltf, self.limit_ltf),
-                self.get_klines(symbol, self.tf_htf, self.limit_htf)
-            )
-
-            if df_ltf is None or df_htf is None: return None
-            if len(df_ltf) < 50 or len(df_htf) < 100: return None
-
-            signal = strategy.analyze_symbol(symbol, df_ltf, df_htf)
-            if signal:
-                logger.info(f"[{symbol}] SEÑAL HYPER SCALPER V1 ENCONTRADA: {signal}")
-                return signal
-
-            return None
-        except Exception as e:
-            return None
-
-    async def scan_market(self):
-        try:
-            tickers = bybit_client.get_tickers()
-            if not tickers:
-                return []
-
-            valid_tickers = []
-            for t in tickers:
-                if t["symbol"].endswith("USDT") and float(t.get("turnover24h", 0)) >= settings.MIN_VOL_24H_USD:
-                    valid_tickers.append(t)
-
-            valid_tickers.sort(key=lambda x: float(x.get("turnover24h", 0)), reverse=True)
-            top_tickers = valid_tickers[:settings.TOP_COINS_LIMIT]
-
-            tasks = [self.analyze_symbol(t) for t in top_tickers]
-            results = await asyncio.gather(*tasks)
-
-            signals = [r for r in results if r is not None]
-            return signals
+            # Bybit retorna en orden descendente (más reciente primero)
+            df = pd.DataFrame(raw, columns=[
+                "timestamp", "open", "high", "low", "close", "volume", "turnover"
+            ])
+            df = df.iloc[::-1].reset_index(drop=True)  # Cronológico
+            for col in ["open", "high", "low", "close", "volume"]:
+                df[col] = pd.to_numeric(df[col], errors="coerce")
+            df.dropna(inplace=True)
+            return df
 
         except Exception as e:
-            logger.error(f"Scanner error: {e}")
-            return []
+            logger.debug(f"[Scanner] klines {symbol}: {e}")
+            return None
 
-market_scanner = MarketScanner()
+
+# Instancia global
+market_scanner = LRMCScanner()

@@ -1,31 +1,32 @@
 services:
   - type: web
-    name: bybit-ai-bot
+    name: lrmc-pro-bot
     env: python
-    region: frankfurt
+    region: frankfurt          # EU — no USA
     plan: free
     buildCommand: "pip install -r requirements.txt"
     startCommand: "python main.py"
+    healthCheckPath: /health
     envVars:
       - key: BYBIT_API_KEY
-        value: "y6QnvcTNEhBmWiPrbg"
+        sync: false             # Se configura manualmente en Render dashboard
       - key: BYBIT_API_SECRET
-        value: "bYeLqDOUd8JJXrTatrwVDALGuXfxYBpsRVsj"
+        sync: false             # Se configura manualmente en Render dashboard
       - key: BYBIT_DEMO
-        value: "True"
+        value: "True"           # Cambiar a False cuando vayas a live
       - key: TELEGRAM_BOT_TOKEN
         value: "8363627370:AAE-1MphxrahFrRkgOSjBn_KnUYEJBL4cb0"
       - key: TELEGRAM_CHAT_ID
         value: "7840645929"
       - key: LEVERAGE
-        value: "5"
-      - key: TRADE_AMOUNT_USDT
-        value: "100"
-      - key: MAX_CONCURRENT_TRADES
         value: "10"
+      - key: TRADE_AMOUNT_USDT
+        value: "20"
+      - key: MAX_CONCURRENT_TRADES
+        value: "2"              # LRMC PRO: máximo 2 simultáneas
       - key: PROXY_URL
-        value: "" # Agrega aquí tu proxy si estás en Render (ej: http://user:pass@host:port)
+        value: ""
       - key: KILLZONE_FILTER
-        value: "True"
+        value: "False"          # LRMC no usa killzones
       - key: HTF_CONFLUENCE
-        value: "True"
+        value: "False"          # LRMC usa estructura pura M5

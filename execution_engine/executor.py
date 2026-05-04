@@ -1,3 +1,8 @@
+"""
+LRMC PRO — Execution Engine
+Gestión de órdenes con TP parciales (TP1 50% / TP2 30% / TP3 20%),
+breakeven en 1R y cierre por estancamiento.
+"""
 import logging
 import asyncio
 import math
@@ -8,18 +13,27 @@ from database.db_manager import db_manager
 from risk_management.risk_manager import risk_manager
 from config.settings import settings
 from notifications.telegram_bot import telegram_notifier
+from strategy.lrmc_strategy import lrmc_strategy
 
 logger = logging.getLogger(__name__)
 
+# Gestión dinámica LRMC
+BREAKEVEN_AT_R     = 1.0   # Mover SL a BE cuando el precio llega a 1R
+STAGNATION_CANDLES = 10    # Ciclos sin movimiento → cerrar
+STAGNATION_MOVE_PCT = 0.002  # Movimiento mínimo esperado (0.2%)
 
 class ExecutionEngine:
     def __init__(self):
         self.last_report_count = -1
+        # Seguimiento de trades parciales: {trade_id: {"tp1_done": bool, "tp2_done": bool, "stagnation_count": int, "last_price": float}}
+        self.trade_state: dict = {}
+
+    # ─── FORMATEO ─────────────────────────────────────────────────────────────
 
     def _format_step(self, value, step_string, round_down=False):
         try:
             step_dec = Decimal(str(step_string))
-            val_dec = Decimal(str(value))
+            val_dec  = Decimal(str(value))
             if round_down:
                 rounded = math.floor(val_dec / step_dec) * step_dec
             else:
@@ -29,175 +43,307 @@ class ExecutionEngine:
         except:
             return f"{float(value):.4f}"
 
-    async def try_execute_signal(self, signal_data):
-        symbol = signal_data["symbol"]
-        signal = signal_data["signal"]
-        entry_price = signal_data["entry_price"]
-        sl_price = signal_data["sl"]
-        tp_price = signal_data["tp"] # Puede ser None para modo infinito
+    # ─── ENTRADA ──────────────────────────────────────────────────────────────
 
+    async def try_execute_signal(self, signal_data: dict) -> bool:
+        symbol      = signal_data["symbol"]
+        signal      = signal_data["signal"]
+        entry_price = signal_data["entry_price"]
+        sl_price    = signal_data["sl"]
+        tp1         = signal_data["tp1"]
+        tp2         = signal_data["tp2"]
+        tp3         = signal_data["tp3"]
+
+        # Verificar límite de trades abiertos
         active_positions = bybit_client.get_active_positions()
         open_count = len(active_positions)
-
         if open_count >= settings.MAX_CONCURRENT_TRADES:
             return False
 
+        # Verificar balance
         balance_info = bybit_client.get_wallet_balance()
         available_balance = 0.0
         if balance_info and balance_info.get("retCode") == 0:
-            list_balances = balance_info["result"]["list"][0]["coin"]
-            usdt_balance = next((item for item in list_balances if item["coin"] == "USDT"), None)
-            if usdt_balance:
-                available_balance = float(usdt_balance["walletBalance"])
+            coins = balance_info["result"]["list"][0]["coin"]
+            usdt = next((c for c in coins if c["coin"] == "USDT"), None)
+            if usdt:
+                available_balance = float(usdt["walletBalance"])
 
         if not risk_manager.can_open_new_trade(open_count, available_balance):
             return False
 
+        # Calcular cantidad total
         qty = risk_manager.calculate_position_size(entry_price)
         inst_info = bybit_client.get_instruments_info(symbol=symbol)
-        
-        if inst_info and symbol in inst_info:
-            info = inst_info[symbol]
-            qty_str = self._format_step(qty, info["qtyStep"], round_down=True)
-            tp_str = self._format_step(tp_price, info["tickSize"]) if tp_price else "0"
-            sl_str = self._format_step(sl_price, info["tickSize"])
-        else:
-            qty_str = f"{qty:.3f}"
-            tp_str = f"{tp_price:.4f}" if tp_price else "0"
-            sl_str = f"{sl_price:.4f}"
+        tick_size = inst_info[symbol]["tickSize"] if inst_info and symbol in inst_info else "0.0001"
+        qty_step  = inst_info[symbol]["qtyStep"]  if inst_info and symbol in inst_info else "0.001"
 
-        if float(qty_str) <= 0: return False
+        qty_str  = self._format_step(qty,       qty_step,  round_down=True)
+        sl_str   = self._format_step(sl_price,  tick_size)
+        tp1_str  = self._format_step(tp1,       tick_size)
 
+        if float(qty_str) <= 0:
+            return False
+
+        # Apalancamiento
         bybit_client.set_leverage(symbol, settings.LEVERAGE)
         side = "Buy" if signal == "LONG" else "Sell"
 
-        logger.info(f"🚀 EJECUTANDO {signal} | {symbol} | TP: {tp_str}")
-        
+        logger.info(
+            f"🚀 [LRMC] ENTRANDO {signal} | {symbol} | "
+            f"Entry={entry_price:.4f} SL={sl_str} TP1={tp1_str}"
+        )
+
+        # Orden límite con TP1 y SL nativos (los TPs parciales se gestionan manualmente)
         response = bybit_client.place_order(
             symbol=symbol, side=side, order_type="Limit",
             qty=qty_str, price=str(entry_price),
-            take_profit=tp_str, stop_loss=sl_str,
+            take_profit=tp1_str, stop_loss=sl_str,
             time_in_force="PostOnly"
         )
 
         if response and response.get("retCode") == 0:
             risk_usdt = abs(entry_price - sl_price) * float(qty_str)
-            db_manager.add_trade(
+            trade_id = db_manager.add_trade(
                 symbol=symbol, side=signal, entry_price=entry_price,
-                sl=sl_price, tp=tp_price or 0, qty=float(qty_str),
+                sl=sl_price, tp=tp1, qty=float(qty_str),
                 leverage=settings.LEVERAGE, risk_usdt=risk_usdt
             )
+
+            # Inicializar estado del trade para gestión dinámica
+            if trade_id:
+                self.trade_state[trade_id] = {
+                    "tp1_done":        False,
+                    "tp2_done":        False,
+                    "breakeven_done":  False,
+                    "stagnation_count": 0,
+                    "last_price":      entry_price,
+                    "tp1":             tp1,
+                    "tp2":             tp2,
+                    "tp3":             tp3,
+                    "tp1_pct":         signal_data.get("tp1_pct", 0.50),
+                    "tp2_pct":         signal_data.get("tp2_pct", 0.30),
+                    "original_qty":    float(qty_str),
+                }
+
             await telegram_notifier.notify_order_opened(
                 symbol=symbol, side=signal, entry_price=f"{entry_price:.4f}",
-                sl=f"{sl_price:.4f}", tp=tp_str, qty=qty_str,
+                sl=sl_str, tp=tp1_str, qty=qty_str,
                 leverage=settings.LEVERAGE, current_trades=open_count + 1,
                 max_trades=settings.MAX_CONCURRENT_TRADES, risk_usdt=f"{risk_usdt:.2f}"
             )
             return True
+
+        logger.warning(f"[LRMC] Orden rechazada {symbol}: {response}")
         return False
 
-    async def _force_close_and_notify(self, trade, reason):
+    # ─── MONITOREO DE POSICIONES ABIERTAS ────────────────────────────────────
+
+    async def check_open_positions(self):
+        open_trades = db_manager.get_open_trades()
+        if not open_trades:
+            return
+
+        active_positions = bybit_client.get_active_positions()
+        real_positions   = {p["symbol"]: p for p in active_positions}
+        tickers          = bybit_client.get_tickers()
+        ticker_map       = {t["symbol"]: t for t in tickers} if tickers else {}
+
+        for trade in open_trades:
+            symbol = trade.symbol
+
+            # ── A. SINCRONIZACIÓN: posición ya no existe en Bybit ─────────────
+            if symbol not in real_positions:
+                await self._sync_closed_trade(trade, ticker_map)
+                continue
+
+            # ── B. PRECIO ACTUAL ──────────────────────────────────────────────
+            pos = real_positions[symbol]
+            cur_price = float(pos.get("markPrice", 0)) or \
+                        float(ticker_map.get(symbol, {}).get("lastPrice", 0))
+            if cur_price == 0:
+                continue
+
+            is_long = trade.side == "LONG"
+            risk    = abs(trade.entry_price - trade.stop_loss)
+            if risk <= 0:
+                continue
+
+            state = self.trade_state.get(trade.id, {})
+
+            # ── C. BREAKEVEN en 1R ────────────────────────────────────────────
+            if not state.get("breakeven_done", False):
+                profit_dist = (cur_price - trade.entry_price) if is_long else (trade.entry_price - cur_price)
+                if profit_dist >= risk * BREAKEVEN_AT_R:
+                    be_price = trade.entry_price * 1.0003 if is_long else trade.entry_price * 0.9997
+                    current_sl = float(pos.get("stopLoss", 0))
+                    move_be = (is_long and current_sl < be_price) or \
+                              (not is_long and (current_sl > be_price or current_sl == 0))
+                    if move_be:
+                        inst = bybit_client.get_instruments_info(symbol=symbol)
+                        tick = inst[symbol]["tickSize"] if inst and symbol in inst else "0.0001"
+                        be_str = self._format_step(be_price, tick)
+                        bybit_client.set_trading_stop(symbol, stop_loss=be_str)
+                        state["breakeven_done"] = True
+                        logger.info(f"[LRMC] 🔒 Breakeven activado {symbol} → SL={be_str}")
+
+            # ── D. TP PARCIALES ───────────────────────────────────────────────
+            tp1 = state.get("tp1", 0)
+            tp2 = state.get("tp2", 0)
+            tp1_pct = state.get("tp1_pct", 0.50)
+            tp2_pct = state.get("tp2_pct", 0.30)
+            original_qty = state.get("original_qty", trade.qty)
+
+            # TP1 (50%): cerrar parcialmente y mover TP al TP2
+            if not state.get("tp1_done", False) and tp1 > 0:
+                tp1_hit = (is_long and cur_price >= tp1) or (not is_long and cur_price <= tp1)
+                if tp1_hit:
+                    close_qty = original_qty * tp1_pct
+                    await self._partial_close(trade, close_qty, "TP1_50%")
+                    # Actualizar TP nativo a TP2
+                    tp2_str = self._format_step(tp2, "0.0001") if tp2 > 0 else "0"
+                    if tp2_str != "0":
+                        bybit_client.set_trading_stop(symbol, take_profit=tp2_str)
+                    state["tp1_done"] = True
+                    logger.info(f"[LRMC] 🎯 TP1 alcanzado {symbol} — cerrando 50%")
+
+            # TP2 (30%): cerrar parcialmente
+            elif state.get("tp1_done") and not state.get("tp2_done", False):
+                tp2_hit = (is_long and cur_price >= tp2) or (not is_long and cur_price <= tp2)
+                if tp2_hit:
+                    close_qty = original_qty * tp2_pct
+                    await self._partial_close(trade, close_qty, "TP2_30%")
+                    # El 20% restante corre libre con trailing
+                    tp3 = state.get("tp3", 0)
+                    if tp3 > 0:
+                        tp3_str = self._format_step(tp3, "0.0001")
+                        bybit_client.set_trading_stop(symbol, take_profit=tp3_str)
+                    state["tp2_done"] = True
+                    logger.info(f"[LRMC] 🎯 TP2 alcanzado {symbol} — cerrando 30%")
+
+            # ── E. SEÑAL CONTRARIA → SALIR ────────────────────────────────────
+            # (se delega al scanner principal, aquí solo chequeamos estancamiento)
+
+            # ── F. ESTANCAMIENTO (10 ciclos sin moverse ≥ 0.2%) ──────────────
+            last_price = state.get("last_price", trade.entry_price)
+            move_pct = abs(cur_price - last_price) / last_price if last_price > 0 else 0
+            if move_pct < STAGNATION_MOVE_PCT:
+                state["stagnation_count"] = state.get("stagnation_count", 0) + 1
+            else:
+                state["stagnation_count"] = 0
+                state["last_price"] = cur_price
+
+            if state.get("stagnation_count", 0) >= STAGNATION_CANDLES:
+                logger.info(f"[LRMC] ⏱️ Estancamiento {symbol} — cerrando posición")
+                await self._force_close_and_notify(trade, "STAGNATION_EXIT")
+                state["stagnation_count"] = 0
+                continue
+
+            self.trade_state[trade.id] = state
+
+        # Reporte cada 10 trades cerrados
+        closed_count = db_manager.get_closed_trades_count()
+        if closed_count > 0 and closed_count % 10 == 0 and closed_count != self.last_report_count:
+            self.last_report_count = closed_count
+            from analytics.analytics_manager import analytics_manager
+            msg = analytics_manager.get_combined_periodic_report()
+            if msg:
+                await telegram_notifier.send_message(msg)
+
+    # ─── CIERRE PARCIAL ───────────────────────────────────────────────────────
+
+    async def _partial_close(self, trade, qty_to_close: float, reason: str):
+        """Cierra una porción de la posición a mercado."""
         symbol = trade.symbol
-        side = "Sell" if trade.side == "LONG" else "Buy"
+        side   = "Sell" if trade.side == "LONG" else "Buy"
+        inst   = bybit_client.get_instruments_info(symbol=symbol)
+        step   = inst[symbol]["qtyStep"] if inst and symbol in inst else "0.001"
+        qty_str = self._format_step(qty_to_close, step, round_down=True)
+
+        if float(qty_str) <= 0:
+            return
+
         resp = bybit_client.place_order(
+            symbol=symbol, side=side, order_type="Market",
+            qty=qty_str, reduce_only=True
+        )
+        if resp and resp.get("retCode") == 0:
+            ticker = bybit_client.get_tickers(symbol=symbol)
+            exit_price = float(ticker[0]["lastPrice"]) if ticker else trade.entry_price
+            pnl = (exit_price - trade.entry_price) * float(qty_str) if trade.side == "LONG" \
+                  else (trade.entry_price - exit_price) * float(qty_str)
+            await telegram_notifier.send_message(
+                f"✅ <b>{reason}</b> | {symbol}\n"
+                f"Cerrado {qty_str} @ {exit_price:.4f}\n"
+                f"PnL parcial: <b>{pnl:+.2f} USDT</b>"
+            )
+
+    # ─── CIERRE FORZADO ───────────────────────────────────────────────────────
+
+    async def _force_close_and_notify(self, trade, reason: str):
+        symbol = trade.symbol
+        side   = "Sell" if trade.side == "LONG" else "Buy"
+        resp   = bybit_client.place_order(
             symbol=symbol, side=side, order_type="Market",
             qty=str(trade.qty), reduce_only=True
         )
         if resp and resp.get("retCode") == 0:
             ticker = bybit_client.get_tickers(symbol=symbol)
             exit_price = float(ticker[0]["lastPrice"]) if ticker else trade.entry_price
-            pnl_usdt = (exit_price - trade.entry_price) * trade.qty if trade.side == "LONG" else (trade.entry_price - exit_price) * trade.qty
-            pnl_pct = (pnl_usdt / (trade.entry_price * trade.qty)) * 100 * trade.leverage
+            pnl_usdt = (exit_price - trade.entry_price) * trade.qty if trade.side == "LONG" \
+                       else (trade.entry_price - exit_price) * trade.qty
+            pnl_pct  = (pnl_usdt / (trade.entry_price * trade.qty)) * 100 * trade.leverage \
+                       if (trade.entry_price * trade.qty) != 0 else 0
             db_manager.close_trade(trade.id, exit_price, pnl_usdt, pnl_pct, reason)
-            await telegram_notifier.send_message(f"🚨 <b>{reason}</b>\n{symbol}: Cerrado a mercado.\nPnL: <b>{pnl_usdt:+.2f} USDT</b>")
+
+            # Informar al estratega LRMC del resultado
+            if pnl_usdt >= 0:
+                lrmc_strategy.register_win()
+            else:
+                lrmc_strategy.register_loss()
+
+            await telegram_notifier.send_message(
+                f"🚨 <b>{reason}</b>\n{symbol}: cerrado @ {exit_price:.4f}\n"
+                f"PnL: <b>{pnl_usdt:+.2f} USDT</b>"
+            )
+            # Limpiar estado
+            self.trade_state.pop(trade.id, None)
             return True
         return False
 
-    async def check_open_positions(self):
-        open_trades = db_manager.get_open_trades()
-        if not open_trades: return
+    # ─── SINCRONIZACIÓN CON BYBIT ────────────────────────────────────────────
 
-        active_positions = bybit_client.get_active_positions()
-        real_positions = {p["symbol"]: p for p in active_positions}
+    async def _sync_closed_trade(self, trade, ticker_map: dict):
+        """Trade ya no existe en Bybit → sincronizar DB."""
+        symbol = trade.symbol
+        ticker_info = ticker_map.get(symbol)
+        exit_price  = float(ticker_info["lastPrice"]) if ticker_info else trade.entry_price
 
-        tickers = bybit_client.get_tickers()
-        ticker_map = {t["symbol"]: t for t in tickers} if tickers else {}
+        open_time_ms = int(trade.open_time.replace(tzinfo=timezone.utc).timestamp() * 1000)
+        pnl_data     = bybit_client.get_closed_pnl(symbol=symbol, limit=50, start_time=open_time_ms)
 
-        for trade in open_trades:
-            symbol = trade.symbol
-            
-            # 1. SINCRONIZACIÓN CON BYBIT (SL/TP TOCADOS)
-            if symbol not in real_positions:
-                ticker_info = ticker_map.get(symbol)
-                exit_price = float(ticker_info["lastPrice"]) if ticker_info else trade.entry_price
-                
-                # Fetch closed PnL since the trade was opened
-                open_time_ms = int(trade.open_time.replace(tzinfo=timezone.utc).timestamp() * 1000)
-                actual_pnl_data = bybit_client.get_closed_pnl(symbol=symbol, limit=50, start_time=open_time_ms)
-                
-                if actual_pnl_data and actual_pnl_data.get("retCode") == 0 and actual_pnl_data["result"]["list"]:
-                    # Sumar todos los cierres desde que se abrió
-                    pnl_usdt = sum(float(item.get("closedPnl", 0)) for item in actual_pnl_data["result"]["list"])
-                    exit_price = float(actual_pnl_data["result"]["list"][0].get("avgExitPrice", exit_price))
-                    reason = "Cerrada en Exchange (TP/SL/Trailing)"
-                else:
-                    # Fallback si Bybit tarda en actualizar el PnL, usamos el SL o TP más cercano al lastPrice
-                    pnl_usdt = (exit_price - trade.entry_price) * trade.qty if trade.side == "LONG" else (trade.entry_price - exit_price) * trade.qty
-                    pnl_usdt -= (trade.entry_price * trade.qty) * 0.0012 # Fees aproximados
-                    reason = "Cerrada (Pendiente Sincronización)"
+        if pnl_data and pnl_data.get("retCode") == 0 and pnl_data["result"]["list"]:
+            pnl_usdt   = sum(float(i.get("closedPnl", 0)) for i in pnl_data["result"]["list"])
+            exit_price = float(pnl_data["result"]["list"][0].get("avgExitPrice", exit_price))
+            reason     = "Cerrada en Exchange (TP/SL)"
+        else:
+            pnl_usdt = (exit_price - trade.entry_price) * trade.qty if trade.side == "LONG" \
+                       else (trade.entry_price - exit_price) * trade.qty
+            pnl_usdt -= (trade.entry_price * trade.qty) * 0.0012  # Fees
+            reason    = "Cerrada (Sync)"
 
-                pnl_pct = (pnl_usdt / (trade.entry_price * trade.qty)) * 100 * trade.leverage if (trade.entry_price * trade.qty) != 0 else 0
-                db_manager.close_trade(trade.id, exit_price, pnl_usdt, pnl_pct, reason)
-                continue
+        pnl_pct = (pnl_usdt / (trade.entry_price * trade.qty)) * 100 * trade.leverage \
+                  if (trade.entry_price * trade.qty) != 0 else 0
+        db_manager.close_trade(trade.id, exit_price, pnl_usdt, pnl_pct, reason)
 
-            # 2. CIERRE POR TIEMPO (V9.1: 15 MINUTOS)
-            now_utc = datetime.now(timezone.utc)
-            ot_utc = trade.open_time.replace(tzinfo=timezone.utc)
-            if (now_utc - ot_utc).total_seconds() > 900:
-                await self._force_close_and_notify(trade, "TIME_EXIT")
-                continue
+        if pnl_usdt >= 0:
+            lrmc_strategy.register_win()
+        else:
+            lrmc_strategy.register_loss()
 
-            # 3. GESTIÓN ACTIVA (BREAKEVEN+ Y TRAILING)
-            pos = real_positions[symbol]
-            cur_price = float(pos.get("markPrice", 0)) or float(ticker_map.get(symbol, {}).get("lastPrice", 0))
-            if cur_price == 0: continue
+        self.trade_state.pop(trade.id, None)
 
-            is_long = trade.side == "LONG"
-            risk = abs(trade.entry_price - trade.stop_loss)
-            if risk <= 0: continue
-
-            target_tp = trade.take_profit if trade.take_profit > 0 else (trade.entry_price + risk * 4.4 if is_long else trade.entry_price - risk * 4.4)
-            target_dist = abs(target_tp - trade.entry_price)
-            current_profit_dist = (cur_price - trade.entry_price) if is_long else (trade.entry_price - cur_price)
-            profit_pct = current_profit_dist / target_dist if target_dist > 0 else 0
-            
-            current_sl_bybit = float(pos.get("stopLoss", 0))
-            new_sl = None
-
-            # Breakeven+ al 60% -> Entrada + 0.15%
-            if profit_pct >= 0.60:
-                be_price = trade.entry_price * (1 + 0.0015) if is_long else trade.entry_price * (1 - 0.0015)
-                if (is_long and current_sl_bybit < be_price) or (not is_long and (current_sl_bybit > be_price or current_sl_bybit == 0)):
-                    new_sl = be_price
-
-            # Trailing Stop al 85% -> Perseguir a 1.5 ATR
-            if profit_pct >= 0.85:
-                trail_sl = cur_price - risk * 1.5 if is_long else cur_price + risk * 1.5
-                if is_long: new_sl = max(new_sl or 0, trail_sl, current_sl_bybit)
-                else: new_sl = min(new_sl or 999999, trail_sl, current_sl_bybit if current_sl_bybit > 0 else 999999)
-
-            if new_sl and abs(new_sl - current_sl_bybit) > (new_sl * 0.0005):
-                inst = bybit_client.get_instruments_info(symbol=symbol)
-                new_sl_str = self._format_step(new_sl, inst[symbol]["tickSize"]) if inst else f"{new_sl:.4f}"
-                bybit_client.set_trading_stop(symbol, stop_loss=new_sl_str)
-
-        # REPORTE CADA 10
-        closed_count = db_manager.get_closed_trades_count()
-        if closed_count > 0 and closed_count % 10 == 0 and closed_count != self.last_report_count:
-            self.last_report_count = closed_count
-            from analytics.analytics_manager import analytics_manager
-            msg = analytics_manager.get_combined_periodic_report()
-            if msg: await telegram_notifier.send_message(msg)
+    # ─── UTILIDADES ───────────────────────────────────────────────────────────
 
     async def force_sync_at_startup(self):
         await self.check_open_positions()
@@ -206,8 +352,12 @@ class ExecutionEngine:
         bybit_client.session.cancel_all_orders(category="linear", settleCoin="USDT")
         active = bybit_client.get_active_positions()
         for p in active:
-            bybit_client.place_order(p["symbol"], "Sell" if p["side"] == "Buy" else "Buy", "Market", p["size"], reduce_only=True)
+            side = "Sell" if p["side"] == "Buy" else "Buy"
+            bybit_client.place_order(p["symbol"], side, "Market", p["size"], reduce_only=True)
+        lrmc_strategy.unblock()
+        self.trade_state.clear()
         await self.force_sync_at_startup()
         return True
+
 
 executor = ExecutionEngine()
