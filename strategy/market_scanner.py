@@ -11,9 +11,9 @@ from strategy.ema_strategy import ema_strategy
 
 logger = logging.getLogger(__name__)
 
-TIMEFRAME    = "1"    # M1 en Bybit (minutos)
-CANDLES_NEEDED = 60   # Mínimo de velas para análisis confiable
-TOP_COINS_LIMIT = 70  # Límite de monedas a escanear (Top por volumen)
+TIMEFRAME      = "1"    # M1 en Bybit (minutos)
+CANDLES_NEEDED = 100    # Triple EMA Pro requiere mínimo 80 velas
+TOP_COINS_LIMIT = 70    # Límite de monedas a escanear (Top por volumen)
 
 
 class LRMCScanner:
@@ -42,10 +42,12 @@ class LRMCScanner:
 
         for sym, result in zip(symbols, results):
             if isinstance(result, Exception):
-                logger.debug(f"[Scanner] Error {sym}: {result}")
+                logger.warning(f"[Scanner] Error critico en {sym}: {result}")
                 continue
             if result is not None:
                 signals.append(result)
+            elif sym == "BTCUSDT":
+                logger.info(f"[Scanner] BTC analizado sin señal (OK)")
 
         logger.info(f"[Scanner] EMA scan completo — {len(signals)} señal(es) encontrada(s) en {len(symbols)} monedas")
         return signals
@@ -90,7 +92,7 @@ class LRMCScanner:
             return df
 
         except Exception as e:
-            logger.debug(f"[Scanner] klines {symbol}: {e}")
+            logger.warning(f"[Scanner] Error en klines de {symbol}: {e}")
             return None
 
 
