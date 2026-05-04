@@ -18,9 +18,9 @@ class Settings:
     TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
     # Parámetros de Riesgo Base
-    LEVERAGE = int(os.getenv("LEVERAGE") or 10)
-    TRADE_AMOUNT_USDT = float(os.getenv("TRADE_AMOUNT_USDT") or 20.0)
-    MAX_CONCURRENT_TRADES: int = 3
+    LEVERAGE = 10
+    TRADE_AMOUNT_USDT = 20.0
+    MAX_CONCURRENT_TRADES = 10
 
     # PnL directo del exchange — sin simulación de fees
     # Las comisiones ya están incluidas en el closedPnl de Bybit
