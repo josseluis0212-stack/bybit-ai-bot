@@ -13,7 +13,7 @@ class ExecutionEngine:
     def __init__(self):
         self.trade_state: dict = {}
         self.cooldowns: dict = {}  # {symbol: timestamp_of_loss}
-        self.max_positions = 10
+        self.max_positions = settings.MAX_CONCURRENT_TRADES
 
     def _format_step(self, value, step, round_down=False):
         if not step or float(step) == 0: return str(value)
@@ -167,7 +167,19 @@ class ExecutionEngine:
             self._sync_closed_trade(trade)
 
     async def force_sync_at_startup(self):
-        pass
+        """Sincroniza el estado interno con la base de datos al iniciar."""
+        try:
+            logger.info("🔄 Sincronizando estado interno con la base de datos...")
+            open_trades = db_manager.get_open_trades()
+            for trade in open_trades:
+                # Reconstruir estado mínimo para no perder seguimiento
+                self.trade_state[trade.id] = {
+                    "breakeven_done": False, 
+                    "be_price": trade.entry_price * 1.0015 if trade.side == "LONG" else trade.entry_price * 0.9985
+                }
+            logger.info(f"✅ Sincronización completada. Monitoreando {len(open_trades)} posiciones.")
+        except Exception as e:
+            logger.error(f"Error en sincronización inicial: {e}")
 
     async def emergency_close_all(self) -> bool:
         """Cierra todas las posiciones y cancela todas las órdenes."""
