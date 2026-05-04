@@ -49,22 +49,29 @@ class EMAStrategy:
             if df.iloc[i-1]['ema_fast'] >= df.iloc[i-1]['ema_slow'] and df.iloc[i]['ema_fast'] < df.iloc[i]['ema_slow']:
                 recent_cross_down = True
 
-        # 🟢 ENTRADA LONG (Si hay tendencia alcista y hubo cruce reciente)
+        # 🟢 ENTRADA LONG
         if is_uptrend and recent_cross_up:
+            # Filtro de distancia (no entrar si ya se voló demasiado)
+            dist_ema = (curr['close'] - curr['ema_fast']) / curr['ema_fast']
+            if dist_ema > 0.02: return None 
+
             entry_price = curr['close']
-            sl_price = df.iloc[-10:-1]['low'].min() * 0.9995
+            sl_price = df.iloc[-15:-1]['low'].min() * 0.9985
             if entry_price <= sl_price: return None
-            tp_price = entry_price + (entry_price - sl_price) * 2.0
-            logger.info(f"🚀 [EMA] ¡DISPARANDO LONG! en {symbol}")
+            tp_price = entry_price + (entry_price - sl_price) * 1.5
+            logger.info(f"💰 [OPORTUNIDAD] LONG en {symbol} | Precio: {entry_price}")
             return self._build_signal(symbol, "LONG", entry_price, sl_price, tp_price)
 
-        # 🔴 ENTRADA SHORT (Si hay tendencia bajista y hubo cruce reciente)
+        # 🔴 ENTRADA SHORT
         if is_downtrend and recent_cross_down:
+            dist_ema = (curr['ema_fast'] - curr['close']) / curr['ema_fast']
+            if dist_ema > 0.02: return None
+
             entry_price = curr['close']
-            sl_price = df.iloc[-10:-1]['high'].max() * 1.0005
+            sl_price = df.iloc[-15:-1]['high'].max() * 1.0015
             if entry_price >= sl_price: return None
-            tp_price = entry_price - (sl_price - entry_price) * 2.0
-            logger.info(f"🚀 [EMA] ¡DISPARANDO SHORT! en {symbol}")
+            tp_price = entry_price - (sl_price - entry_price) * 1.5
+            logger.info(f"💰 [OPORTUNIDAD] SHORT en {symbol} | Precio: {entry_price}")
             return self._build_signal(symbol, "SHORT", entry_price, sl_price, tp_price)
 
         return None

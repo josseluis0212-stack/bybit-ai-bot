@@ -80,7 +80,10 @@ class LRMCScanner:
             df = pd.DataFrame(raw, columns=[
                 "timestamp", "open", "high", "low", "close", "volume", "turnover"
             ])
-            df = df.iloc[::-1].reset_index(drop=True)  # Cronológico
+            # Forzar conversión y asegurar orden cronológico (Viejo -> Nuevo)
+            df['timestamp'] = pd.to_numeric(df['timestamp'])
+            df = df.sort_values('timestamp', ascending=True).reset_index(drop=True)
+            
             for col in ["open", "high", "low", "close", "volume"]:
                 df[col] = pd.to_numeric(df[col], errors="coerce")
             df.dropna(inplace=True)
