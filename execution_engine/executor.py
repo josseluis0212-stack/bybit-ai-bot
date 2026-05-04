@@ -169,4 +169,33 @@ class ExecutionEngine:
     async def force_sync_at_startup(self):
         pass
 
+    async def emergency_close_all(self) -> bool:
+        """Cierra todas las posiciones y cancela todas las órdenes."""
+        try:
+            logger.warning("🚨 [PANIC] Ejecutando cierre de emergencia...")
+            # 1. Cancelar órdenes
+            bybit_client.cancel_all_orders()
+            
+            # 2. Cierre masivo de posiciones
+            positions = bybit_client.get_active_positions()
+            for p in positions:
+                side = "Sell" if p["side"] == "Buy" else "Buy"
+                bybit_client.place_order(
+                    symbol=p["symbol"],
+                    side=side,
+                    order_type="Market",
+                    qty=p["size"],
+                    reduce_only=True
+                )
+                logger.info(f"Cerrada posición de {p['symbol']}")
+            
+            # 3. Limpiar estado interno y DB
+            self.trade_state = {}
+            db_manager.reset_all_stats()
+            logger.info("✅ Pánico completado con éxito")
+            return True
+        except Exception as e:
+            logger.error(f"Error en cierre de emergencia: {e}")
+            return False
+
 executor = ExecutionEngine()

@@ -121,6 +121,7 @@ async def bot_loop():
                 continue
 
             logger.info("🔍 [CICLO] Monitoreando posiciones y analizando oportunidades...")
+            logger.info("📡 Bot Escaneando...") # Log para confirmar vida en terminal
             await executor.check_open_positions()
             
             logger.info(f"📡 [SCANNER] Escaneando mercado: Top {settings.TOP_COINS_LIMIT} Monedas (>$500k vol)...")
@@ -230,19 +231,21 @@ async def handle_trades(request):
 
 
 async def handle_history(request):
-    closed_trades = db_manager.get_history(limit=50)
+    from analytics.analytics_manager import analytics_manager
+    df = analytics_manager._fetch_trades()
     history = []
-    for t in closed_trades:
-        history.append(
-            {
-                "symbol": t.symbol,
-                "side": t.side,
-                "entry": t.entry_price,
-                "exit": t.exit_price,
-                "pnl_usdt": t.pnl_usdt,
-                "reason": t.close_reason,
-            }
-        )
+    if df is not None and not df.empty:
+        # Tomar los últimos 50
+        df_last = df.sort_values("updatedTime", ascending=False).head(50)
+        for _, row in df_last.iterrows():
+            history.append({
+                "symbol": row["symbol"],
+                "side": row["side"],
+                "entry": float(row["avgEntryPrice"]) if "avgEntryPrice" in row else 0,
+                "exit": float(row["avgExitPrice"]) if "avgExitPrice" in row else 0,
+                "pnl_usdt": float(row["closedPnl"]),
+                "reason": "Bybit Sync"
+            })
     return web.json_response(history)
 
 

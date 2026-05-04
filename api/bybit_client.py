@@ -144,6 +144,15 @@ class BybitClient:
             logger.error(f"Error cancelando order {order_id} de {symbol}: {e}")
             return None
 
+    def cancel_all_orders(self, category="linear", symbol=None):
+        try:
+            params = {"category": category}
+            if symbol: params["symbol"] = symbol
+            return self.session.cancel_all_orders(**params)
+        except Exception as e:
+            logger.error(f"Error cancelando todas las órdenes: {e}")
+            return None
+
     def get_instruments_info(self, category="linear", symbol=None):
         try:
             params = {"category": category}
