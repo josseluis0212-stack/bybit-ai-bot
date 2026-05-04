@@ -11,17 +11,9 @@ from strategy.ema_strategy import ema_strategy
 
 logger = logging.getLogger(__name__)
 
-# Pares fijos de alta liquidez para LRMC PRO
-LRMC_SYMBOLS = [
-    "BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT",
-    "XRPUSDT", "ADAUSDT", "DOGEUSDT", "AVAXUSDT",
-    "LINKUSDT", "DOTUSDT", "MATICUSDT", "LTCUSDT",
-    "ATOMUSDT", "NEARUSDT", "APTUSDT", "ARBUSDT",
-    "OPUSDT",  "SEIUSDT", "SUIUSDT", "TIAUSDT",
-]
-
 TIMEFRAME    = "1"    # M1 en Bybit (minutos)
 CANDLES_NEEDED = 60   # Mínimo de velas para análisis confiable
+TOP_COINS_LIMIT = 70  # Límite de monedas a escanear (Top por volumen)
 
 
 class LRMCScanner:
@@ -33,20 +25,29 @@ class LRMCScanner:
     async def scan_market(self) -> list[dict]:
         """
         Retorna lista de señales válidas encontradas.
-        Cada señal incluye symbol, signal, entry_price, sl, tp1, tp2, tp3.
         """
+        # Obtener Top monedas dinámicamente
+        tickers = bybit_client.get_tickers()
+        if not tickers:
+            logger.error("[Scanner] No se pudieron obtener tickers de Bybit")
+            return []
+
+        # Ordenar por volumen 24h descendente y tomar las top
+        sorted_tickers = sorted(tickers, key=lambda x: float(x.get('turnover24h', 0)), reverse=True)
+        symbols = [t['symbol'] for t in sorted_tickers[:TOP_COINS_LIMIT]]
+
         signals = []
-        tasks = [self._analyze_symbol(sym) for sym in LRMC_SYMBOLS]
+        tasks = [self._analyze_symbol(sym) for sym in symbols]
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        for sym, result in zip(LRMC_SYMBOLS, results):
+        for sym, result in zip(symbols, results):
             if isinstance(result, Exception):
                 logger.debug(f"[Scanner] Error {sym}: {result}")
                 continue
             if result is not None:
                 signals.append(result)
 
-        logger.info(f"[Scanner] LRMC scan completo — {len(signals)} señal(es) encontrada(s)")
+        logger.info(f"[Scanner] EMA scan completo — {len(signals)} señal(es) encontrada(s) en {len(symbols)} monedas")
         return signals
 
     async def _analyze_symbol(self, symbol: str) -> dict | None:

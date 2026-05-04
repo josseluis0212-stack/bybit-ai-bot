@@ -20,15 +20,16 @@ class Settings:
     # Parámetros de Riesgo Base
     LEVERAGE = int(os.getenv("LEVERAGE") or 10)
     TRADE_AMOUNT_USDT = float(os.getenv("TRADE_AMOUNT_USDT") or 20.0)
-    MAX_CONCURRENT_TRADES = int(os.getenv("MAX_CONCURRENT_TRADES") or 10)
+    MAX_CONCURRENT_TRADES: int = 3
 
     # PnL directo del exchange — sin simulación de fees
     # Las comisiones ya están incluidas en el closedPnl de Bybit
 
     # --- HYPER SCALPER V1 PARAMS ---
-    SCAN_INTERVAL_SECONDS = 60  # 1 minuto — LRMC PRO M5
-    MIN_VOL_24H_USD = 500000
-    TOP_COINS_LIMIT = 70
+    SCAN_INTERVAL_SECONDS: int = 15
+    MIN_VOLUME_24H: int = 500000
+    TOP_COINS_LIMIT: int = 70
+    STAGNATION_MOVE_PCT: float = 0.002
     
     ATR_PERIOD = 14
     ATR_MULTIPLIER_SL = 2.2
