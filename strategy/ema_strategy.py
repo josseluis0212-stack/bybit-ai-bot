@@ -26,42 +26,53 @@ class EMAStrategy:
         df = df.copy()
         
         # Calcular EMAs
+        # 1. Calcular EMAs
         df['ema_fast'] = df['close'].ewm(span=self.fast_period, adjust=False).mean()
         df['ema_slow'] = df['close'].ewm(span=self.slow_period, adjust=False).mean()
 
-        # Analizar basándose en la última vela CERRADA (iloc[-2])
-        # La vela iloc[-1] es la que está en formación
-        curr = df.iloc[-2] 
-        prev = df.iloc[-3]
+        # 2. Buscar si hubo un cruce en las últimas 5 velas cerradas
+        # Miramos desde iloc[-6] hasta iloc[-2]
+        crossover_long = False
+        crossover_short = False
+        
+        for i in range(-6, -1):
+            prev_v = df.iloc[i-1]
+            curr_v = df.iloc[i]
+            
+            if prev_v['ema_fast'] <= prev_v['ema_slow'] and curr_v['ema_fast'] > curr_v['ema_slow']:
+                crossover_long = True
+            if prev_v['ema_fast'] >= prev_v['ema_slow'] and curr_v['ema_fast'] < curr_v['ema_slow']:
+                crossover_short = True
+
+        # 3. Datos actuales para validación de precio
+        last_closed = df.iloc[-2]
+        current_price = df.iloc[-1]['close']
 
         # 🟢 COMPRA (LONG)
-        long_cross = (prev['ema_fast'] <= prev['ema_slow']) and (curr['ema_fast'] > curr['ema_slow'])
-        price_above = (curr['close'] > curr['ema_fast'])
-
-        if long_cross and price_above:
-            entry_price = df.iloc[-1]['close'] # Entrar al precio actual
-            recent_low = df.iloc[-5:-1]['low'].min()
-            sl_price = recent_low * 0.9995
+        # Si hubo cruce reciente Y el precio sigue por encima de las medias
+        if crossover_long and current_price > last_closed['ema_fast']:
+            entry_price = current_price
+            recent_low = df.iloc[-10:-1]['low'].min()
+            sl_price = recent_low * 0.9992 # SL un poco más holgado
             
             risk = entry_price - sl_price
             if risk <= 0: return None
             
             tp_price = entry_price + (risk * 2.0)
+            logger.info(f"🔥 [EMA] SEÑAL LONG DETECTADA (Cruce reciente) en {symbol}")
             return self._build_signal(symbol, "LONG", entry_price, sl_price, tp_price)
 
         # 🔴 VENTA (SHORT)
-        short_cross = (prev['ema_fast'] >= prev['ema_slow']) and (curr['ema_fast'] < curr['ema_slow'])
-        price_below = (curr['close'] < curr['ema_fast'])
-
-        if short_cross and price_below:
-            entry_price = df.iloc[-1]['close']
-            recent_high = df.iloc[-5:-1]['high'].max()
-            sl_price = recent_high * 1.0005
+        if crossover_short and current_price < last_closed['ema_fast']:
+            entry_price = current_price
+            recent_high = df.iloc[-10:-1]['high'].max()
+            sl_price = recent_high * 1.0008
             
             risk = sl_price - entry_price
             if risk <= 0: return None
             
             tp_price = entry_price - (risk * 2.0)
+            logger.info(f"🔥 [EMA] SEÑAL SHORT DETECTADA (Cruce reciente) en {symbol}")
             return self._build_signal(symbol, "SHORT", entry_price, sl_price, tp_price)
 
         return None
