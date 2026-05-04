@@ -1,13 +1,13 @@
 """
 LRMC PRO — Market Scanner
-Escanea los pares BTC, ETH y top altcoins líquidos en M5
-usando la estrategia LRMC (Liquidity Reversion + Momentum Continuation).
+Escanea los pares BTC, ETH y top altcoins líquidos en M1
+usando la estrategia EMA Crossover (9/21).
 """
 import asyncio
 import logging
 import pandas as pd
 from api.bybit_client import bybit_client
-from strategy.lrmc_strategy import lrmc_strategy
+from strategy.ema_strategy import ema_strategy
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +55,7 @@ class LRMCScanner:
             df = await asyncio.to_thread(self._get_klines, symbol)
             if df is None or len(df) < CANDLES_NEEDED:
                 return None
-            return lrmc_strategy.analyze(df, symbol)
+            return ema_strategy.analyze(df, symbol)
         except Exception as e:
             logger.debug(f"[Scanner] {symbol} error: {e}")
             return None
