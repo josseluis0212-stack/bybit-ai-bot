@@ -20,7 +20,7 @@ LRMC_SYMBOLS = [
     "OPUSDT",  "SEIUSDT", "SUIUSDT", "TIAUSDT",
 ]
 
-TIMEFRAME    = "5"    # M5 en Bybit (minutos)
+TIMEFRAME    = "1"    # M1 en Bybit (minutos)
 CANDLES_NEEDED = 60   # Mínimo de velas para análisis confiable
 
 
