@@ -204,7 +204,7 @@ class LRMCStrategy:
             return None
 
         # --- FILTROS RELAJADOS PARA PRUEBA ---
-        sl_price = sweep_candle["low"] * 0.9995
+        sl_price = sweep_candle["low"] * 0.995 # Alejado del wick institucional
         entry_price = confirm_candle["close"]
         return ("LONG", sl_price, entry_price)
 
@@ -224,7 +224,7 @@ class LRMCStrategy:
             return None
 
         # --- FILTROS RELAJADOS PARA PRUEBA ---
-        sl_price = sweep_candle["high"] * 1.0005
+        sl_price = sweep_candle["high"] * 1.005 # Alejado del wick institucional
         entry_price = confirm_candle["close"]
         return ("SHORT", sl_price, entry_price)
 

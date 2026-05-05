@@ -26,8 +26,8 @@ class EMAProStrategy:
         self.adx_period  = 14
         self.adx_min     = 20   # Fuerza de tendencia mínima
         self.atr_period  = 14
-        self.atr_sl_mult = 4.0  # SL = 4x ATR (lejos de las instituciones)
-        self.rr_ratio    = 2.0  # TP = 2x el riesgo → 8x ATR
+        self.atr_sl_mult = 10.0 # SL = 10x ATR (bien lejos de las instituciones, debajo de los order blocks)
+        self.rr_ratio    = 2.0  # TP = 2x el riesgo → 20x ATR
         self.rsi_period  = 14
         self.rsi_ob      = 65   # RSI overbought (suave para no perder el inicio del momentum)
         self.rsi_os      = 35   # RSI oversold   (suave)

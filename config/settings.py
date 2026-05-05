@@ -32,8 +32,8 @@ class Settings:
     STAGNATION_MOVE_PCT: float = 0.002
     
     ATR_PERIOD = 14
-    ATR_MULTIPLIER_SL = 2.2
-    ATR_MULTIPLIER_TP = 4.4
+    ATR_MULTIPLIER_SL = 10.0
+    ATR_MULTIPLIER_TP = 20.0
     
     COOLDOWN_MINUTES = 30
     
