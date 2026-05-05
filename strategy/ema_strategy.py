@@ -29,8 +29,8 @@ class EMAProStrategy:
         self.atr_sl_mult = 4.0  # SL = 4x ATR (lejos de las instituciones)
         self.rr_ratio    = 2.0  # TP = 2x el riesgo → 8x ATR
         self.rsi_period  = 14
-        self.rsi_ob      = 70   # RSI overbought (no tan ajustado)
-        self.rsi_os      = 30   # RSI oversold   (no tan ajustado)
+        self.rsi_ob      = 65   # RSI overbought (suave para no perder el inicio del momentum)
+        self.rsi_os      = 35   # RSI oversold   (suave)
         self.vol_window  = 20
         self.cross_window = 4   # Velas máximas desde el cruce
 
