@@ -53,22 +53,46 @@ class LRMCScanner:
         return signals
 
     async def _analyze_symbol(self, symbol: str) -> dict | None:
-        """Descarga velas M5 y analiza con LRMC strategy."""
+        """Descarga velas M5 y M1, aplica filtro de tendencia M5 y analiza con la estrategia."""
         try:
-            df = await asyncio.to_thread(self._get_klines, symbol)
-            if df is None or len(df) < CANDLES_NEEDED:
+            # 1. Filtro de tendencia M5 (EMA 9 vs EMA 21)
+            df_m5 = await asyncio.to_thread(self._get_klines, symbol, "5")
+            if df_m5 is None or len(df_m5) < 30:
                 return None
-            return ema_strategy.analyze(df, symbol)
+            
+            ema_fast_m5 = df_m5['close'].ewm(span=9, adjust=False).mean().iloc[-1]
+            ema_mid_m5 = df_m5['close'].ewm(span=21, adjust=False).mean().iloc[-1]
+            trend_m5 = "BULLISH" if ema_fast_m5 > ema_mid_m5 else "BEARISH"
+
+            # 2. Obtener y analizar velas M1
+            df_m1 = await asyncio.to_thread(self._get_klines, symbol, "1")
+            if df_m1 is None or len(df_m1) < CANDLES_NEEDED:
+                return None
+                
+            signal = ema_strategy.analyze(df_m1, symbol)
+            
+            # 3. Filtrar señal M1 según tendencia M5
+            if signal:
+                if signal["signal"] == "LONG" and trend_m5 != "BULLISH":
+                    logger.debug(f"[Scanner] {symbol} LONG rechazado por filtro M5 (Tendencia {trend_m5})")
+                    return None
+                if signal["signal"] == "SHORT" and trend_m5 != "BEARISH":
+                    logger.debug(f"[Scanner] {symbol} SHORT rechazado por filtro M5 (Tendencia {trend_m5})")
+                    return None
+                
+                logger.info(f"[Scanner] {symbol} {signal['signal']} validado por filtro de tendencia M5 ({trend_m5})")
+                
+            return signal
         except Exception as e:
             logger.debug(f"[Scanner] {symbol} error: {e}")
             return None
 
-    def _get_klines(self, symbol: str) -> pd.DataFrame | None:
-        """Obtiene velas M5 de Bybit y retorna DataFrame OHLCV."""
+    def _get_klines(self, symbol: str, interval: str = TIMEFRAME) -> pd.DataFrame | None:
+        """Obtiene velas de Bybit y retorna DataFrame OHLCV."""
         try:
             resp = bybit_client.get_klines(
                 symbol=symbol,
-                interval=TIMEFRAME,
+                interval=interval,
                 limit=CANDLES_NEEDED + 10,
             )
             if not resp or resp.get("retCode") != 0:
