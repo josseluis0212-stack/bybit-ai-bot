@@ -116,8 +116,10 @@ class ExecutionEngine:
             if not state.get("breakeven_done", False):
                 tp_dist = abs(trade.take_profit - trade.entry_price)
                 cur_dist = (cur_price - trade.entry_price) if is_long else (trade.entry_price - cur_price)
-                if tp_dist > 0 and cur_dist >= tp_dist * settings.BREAKEVEN_ACTIVATION_PCT:
-                    be_price = state.get("be_price", trade.entry_price)
+                if tp_dist > 0 and cur_dist >= tp_dist * getattr(settings, 'BREAKEVEN_ACTIVATION_PCT', 0.50):
+                    profit_pct = getattr(settings, 'BREAKEVEN_PROFIT_PCT', 0.20)
+                    profit_dist = tp_dist * profit_pct
+                    be_price = trade.entry_price + profit_dist if is_long else trade.entry_price - profit_dist
                     inst = bybit_client.get_instruments_info(symbol=trade.symbol)
                     if inst and trade.symbol in inst:
                         tick = inst[trade.symbol]["tickSize"]
@@ -126,7 +128,25 @@ class ExecutionEngine:
                         be_price_str = str(be_price)
                     bybit_client.set_trading_stop(trade.symbol, stop_loss=be_price_str)
                     state["breakeven_done"] = True
-                    logger.info(f"🔒 Breakeven activado {trade.symbol} a {be_price_str}")
+                    logger.info(f"🔒 Breakeven activado {trade.symbol} a {be_price_str} con {profit_pct*100}% asegurado")
+
+            if not state.get("trailing_active", False):
+                tp_dist = abs(trade.take_profit - trade.entry_price)
+                cur_dist = (cur_price - trade.entry_price) if is_long else (trade.entry_price - cur_price)
+                if tp_dist > 0 and cur_dist >= tp_dist * getattr(settings, 'TRAILING_STOP_ACTIVATION_PCT', 0.85):
+                    # Desactivar Take Profit y activar Trailing Stop
+                    # Distancia del trailing stop
+                    trail_dist = tp_dist * 0.15 # El restante 15% para dar margen
+                    inst = bybit_client.get_instruments_info(symbol=trade.symbol)
+                    if inst and trade.symbol in inst:
+                        tick = inst[trade.symbol]["tickSize"]
+                        trail_dist_str = self._format_step(trail_dist, tick)
+                    else:
+                        trail_dist_str = str(trail_dist)
+                    
+                    bybit_client.set_trading_stop(trade.symbol, take_profit="0", trailing_stop=trail_dist_str)
+                    state["trailing_active"] = True
+                    logger.info(f"🚀 Trailing Stop activado {trade.symbol} dist {trail_dist_str}, TP desactivado")
 
             from strategy.ema_strategy import ema_strategy
             resp_k = await bybit_client.get_klines_async(trade.symbol, "1", 30)

@@ -249,18 +249,21 @@ class BybitClient:
             logger.error(f"Excepción crítica al colocar orden en {symbol}: {e}")
             return {"retCode": -1, "retMsg": str(e), "result": {}}
 
-    def set_trading_stop(self, symbol, stop_loss=None, take_profit=None):
+    def set_trading_stop(self, symbol, stop_loss=None, take_profit=None, trailing_stop=None):
         """Actualiza el SL o TP de una posición abierta."""
         try:
             params = {
                 "category": "linear",
                 "symbol": symbol,
-                "stopLoss": str(stop_loss) if stop_loss else None,
-                "takeProfit": str(take_profit) if take_profit else None,
                 "positionIdx": 0 # Generalmente 0 para hedge mode OFF o modo unificado
             }
-            # Limpiar Nones de los parámetros
-            params = {k: v for k, v in params.items() if v is not None}
+            if stop_loss is not None:
+                params["stopLoss"] = str(stop_loss)
+            if take_profit is not None:
+                params["takeProfit"] = str(take_profit)
+            if trailing_stop is not None:
+                params["trailingStop"] = str(trailing_stop)
+
             response = self.session.set_trading_stop(**params)
             return response
         except Exception as e:
