@@ -266,8 +266,10 @@ class ExecutionEngine:
                     qty = float(pos["size"])
                     
                     # Intentar obtener SL/TP reales configurados en Bybit (órdenes activas o desde la posición)
-                    sl = float(pos.get("stopLoss", 0))
-                    tp = float(pos.get("takeProfit", 0))
+                    sl_raw = pos.get("stopLoss", "")
+                    tp_raw = pos.get("takeProfit", "")
+                    sl = float(sl_raw) if sl_raw else 0.0
+                    tp = float(tp_raw) if tp_raw else 0.0
                     
                     if sl <= 0 or tp <= 0:
                         # Si no tiene SL/TP explícito, inferirlo por seguridad basado en settings
