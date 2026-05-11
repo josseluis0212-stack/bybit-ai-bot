@@ -351,6 +351,9 @@ async def init_web_server():
     dashboard_path = os.path.join(os.path.dirname(__file__), 'dashboard')
     app.router.add_static('/static/', path=dashboard_path, name='static')
 
+    # Sincronización inicial y limpieza de TP reales
+    await executor.force_sync_at_startup()
+    
     runner = web.AppRunner(app)
     await runner.setup()
 
