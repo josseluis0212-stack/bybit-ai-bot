@@ -79,7 +79,7 @@ class ExecutionEngine:
         logger.info(f"🚀 [EMA PRO] EJECUTANDO {symbol} {side} | Qty={qty_str}")
         resp = bybit_client.place_order(
             symbol=symbol, side=side, order_type="Market",
-            qty=qty_str, stop_loss=sl_str
+            qty=qty_str, take_profit=tp_str, stop_loss=sl_str
         )
 
 
@@ -237,15 +237,11 @@ class ExecutionEngine:
             self._sync_closed_trade(trade)
 
     async def force_sync_at_startup(self):
-        """Limpia los TP reales de las posiciones abiertas para que sean imaginarios."""
-        logger.info("🧹 Sincronizando posiciones y limpiando TPs reales...")
+        """Sincroniza posiciones abiertas con la DB al iniciar."""
+        logger.info("🔄 Sincronización inicial de posiciones...")
         try:
             active_positions = bybit_client.get_active_positions()
-            for pos in active_positions:
-                symbol = pos["symbol"]
-                # En modo imaginario, no queremos que exista la orden de TP en Bybit
-                bybit_client.set_trading_stop(symbol, take_profit="0")
-                logger.info(f"✅ TP real eliminado para {symbol} (ahora es imaginario)")
+            logger.info(f"✅ {len(active_positions)} posiciones activas detectadas al iniciar.")
         except Exception as e:
             logger.error(f"Error en sincronización inicial: {e}")
 
