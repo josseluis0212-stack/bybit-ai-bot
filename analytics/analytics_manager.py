@@ -20,7 +20,8 @@ class AnalyticsManager:
             except:
                 pass
         now = datetime.now(timezone.utc)
-        return now.replace(hour=0, minute=0, second=0, microsecond=0)
+        return now  # Reset al momento del inicio si no hay archivo
+
 
     def reset_date_now(self):
         self.reset_date = datetime.now(timezone.utc)
