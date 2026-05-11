@@ -110,9 +110,7 @@ async def bot_loop():
         f"Parámetros: {settings.LEVERAGE}x | Capital/Trade: {settings.TRADE_AMOUNT_USDT} USDT | Max Trades: {settings.MAX_CONCURRENT_TRADES}"
     )
 
-    await executor.force_sync_at_startup()
-
-    logger.info("Estrategia: EMA 9/21 | Timeframe: 1m | TP: 2.0R | SL: High/Low 3 velas")
+    logger.info("Estrategia: EMA 9/21 | Timeframe: 1m | TP: 2.0R | SL: 10x ATR")
 
     while True:
         try:
@@ -234,7 +232,9 @@ async def handle_reset(request):
         await executor.emergency_close_all()
         db_manager.reset_all_stats()
         analytics_manager.reset_date_now()
-        return web.json_response({"status": "success", "message": "Reset completo"})
+        executor.trade_state.clear()
+        executor.cooldowns.clear()
+        return web.json_response({"status": "success", "message": "Reset completo — Todo en ceros"})
     except Exception as e:
         return web.json_response({"status": "error", "message": str(e)}, status=500)
 

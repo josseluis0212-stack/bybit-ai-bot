@@ -113,65 +113,75 @@ class ExecutionEngine:
 
             pos = real_map[trade.symbol]
             cur_price = float(pos.get("markPrice", 0))
+            if cur_price <= 0:
+                continue
+
             is_long = trade.side == "LONG"
-            state = self.trade_state.get(trade.id, {})
+            state = self.trade_state.get(trade.id, {
+                "breakeven_done": False,
+                "trailing_active": False,
+                "be_price": None
+            })
+
+            tp_dist = abs(trade.take_profit - trade.entry_price)
+            if tp_dist <= 0:
+                self.trade_state[trade.id] = state
+                continue
+
+            cur_dist = (cur_price - trade.entry_price) if is_long else (trade.entry_price - cur_price)
 
             # 1. BREAKEVEN: 45% del recorrido hacia el TP
-            if not state.get("breakeven_done", False):
-                tp_dist = abs(trade.take_profit - trade.entry_price)
-                cur_dist = (cur_price - trade.entry_price) if is_long else (trade.entry_price - cur_price)
-                
-                # Gatillo al 45%
-                if tp_dist > 0 and cur_dist >= tp_dist * 0.45:
-                    # Mover SL a Entrada + 20% del profit ya ganado (o de la distancia al TP)
-                    # El usuario pide: "correr el stop loss a un 20% de ganacia asegurado"
+            if not state.get("breakeven_done", False) and cur_dist >= tp_dist * 0.45:
+                try:
                     profit_to_lock = tp_dist * 0.20
                     be_price = trade.entry_price + profit_to_lock if is_long else trade.entry_price - profit_to_lock
-                    
+
                     inst = bybit_client.get_instruments_info(symbol=trade.symbol)
-                    if inst and trade.symbol in inst:
-                        tick = inst[trade.symbol]["tickSize"]
-                        be_price_str = self._format_step(be_price, tick)
+                    tick = inst[trade.symbol]["tickSize"] if inst and trade.symbol in inst else None
+                    be_price_str = self._format_step(be_price, tick) if tick else str(round(be_price, 8))
+
+                    resp_be = bybit_client.set_trading_stop(trade.symbol, stop_loss=be_price_str)
+                    if resp_be and resp_be.get("retCode") == 0:
+                        state["breakeven_done"] = True
+                        state["be_price"] = float(be_price_str)
+                        logger.info(f"🔒 BREAKEVEN activado en {trade.symbol} | SL movido a {be_price_str} (+20% ganancia asegurada)")
                     else:
-                        be_price_str = str(be_price)
-                        
-                    bybit_client.set_trading_stop(trade.symbol, stop_loss=be_price_str)
-                    state["breakeven_done"] = True
-                    logger.info(f"🔒 Breakeven 45% activado en {trade.symbol} a {be_price_str}")
+                        logger.warning(f"⚠️ Breakeven falló en {trade.symbol}: {resp_be}")
+                except Exception as e:
+                    logger.error(f"❌ Error activando Breakeven en {trade.symbol}: {e}")
 
             # 2. TRAILING STOP: 80% del recorrido hacia el TP
-            if not state.get("trailing_active", False):
-                tp_dist = abs(trade.take_profit - trade.entry_price)
-                cur_dist = (cur_price - trade.entry_price) if is_long else (trade.entry_price - cur_price)
-                
-                # Gatillo al 80%
-                if tp_dist > 0 and cur_dist >= tp_dist * 0.80:
-                    # El usuario pide: "correr el el stop que hacia de breakeven hacia el 80 porciento dejando correr"
-                    # Usamos el Trailing Stop nativo de Bybit con una distancia del 10% del profit total
+            if state.get("breakeven_done", False) and not state.get("trailing_active", False) and cur_dist >= tp_dist * 0.80:
+                try:
                     trail_dist = tp_dist * 0.10
-                    
-                    inst = bybit_client.get_instruments_info(symbol=trade.symbol)
-                    if inst and trade.symbol in inst:
-                        tick = inst[trade.symbol]["tickSize"]
-                        trail_dist_str = self._format_step(trail_dist, tick)
-                    else:
-                        trail_dist_str = str(trail_dist)
-                    
-                    # Desactivamos TP y activamos Trailing
-                    bybit_client.set_trading_stop(trade.symbol, take_profit="0", trailing_stop=trail_dist_str)
-                    state["trailing_active"] = True
-                    logger.info(f"🚀 Trailing Stop 80% activado en {trade.symbol} (dist {trail_dist_str})")
 
-            # 3. EMA TRAILING (Protección adicional)
-            from strategy.ema_strategy import ema_strategy
-            resp_k = await bybit_client.get_klines_async(trade.symbol, "1", 30)
-            if resp_k and resp_k.get("retCode") == 0:
-                df = pd.DataFrame(resp_k["result"]["list"], columns=["ts","o","h","l","c","v","t"])
-                df = df.sort_values("ts", ascending=True).reset_index(drop=True)
-                df['close'] = pd.to_numeric(df['c'])
-                if ema_strategy.should_trail_close(df, trade.side):
-                    logger.info(f"📉 Cierre preventivo EMA para {trade.symbol}")
-                    self._force_close(trade, "EMA_TRAILING")
+                    inst = bybit_client.get_instruments_info(symbol=trade.symbol)
+                    tick = inst[trade.symbol]["tickSize"] if inst and trade.symbol in inst else None
+                    trail_dist_str = self._format_step(trail_dist, tick) if tick else str(round(trail_dist, 8))
+
+                    # Desactivar TP y activar Trailing Stop nativo de Bybit
+                    resp_ts = bybit_client.set_trading_stop(trade.symbol, take_profit="0", trailing_stop=trail_dist_str)
+                    if resp_ts and resp_ts.get("retCode") == 0:
+                        state["trailing_active"] = True
+                        logger.info(f"🚀 TRAILING STOP activado en {trade.symbol} | Distancia: {trail_dist_str} | TP eliminado")
+                    else:
+                        logger.warning(f"⚠️ Trailing falló en {trade.symbol}: {resp_ts}")
+                except Exception as e:
+                    logger.error(f"❌ Error activando Trailing en {trade.symbol}: {e}")
+
+            # 3. EMA TRAILING (Protección adicional: cierre si EMA9 cruza EMA21 en contra)
+            try:
+                from strategy.ema_strategy import ema_strategy
+                resp_k = await bybit_client.get_klines_async(trade.symbol, "1", 30)
+                if resp_k and resp_k.get("retCode") == 0:
+                    df = pd.DataFrame(resp_k["result"]["list"], columns=["ts","o","h","l","c","v","t"])
+                    df = df.sort_values("ts", ascending=True).reset_index(drop=True)
+                    df['close'] = pd.to_numeric(df['c'])
+                    if ema_strategy.should_trail_close(df, trade.side):
+                        logger.info(f"📉 Cierre preventivo EMA para {trade.symbol}")
+                        self._force_close(trade, "EMA_TRAILING")
+            except Exception as e:
+                logger.warning(f"⚠️ Error en EMA trailing check para {trade.symbol}: {e}")
 
             self.trade_state[trade.id] = state
 
@@ -237,11 +247,23 @@ class ExecutionEngine:
             self._sync_closed_trade(trade)
 
     async def force_sync_at_startup(self):
-        """Sincroniza posiciones abiertas con la DB al iniciar."""
+        """Sincroniza posiciones abiertas con la DB al iniciar e inicializa trade_state."""
         logger.info("🔄 Sincronización inicial de posiciones...")
         try:
             active_positions = bybit_client.get_active_positions()
             logger.info(f"✅ {len(active_positions)} posiciones activas detectadas al iniciar.")
+            
+            # Inicializar trade_state para trades en DB que tengan posición real
+            open_trades = db_manager.get_open_trades()
+            real_symbols = {p["symbol"] for p in active_positions}
+            for trade in open_trades:
+                if trade.symbol in real_symbols and trade.id not in self.trade_state:
+                    self.trade_state[trade.id] = {
+                        "breakeven_done": False,
+                        "trailing_active": False,
+                        "be_price": None
+                    }
+                    logger.info(f"📋 Estado inicializado para {trade.symbol} (ID: {trade.id})")
         except Exception as e:
             logger.error(f"Error en sincronización inicial: {e}")
 
