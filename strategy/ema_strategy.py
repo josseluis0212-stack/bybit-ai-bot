@@ -1,12 +1,12 @@
 """
 ANTIGRAVITY EMA PRO v2 — Estrategia Triple EMA Profesional
 =============================================================
-EMA 9 / 21 / 100 con filtros ADX, RSI y ATR profundo.
+EMA 4 / 8 / 21 con filtros ADX, RSI y ATR profundo.
 
 MATEMÁTICAS GANADORAS:
   - SL: 3x ATR  → lejos del ruido
   - TP: 6x ATR  → ratio 2:1 real
-  - Trailing Stop: cierra cuando EMA9 cruza de vuelta EMA21
+  - Trailing Stop: cierra cuando EMA Rápida cruza de vuelta EMA Media
   - Breakeven: entrada + comisión cuando se alcanza 40% del TP
   - RSI: no entra si RSI > 65 (long) o RSI < 35 (short)
 """
@@ -20,9 +20,9 @@ logger = logging.getLogger(__name__)
 class EMAProStrategy:
 
     def __init__(self):
-        self.fast        = 9    # EMA Rápida
-        self.mid         = 21   # EMA Media
-        self.slow        = 100  # EMA Lenta — filtro macro
+        self.fast        = 4    # EMA Rápida
+        self.mid         = 8    # EMA Media
+        self.slow        = 21   # EMA Lenta — filtro macro
         self.adx_period  = 14
         self.adx_min     = 20   # Fuerza de tendencia mínima
         self.atr_period  = 14
@@ -173,7 +173,7 @@ class EMAProStrategy:
             "atr":         round(atr, 8),
             "adx":         round(adx, 2),
             "rsi":         round(rsi, 2),
-            "strategy":    "TRIPLE_EMA_PRO_9_21_100",
+            "strategy":    "EMA_SCALPER_4_8_21",
         }
 
 
