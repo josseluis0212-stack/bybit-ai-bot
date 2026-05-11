@@ -221,7 +221,7 @@ class ExecutionEngine:
             # Intentar determinar el motivo
             state = self.trade_state.get(trade.id, {})
             if state.get("trailing_active"): reason = "TRAILING STOP"
-            elif state.get("breakeven_done"): reason = "ACTIVACIÓN BE"
+            elif state.get("breakeven_done"): reason = "BREAKEVEN"
             elif pnl < 0: reason = "STOP LOSS"
             elif pnl > 0: reason = "TAKE PROFIT"
             

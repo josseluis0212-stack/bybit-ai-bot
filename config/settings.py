@@ -38,7 +38,7 @@ class Settings:
     COOLDOWN_MINUTES = 30
     
     BREAKEVEN_ACTIVATION_PCT = 0.45  # 45% hacia el TP
-    BREAKEVEN_PROFIT_PCT = 0.20  # Asegurar 20% de ganancia cuando se activa
+    BREAKEVEN_PROFIT_PCT = 0.25  # Asegurar 25% de ganancia cuando se activa
     TRAILING_STOP_ACTIVATION_PCT = 0.80 # Activar trailing stop al 80% de TP
     TRAIL_PROTECTION_PCT = 0.50  # Asegurar 50% de la ganancia
 

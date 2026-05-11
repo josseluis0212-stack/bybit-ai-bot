@@ -354,8 +354,8 @@
                     const isLong = t.side.toUpperCase().includes('BUY') || t.side.toUpperCase().includes('LONG');
                     
                     let statusBadges = '';
-                    if(t.ts_active) statusBadges += '<span class="text-[8px] bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded border border-purple-500/30 mr-1">TRAILING</span>';
-                    else if(t.be_active) statusBadges += '<span class="text-[8px] bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded border border-yellow-500/30 mr-1">BREAKEVEN</span>';
+                    if(t.ts_active) statusBadges += '<span class="text-[10px] bg-purple-500 text-white font-bold px-2 py-0.5 rounded shadow-lg mr-1 animate-pulse">TRAILING 🔥</span>';
+                    else if(t.be_active) statusBadges += '<span class="text-[10px] bg-yellow-500 text-black font-bold px-2 py-0.5 rounded shadow-lg mr-1">BREAKEVEN 🔒</span>';
                     
                     tCont.innerHTML += `
                         <tr class="hover:bg-white/[0.02] transition-colors border-l-2 ${isWin ? 'border-success' : 'border-danger'}">
@@ -364,7 +364,7 @@
                             <td class="px-8 py-4 font-mono text-text-muted">${t.entry.toFixed(4)}</td>
                             <td class="px-8 py-4 font-bold ${isWin ? 'neon-green' : 'neon-red'}">
                                 ${isWin ? '+' : ''}${t.pnl.toFixed(4)}
-                                <div class="mt-1">${statusBadges}</div>
+                                <div class="mt-2 flex flex-wrap gap-1">${statusBadges}</div>
                             </td>
                             <td class="px-8 py-4 text-right"><span class="text-[9px] bg-cyan-400/10 text-cyan-400 px-2 py-1 rounded border border-cyan-400/20">MONITOR LIVE</span></td>
                         </tr>
@@ -382,11 +382,23 @@
                 } else {
                     hCont.innerHTML = '';
                     history.forEach(h => {
-                        const isBE = h.reason.toLowerCase().includes('breakeven');
-                        const isW = h.pnl_usdt > 0.1;
-                        const isL = h.pnl_usdt < 0 && !isBE;
-                        let color = isBE ? 'yellow-500' : (isW ? 'success' : 'danger');
-                        let textC = isBE ? 'text-yellow-500' : (isW ? 'neon-green' : 'neon-red');
+                        const reasonUpper = h.reason.toUpperCase();
+                        const isBE = reasonUpper.includes('BREAKEVEN');
+                        const isTS = reasonUpper.includes('TRAILING');
+                        const isSL = reasonUpper.includes('STOP LOSS');
+                        const isTP = reasonUpper.includes('TAKE PROFIT');
+                        
+                        const isW = h.pnl_usdt > 0;
+                        
+                        let color = 'white/10';
+                        let textC = 'text-white';
+                        let badgeC = 'bg-white/5 text-white/40';
+
+                        if(isBE) { color = 'yellow-500'; textC = 'text-yellow-500'; badgeC = 'bg-yellow-500/20 text-yellow-500'; }
+                        else if(isTS) { color = 'purple-500'; textC = 'text-purple-400'; badgeC = 'bg-purple-500/20 text-purple-400'; }
+                        else if(isSL) { color = 'danger'; textC = 'neon-red'; badgeC = 'bg-danger/20 text-danger'; }
+                        else if(isTP) { color = 'success'; textC = 'neon-green'; badgeC = 'bg-success/20 text-success'; }
+                        else if(isW) { color = 'success'; textC = 'neon-green'; badgeC = 'bg-success/10 text-success'; }
                         
                         hCont.innerHTML += `
                             <div class="card-elite p-4 flex items-center justify-between border-l-4 border-${color} bg-white/[0.01]">
@@ -394,11 +406,11 @@
                                     <div class="w-8 h-8 rounded bg-black flex items-center justify-center font-bold ${textC}">${h.symbol.substring(0,2)}</div>
                                     <div>
                                         <div class="text-xs font-bold text-white">${h.symbol} <span class="text-[9px] text-text-muted ml-2">${h.side}</span></div>
-                                        <div class="text-[8px] text-text-muted font-bold uppercase">Cerrado por <span class="${isBE ? 'text-yellow-500' : ''}">${h.reason}</span></div>
+                                        <div class="mt-1"><span class="text-[8px] font-bold uppercase px-1.5 py-0.5 rounded ${badgeC}">${h.reason}</span></div>
                                     </div>
                                 </div>
                                 <div class="text-right">
-                                    <div class="text-base font-bold ${textC}">${isW || isBE ? '+' : ''}$${h.pnl_usdt.toFixed(2)}</div>
+                                    <div class="text-base font-bold ${textC}">${h.pnl_usdt >= 0 ? '+' : ''}$${h.pnl_usdt.toFixed(2)}</div>
                                 </div>
                             </div>
                         `;
