@@ -255,7 +255,39 @@ class ExecutionEngine:
             
             # Inicializar trade_state para trades en DB que tengan posición real
             open_trades = db_manager.get_open_trades()
+            db_symbols = {t.symbol for t in open_trades}
+            
+            # Restaurar posiciones huérfanas en Bybit que no están en la DB local (ej. tras un redeploy)
+            for pos in active_positions:
+                symbol = pos["symbol"]
+                if symbol not in db_symbols:
+                    side = "LONG" if pos["side"] == "Buy" else "SHORT"
+                    entry_price = float(pos["avgPrice"])
+                    qty = float(pos["size"])
+                    
+                    # Intentar obtener SL/TP reales configurados en Bybit (órdenes activas o desde la posición)
+                    sl = float(pos.get("stopLoss", 0))
+                    tp = float(pos.get("takeProfit", 0))
+                    
+                    if sl <= 0 or tp <= 0:
+                        # Si no tiene SL/TP explícito, inferirlo por seguridad basado en settings
+                        atr_estimado = entry_price * 0.005 # Fallback asumiendo 0.5% de volatilidad
+                        if sl <= 0:
+                            sl = entry_price - (atr_estimado * settings.ATR_MULTIPLIER_SL) if side == "LONG" else entry_price + (atr_estimado * settings.ATR_MULTIPLIER_SL)
+                        if tp <= 0:
+                            tp = entry_price + (atr_estimado * settings.ATR_MULTIPLIER_TP) if side == "LONG" else entry_price - (atr_estimado * settings.ATR_MULTIPLIER_TP)
+                    
+                    trade_id = db_manager.add_trade(
+                        symbol=symbol, side=side, entry_price=entry_price,
+                        sl=sl, tp=tp, qty=qty,
+                        leverage=settings.LEVERAGE, risk_usdt=0
+                    )
+                    logger.warning(f"🔄 Posición huérfana restaurada en DB: {symbol} (ID: {trade_id}) | Entrada: {entry_price}")
+            
+            # Refrescar trades de la DB
+            open_trades = db_manager.get_open_trades()
             real_symbols = {p["symbol"] for p in active_positions}
+            
             for trade in open_trades:
                 if trade.symbol in real_symbols and trade.id not in self.trade_state:
                     self.trade_state[trade.id] = {
