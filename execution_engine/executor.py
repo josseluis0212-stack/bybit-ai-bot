@@ -131,9 +131,9 @@ class ExecutionEngine:
             cur_dist = (cur_price - trade.entry_price) if is_long else (trade.entry_price - cur_price)
 
             # 1. BREAKEVEN: 45% del recorrido hacia el TP
-            if not state.get("breakeven_done", False) and cur_dist >= tp_dist * 0.45:
+            if not state.get("breakeven_done", False) and cur_dist >= tp_dist * settings.BREAKEVEN_ACTIVATION_PCT:
                 try:
-                    profit_to_lock = tp_dist * 0.20
+                    profit_to_lock = tp_dist * settings.BREAKEVEN_PROFIT_PCT
                     be_price = trade.entry_price + profit_to_lock if is_long else trade.entry_price - profit_to_lock
 
                     inst = bybit_client.get_instruments_info(symbol=trade.symbol)
@@ -150,8 +150,8 @@ class ExecutionEngine:
                 except Exception as e:
                     logger.error(f"❌ Error activando Breakeven en {trade.symbol}: {e}")
 
-            # 2. TRAILING STOP: 80% del recorrido hacia el TP
-            if state.get("breakeven_done", False) and not state.get("trailing_active", False) and cur_dist >= tp_dist * 0.80:
+            # 2. TRAILING STOP: 85% del recorrido hacia el TP (Configurable en settings)
+            if state.get("breakeven_done", False) and not state.get("trailing_active", False) and cur_dist >= tp_dist * settings.TRAILING_STOP_ACTIVATION_PCT:
                 try:
                     trail_dist = tp_dist * 0.10
 
@@ -223,7 +223,7 @@ class ExecutionEngine:
             if state.get("trailing_active"): reason = "TRAILING STOP"
             elif state.get("breakeven_done"): reason = "BREAKEVEN"
             elif pnl < 0: reason = "STOP LOSS"
-            elif pnl > 0: reason = "TAKE PROFIT"
+            elif pnl > 0: reason = "PROFIT (MANUAL/TP)"
             
             db_manager.close_trade(trade.id, float(last["avgExitPrice"]), pnl, 0, reason)
             if pnl < 0:
