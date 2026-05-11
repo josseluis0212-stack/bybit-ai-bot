@@ -179,11 +179,18 @@ async def handle_status(request):
         "balance": [c for c in balance_info["result"]["list"][0]["coin"] if c["coin"] in ["USDT", "USDC"]]
         if balance_info and balance_info.get("retCode") == 0
         else [],
-        "usdt_balance": next((float(c['walletBalance']) for c in balance_info["result"]["list"][0]["coin"] if c["coin"] == "USDT"), 0) if balance_info else 0,
-        "usdc_balance": next((float(c['walletBalance']) for c in balance_info["result"]["list"][0]["coin"] if c["coin"] == "USDC"), 0) if balance_info else 0,
+        "usdt_balance": next((float(c['walletBalance']) for c in balance_info["result"]["list"][0]["coin"] if c["coin"] == "USDT"), 0) if balance_info and balance_info.get("retCode") == 0 else 0,
+        "usdc_balance": next((float(c['walletBalance']) for c in balance_info["result"]["list"][0]["coin"] if c["coin"] == "USDC"), 0) if balance_info and balance_info.get("retCode") == 0 else 0,
         "active_trades_count": len(active_positions),
         "leverage": settings.LEVERAGE,
-        "bot_active": BOT_ACTIVE
+        "bot_active": BOT_ACTIVE,
+        "config": {
+            "trade_amount": settings.TRADE_AMOUNT_USDT,
+            "atr_sl": settings.ATR_MULTIPLIER_SL,
+            "atr_tp": settings.ATR_MULTIPLIER_TP,
+            "be_pct": settings.BREAKEVEN_ACTIVATION_PCT,
+            "ts_pct": settings.TRAILING_STOP_ACTIVATION_PCT
+        }
     }
     return web.json_response(status)
 
@@ -241,23 +248,59 @@ async def handle_performance(request):
 async def handle_trades(request):
     active_positions = bybit_client.get_active_positions()
     trades = []
+    
+    # Obtener IDs de la DB para mapear estatus
+    open_trades_db = db_manager.get_open_trades()
+    db_map = {t.symbol: t.id for t in open_trades_db}
+
     for p in active_positions:
+        symbol = p["symbol"]
+        trade_id = db_map.get(symbol)
+        status_flags = executor.get_trade_status(trade_id) if trade_id else {"be_active": False, "ts_active": False}
+        
         trades.append({
-            "symbol": p["symbol"],
+            "symbol": symbol,
             "side": p["side"],
             "entry": float(p["avgPrice"]),
             "qty": float(p["size"]),
-            "pnl": float(p["unrealisedPnl"])
+            "pnl": float(p["unrealisedPnl"]),
+            "be_active": status_flags["be_active"],
+            "ts_active": status_flags["ts_active"]
         })
     return web.json_response(trades)
 
 
+
 async def handle_history(request):
     from analytics.analytics_manager import analytics_manager
-    df = analytics_manager._fetch_trades()
     history = []
+    
+    # 1. Intentar obtener de la DB local (tiene motivos detallados)
+    try:
+        import sqlite3
+        import pandas as pd
+        db_path = os.path.join('database', 'trading_bot.db')
+        conn = sqlite3.connect(db_path)
+        df_db = pd.read_sql_query("SELECT * FROM trades WHERE status='CLOSED' ORDER BY updated_at DESC LIMIT 50", conn)
+        conn.close()
+        
+        if not df_db.empty:
+            for _, row in df_db.iterrows():
+                history.append({
+                    "symbol": row["symbol"],
+                    "side": row["side"],
+                    "entry": float(row["entry_price"]),
+                    "exit": float(row["exit_price"]) if row["exit_price"] else 0,
+                    "pnl_usdt": float(row["pnl_usdt"]),
+                    "reason": row["close_reason"] or "Closed"
+                })
+            return web.json_response(history)
+    except Exception as e:
+        logger.error(f"Error consultando DB local para historial: {e}")
+
+    # 2. Fallback a Bybit Sync (si la DB está vacía o falla)
+    df = analytics_manager._fetch_trades()
     if df is not None and not df.empty:
-        # Tomar los últimos 50
         df_last = df.sort_values("updatedTime", ascending=False).head(50)
         for _, row in df_last.iterrows():
             history.append({
@@ -269,6 +312,7 @@ async def handle_history(request):
                 "reason": "Bybit Sync"
             })
     return web.json_response(history)
+
 
 
 async def handle_health_check(request):

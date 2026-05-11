@@ -91,9 +91,11 @@ class ExecutionEngine:
             if trade_id:
                 self.trade_state[trade_id] = {
                     "breakeven_done": False,
+                    "trailing_active": False,
                     "be_price": be_price
                 }
             return True
+
         return False
 
     async def check_open_positions(self):
@@ -113,30 +115,40 @@ class ExecutionEngine:
             is_long = trade.side == "LONG"
             state = self.trade_state.get(trade.id, {})
 
+            # 1. BREAKEVEN: 45% del recorrido hacia el TP
             if not state.get("breakeven_done", False):
                 tp_dist = abs(trade.take_profit - trade.entry_price)
                 cur_dist = (cur_price - trade.entry_price) if is_long else (trade.entry_price - cur_price)
-                if tp_dist > 0 and cur_dist >= tp_dist * getattr(settings, 'BREAKEVEN_ACTIVATION_PCT', 0.50):
-                    profit_pct = getattr(settings, 'BREAKEVEN_PROFIT_PCT', 0.20)
-                    profit_dist = tp_dist * profit_pct
-                    be_price = trade.entry_price + profit_dist if is_long else trade.entry_price - profit_dist
+                
+                # Gatillo al 45%
+                if tp_dist > 0 and cur_dist >= tp_dist * 0.45:
+                    # Mover SL a Entrada + 20% del profit ya ganado (o de la distancia al TP)
+                    # El usuario pide: "correr el stop loss a un 20% de ganacia asegurado"
+                    profit_to_lock = tp_dist * 0.20
+                    be_price = trade.entry_price + profit_to_lock if is_long else trade.entry_price - profit_to_lock
+                    
                     inst = bybit_client.get_instruments_info(symbol=trade.symbol)
                     if inst and trade.symbol in inst:
                         tick = inst[trade.symbol]["tickSize"]
                         be_price_str = self._format_step(be_price, tick)
                     else:
                         be_price_str = str(be_price)
+                        
                     bybit_client.set_trading_stop(trade.symbol, stop_loss=be_price_str)
                     state["breakeven_done"] = True
-                    logger.info(f"🔒 Breakeven activado {trade.symbol} a {be_price_str} con {profit_pct*100}% asegurado")
+                    logger.info(f"🔒 Breakeven 45% activado en {trade.symbol} a {be_price_str}")
 
+            # 2. TRAILING STOP: 80% del recorrido hacia el TP
             if not state.get("trailing_active", False):
                 tp_dist = abs(trade.take_profit - trade.entry_price)
                 cur_dist = (cur_price - trade.entry_price) if is_long else (trade.entry_price - cur_price)
-                if tp_dist > 0 and cur_dist >= tp_dist * getattr(settings, 'TRAILING_STOP_ACTIVATION_PCT', 0.85):
-                    # Desactivar Take Profit y activar Trailing Stop
-                    # Distancia del trailing stop
-                    trail_dist = tp_dist * 0.15 # El restante 15% para dar margen
+                
+                # Gatillo al 80%
+                if tp_dist > 0 and cur_dist >= tp_dist * 0.80:
+                    # El usuario pide: "correr el el stop que hacia de breakeven hacia el 80 porciento dejando correr"
+                    # Usamos el Trailing Stop nativo de Bybit con una distancia del 10% del profit total
+                    trail_dist = tp_dist * 0.10
+                    
                     inst = bybit_client.get_instruments_info(symbol=trade.symbol)
                     if inst and trade.symbol in inst:
                         tick = inst[trade.symbol]["tickSize"]
@@ -144,10 +156,12 @@ class ExecutionEngine:
                     else:
                         trail_dist_str = str(trail_dist)
                     
+                    # Desactivamos TP y activamos Trailing
                     bybit_client.set_trading_stop(trade.symbol, take_profit="0", trailing_stop=trail_dist_str)
                     state["trailing_active"] = True
-                    logger.info(f"🚀 Trailing Stop activado {trade.symbol} dist {trail_dist_str}, TP desactivado")
+                    logger.info(f"🚀 Trailing Stop 80% activado en {trade.symbol} (dist {trail_dist_str})")
 
+            # 3. EMA TRAILING (Protección adicional)
             from strategy.ema_strategy import ema_strategy
             resp_k = await bybit_client.get_klines_async(trade.symbol, "1", 30)
             if resp_k and resp_k.get("retCode") == 0:
@@ -155,21 +169,59 @@ class ExecutionEngine:
                 df = df.sort_values("ts", ascending=True).reset_index(drop=True)
                 df['close'] = pd.to_numeric(df['c'])
                 if ema_strategy.should_trail_close(df, trade.side):
-                    logger.info(f"📉 Trailing EMA para {trade.symbol} — Cerrando")
+                    logger.info(f"📉 Cierre preventivo EMA para {trade.symbol}")
                     self._force_close(trade, "EMA_TRAILING")
 
             self.trade_state[trade.id] = state
 
+    def get_trade_status(self, trade_id):
+        """Retorna el estado de BE/TS para una operación."""
+        state = self.trade_state.get(trade_id, {})
+        return {
+            "be_active": state.get("breakeven_done", False),
+            "ts_active": state.get("trailing_active", False)
+        }
+
+    async def emergency_close_all(self):
+        """Cierra todas las posiciones abiertas y cancela órdenes pendientes."""
+        logger.info("🚨 EJECUTANDO CIERRE DE EMERGENCIA TOTAL")
+        try:
+            active_positions = bybit_client.get_active_positions()
+            for pos in active_positions:
+                symbol = pos["symbol"]
+                side = "Sell" if pos["side"] == "Buy" else "Buy"
+                qty = pos["size"]
+                logger.info(f"Cerrando posición {symbol} {qty}")
+                bybit_client.place_order(symbol=symbol, side=side, order_type="Market", qty=qty, reduce_only=True)
+            
+            bybit_client.cancel_all_orders()
+            return True
+        except Exception as e:
+            logger.error(f"Error en cierre de emergencia: {e}")
+            return False
+
     def _sync_closed_trade(self, trade):
         resp = bybit_client.get_closed_pnl(symbol=trade.symbol, limit=1)
+        reason = "Bybit Sync"
         if resp and resp.get("retCode") == 0 and resp["result"]["list"]:
             last = resp["result"]["list"][0]
-            db_manager.close_trade(trade.id, float(last["avgExitPrice"]), float(last["closedPnl"]), 0, "BYBIT_SYNC")
-            if float(last["closedPnl"]) < 0:
+            pnl = float(last["closedPnl"])
+            
+            # Intentar determinar el motivo
+            state = self.trade_state.get(trade.id, {})
+            if state.get("trailing_active"): reason = "TRAILING STOP"
+            elif state.get("breakeven_done"): reason = "ACTIVACIÓN BE"
+            elif pnl < 0: reason = "STOP LOSS"
+            elif pnl > 0: reason = "TAKE PROFIT"
+            
+            db_manager.close_trade(trade.id, float(last["avgExitPrice"]), pnl, 0, reason)
+            if pnl < 0:
                 self.cooldowns[trade.symbol] = datetime.now()
+            logger.info(f"✅ Operación cerrada {trade.symbol} | PnL: {pnl:+.2f} | Razón: {reason}")
         else:
             db_manager.close_trade(trade.id, trade.entry_price, 0, 0, "UNKNOWN_SYNC")
         self.trade_state.pop(trade.id, None)
+
 
     def _force_close(self, trade, reason):
         side = "Sell" if trade.side == "LONG" else "Buy"

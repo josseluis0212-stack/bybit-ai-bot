@@ -20,7 +20,6 @@ class RiskManager:
         self.leverage = settings.LEVERAGE
         self.trade_amount_usdt = settings.TRADE_AMOUNT_USDT
         self.max_concurrent_trades = settings.MAX_CONCURRENT_TRADES
-        self.daily_loss_limit = getattr(settings, 'DAILY_LOSS_LIMIT', 100.0)
         self.kelly_fraction = getattr(settings, 'KELLY_FRACTION', 0.25)
         self.daily_pnl = 0.0
         self.last_reset_date = None
@@ -31,17 +30,12 @@ class RiskManager:
         if self.last_reset_date != today:
             self.daily_pnl = 0.0
             self.last_reset_date = today
-            logger.info("Daily PnL reseteado para nuevo día")
 
     def can_open_new_trade(self, current_open_trades_count: int, available_wallet_balance: float) -> bool:
         self.reset_daily_pnl()
 
         if current_open_trades_count >= self.max_concurrent_trades:
             logger.info(f"Bloqueo: Máximo de operaciones alcanzado ({self.max_concurrent_trades})")
-            return False
-
-        if self.daily_pnl <= -self.daily_loss_limit:
-            logger.warning(f"Bloqueo: Límite de pérdida diaria alcanzado ({self.daily_pnl:.2f} < {-self.daily_loss_limit})")
             return False
 
         required_margin = (self.trade_amount_usdt / self.leverage) * 1.1
@@ -86,8 +80,6 @@ class RiskManager:
     def get_risk_status(self) -> dict:
         return {
             "daily_pnl": self.daily_pnl,
-            "daily_limit": self.daily_loss_limit,
-            "daily_remaining": self.daily_loss_limit + self.daily_pnl,
             "trades_left": self.max_concurrent_trades
         }
 

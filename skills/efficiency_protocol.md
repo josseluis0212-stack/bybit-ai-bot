@@ -1,29 +1,29 @@
-# 🧠 Protocolo de Eficiencia Cuántica (Antigravity Skill)
+# ⚡ Protocolo de Eficiencia Extrema — Antigravity Quantum Efficiency v5.0
+> **Scope:** GLOBAL | **Activación:** AUTOMÁTICA | Referencia completa en `policia/skills/efficiency_protocol.md`
 
-Este documento define el estándar de operación para optimizar el consumo de recursos (tokens), simplificar la lógica y acelerar el desarrollo del bot de trading.
+## Reglas Clave (Resumen Bot)
+1. **Zero-Waste**: Sin preámbulos, sin relleno, directo al código
+2. **Smart Reads**: grep → view_file(rango) → edit. Máximo 2 archivos antes de actuar
+3. **Parallel-First**: Todo en paralelo si no hay dependencias
+4. **Cache Mental**: NO releer archivos ya conocidos en la conversación
+5. **Edición Quirúrgica**: `replace_file_content` > reescritura total (>90% de los casos)
 
-## 1. 🚀 Optimización de Tokens (Ahorro de Energía)
-*   **Lectura Focalizada:** Antes de realizar cambios, leer solo las líneas necesarias usando `view_file` con `StartLine` y `EndLine`.
-*   **Ediciones Modulares:** Priorizar `replace_file_content` sobre reescrituras totales. Si un archivo es >200 líneas, usar chunks precisos.
-*   **Caché de Contexto:** Consultar `long_term_memory.md` y este protocolo antes de cada tarea para evitar redundancia en investigación.
+## Lecciones Aprendidas
+- **Bybit `get_closed_pnl`**: mapeo manual en `params`
+- **tickSize/qtyStep**: SIEMPRE `_format_step()` antes de enviar
+- **EMA 100**: mínimo 120 velas (CANDLES_NEEDED=150)
+- **Bybit klines**: reordenar ascending siempre
+- **Leverage 110043**: ya configurado, ignorar
+- **Render**: keep-alive cada 10 min (duerme a los 15)
+- **Socket.IO**: handler después de `sio`
+- **Logging Render**: `%(message)s` no `%message`
 
-## 2. ⚡ Simplificación de Procesos
-*   **Encadenamiento de Comandos:** Usar `;` para ejecutar múltiples comandos de Git o sistema en una sola llamada de herramienta.
-*   **Validación Local Previa:** Antes de subir a Render, verificar sintaxis localmente si es posible.
-*   **Automatización de Diagnóstico:** Usar scripts de `policia/` (ej: `verify_scanner.py`) para chequeos rápidos en lugar de análisis manual extenso.
-
-## 3. 💾 Persistencia de Conocimiento
-*   **Documentación Activa:** Cada bug crítico resuelto (ej: error de argumentos en Bybit API) debe quedar registrado en este protocolo como "Lección Aprendida".
-*   **Mapeo de Rutas:** Guardar rutas absolutas de archivos clave para evitar `list_dir` innecesarios.
-    - Dashboard: `dashboard/index.html`
-    - Motor: `execution_engine/executor.py`
-    - Estrategia: `strategy/market_scanner.py`
-
-## 4. 🛠️ Lecciones Aprendidas (Cache de Errores)
-*   **[2026-04-27] Error de API Bybit:** `get_closed_pnl` no soporta `symbol` por defecto en la clase base; requiere mapeo manual en `params`.
-*   **[2026-04-27] Logging en Render:** Evitar placeholders tipo `%message`; usar `%(message)s` para compatibilidad total con Python logging.
-*   **[2026-04-27] Socket.IO:** Siempre inicializar el handler después del objeto `sio` para evitar errores de referencia circular.
+## Rutas Clave
+- Dashboard: `dashboard/index.html`
+- Motor: `execution_engine/executor.py`
+- Estrategia: `strategy/market_scanner.py` + `strategy/ema_strategy.py`
+- Config: `config/settings.py`
+- Risk: `risk_management/risk_manager.py`
 
 ---
-**ESTADO:** ACTIVO | **VERSION:** 1.0
-**ORDEN:** Aplicar estos principios en cada interacción futura para maximizar la velocidad de respuesta.
+**ESTADO:** ACTIVO PERMANENTE | **VERSION:** 5.0

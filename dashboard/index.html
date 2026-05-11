@@ -138,11 +138,11 @@
             <span class="text-[10px] text-text-muted font-bold tracking-widest uppercase">Estrategia Elite V9.1</span>
             <div class="space-y-2.5 mt-4 text-[11px] font-bold uppercase">
                 <div class="flex justify-between"><span>Apalancamiento</span><span id="cfg-lev" class="neon-cyan">10x</span></div>
-                <div class="flex justify-between"><span>Monto</span><span class="text-white">$20 USDT</span></div>
+                <div class="flex justify-between"><span>Monto</span><span id="cfg-amount" class="text-white">$0 USDT</span></div>
                 <div class="flex justify-between"><span>Ejecución</span><span class="text-cyan-400">15 Segundos</span></div>
                 <div class="flex justify-between"><span>Vol. Min (24h)</span><span class="text-white">$500K</span></div>
-                <div class="flex justify-between"><span>ATR SL / TP</span><span class="text-white">2.2 / 4.4</span></div>
-                <div class="flex justify-between"><span>Protección</span><span class="text-success">Breakeven 60%</span></div>
+                <div class="flex justify-between"><span>ATR SL / TP</span><span id="cfg-atr" class="text-white">0 / 0</span></div>
+                <div class="flex justify-between"><span>Protección</span><span id="cfg-be" class="text-success">Breakeven 0%</span></div>
             </div>
         </div>
 
@@ -295,6 +295,12 @@
                 document.getElementById('wallet-balance-usdt').innerText = parseFloat(status.usdt_balance).toLocaleString(undefined, {minimumFractionDigits: 2}) + ' USDT';
                 document.getElementById('wallet-balance-usdc').innerText = parseFloat(status.usdc_balance).toLocaleString(undefined, {minimumFractionDigits: 2}) + ' USDC';
                 document.getElementById('cfg-lev').innerText = status.leverage + 'x';
+                
+                if(status.config) {
+                    document.getElementById('cfg-amount').innerText = '$' + status.config.trade_amount + ' USDT';
+                    document.getElementById('cfg-atr').innerText = status.config.atr_sl + ' / ' + status.config.atr_tp;
+                    document.getElementById('cfg-be').innerText = 'BE ' + (status.config.be_pct * 100).toFixed(0) + '% / TS ' + (status.config.ts_pct * 100).toFixed(0) + '%';
+                }
 
                 // DYNAMIC BIAS COLORS
                 const isLong = true; // Simulado
@@ -346,16 +352,25 @@
                     activeSum += t.pnl;
                     const isWin = t.pnl >= 0;
                     const isLong = t.side.toUpperCase().includes('BUY') || t.side.toUpperCase().includes('LONG');
+                    
+                    let statusBadges = '';
+                    if(t.ts_active) statusBadges += '<span class="text-[8px] bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded border border-purple-500/30 mr-1">TRAILING</span>';
+                    else if(t.be_active) statusBadges += '<span class="text-[8px] bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded border border-yellow-500/30 mr-1">BREAKEVEN</span>';
+                    
                     tCont.innerHTML += `
                         <tr class="hover:bg-white/[0.02] transition-colors border-l-2 ${isWin ? 'border-success' : 'border-danger'}">
                             <td class="px-8 py-4 ${isWin ? 'text-success' : 'text-danger'} font-bold">${t.symbol}</td>
                             <td class="px-8 py-4"><span class="px-3 py-1 rounded-lg text-[9px] font-bold ${isLong ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'}">${t.side}</span></td>
                             <td class="px-8 py-4 font-mono text-text-muted">${t.entry.toFixed(4)}</td>
-                            <td class="px-8 py-4 font-bold ${isWin ? 'neon-green' : 'neon-red'}">${isWin ? '+' : ''}${t.pnl.toFixed(4)}</td>
+                            <td class="px-8 py-4 font-bold ${isWin ? 'neon-green' : 'neon-red'}">
+                                ${isWin ? '+' : ''}${t.pnl.toFixed(4)}
+                                <div class="mt-1">${statusBadges}</div>
+                            </td>
                             <td class="px-8 py-4 text-right"><span class="text-[9px] bg-cyan-400/10 text-cyan-400 px-2 py-1 rounded border border-cyan-400/20">MONITOR LIVE</span></td>
                         </tr>
                     `;
                 });
+
                 document.getElementById('active-pnl-total').innerText = (activeSum >= 0 ? '+$' : '-$') + Math.abs(activeSum).toFixed(2);
                 document.getElementById('active-pnl-total').className = activeSum >= 0 ? 'text-success' : 'text-danger';
                 document.getElementById('active-count').innerText = trades.length + ' ACTIVAS';
