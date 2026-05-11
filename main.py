@@ -281,8 +281,9 @@ async def handle_history(request):
         import pandas as pd
         db_path = os.path.join('database', 'trading_bot.db')
         conn = sqlite3.connect(db_path)
-        df_db = pd.read_sql_query("SELECT * FROM trades WHERE status='CLOSED' ORDER BY updated_at DESC LIMIT 50", conn)
+        df_db = pd.read_sql_query("SELECT * FROM trades WHERE status='CLOSED' ORDER BY close_time DESC LIMIT 50", conn)
         conn.close()
+
         
         if not df_db.empty:
             for _, row in df_db.iterrows():
