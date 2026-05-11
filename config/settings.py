@@ -39,7 +39,7 @@ class Settings:
     
     BREAKEVEN_ACTIVATION_PCT = 0.45  # 45% hacia el TP
     BREAKEVEN_PROFIT_PCT = 0.25  # Asegurar 25% de ganancia cuando se activa
-    TRAILING_STOP_ACTIVATION_PCT = 0.85 # Activar trailing stop al 85% de TP
+    TRAILING_STOP_ACTIVATION_PCT = 0.80 # Activar trailing stop al 80% de TP
     TRAIL_PROTECTION_PCT = 0.50  # Asegurar 50% de la ganancia
 
 
