@@ -191,6 +191,7 @@
                             <th class="px-8 py-4">Símbolo</th>
                             <th class="px-8 py-4">Dirección</th>
                             <th class="px-8 py-4">Entrada</th>
+                            <th class="px-8 py-4">Gestión</th>
                             <th class="px-8 py-4">PnL Vivo</th>
                             <th class="px-8 py-4 text-right">Estatus</th>
                         </tr>
@@ -353,20 +354,26 @@
                     const isWin = t.pnl >= 0;
                     const isLong = t.side.toUpperCase().includes('BUY') || t.side.toUpperCase().includes('LONG');
                     
-                    let statusBadges = '';
-                    if(t.ts_active) statusBadges += '<span class="text-[10px] bg-purple-500 text-white font-bold px-2 py-0.5 rounded shadow-lg mr-1 animate-pulse">TRAILING 🔥</span>';
-                    else if(t.be_active) statusBadges += '<span class="text-[10px] bg-yellow-500 text-black font-bold px-2 py-0.5 rounded shadow-lg mr-1">BREAKEVEN 🔒</span>';
+                    let statusText = '<span class="text-white/20">PROTECCIÓN INICIAL</span>';
+                    let statusColor = 'white/10';
+                    if(t.ts_active) {
+                        statusText = '<span class="text-purple-400">TRAILING STOP ACTIVE</span>';
+                        statusColor = 'purple-500';
+                    } else if(t.be_active) {
+                        statusText = '<span class="text-yellow-500">BREAKEVEN PROTECTED</span>';
+                        statusColor = 'yellow-500';
+                    }
                     
                     tCont.innerHTML += `
                         <tr class="hover:bg-white/[0.02] transition-colors border-l-2 ${isWin ? 'border-success' : 'border-danger'}">
                             <td class="px-8 py-4 ${isWin ? 'text-success' : 'text-danger'} font-bold">${t.symbol}</td>
                             <td class="px-8 py-4"><span class="px-3 py-1 rounded-lg text-[9px] font-bold ${isLong ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'}">${t.side}</span></td>
                             <td class="px-8 py-4 font-mono text-text-muted">${t.entry.toFixed(4)}</td>
+                            <td class="px-8 py-4 text-[9px] font-bold uppercase tracking-tighter">${statusText}</td>
                             <td class="px-8 py-4 font-bold ${isWin ? 'neon-green' : 'neon-red'}">
                                 ${isWin ? '+' : ''}${t.pnl.toFixed(4)}
-                                <div class="mt-2 flex flex-wrap gap-1">${statusBadges}</div>
                             </td>
-                            <td class="px-8 py-4 text-right"><span class="text-[9px] bg-cyan-400/10 text-cyan-400 px-2 py-1 rounded border border-cyan-400/20">MONITOR LIVE</span></td>
+                            <td class="px-8 py-4 text-right"><span class="text-[9px] bg-cyan-400/10 text-cyan-400 px-2 py-1 rounded border border-cyan-400/20">LIVE MONITOR</span></td>
                         </tr>
                     `;
                 });
@@ -402,11 +409,17 @@
                         
                         hCont.innerHTML += `
                             <div class="card-elite p-4 flex items-center justify-between border-l-4 border-${color} bg-white/[0.01]">
-                                <div class="flex items-center gap-4">
+                                <div class="flex items-center gap-6">
                                     <div class="w-8 h-8 rounded bg-black flex items-center justify-center font-bold ${textC}">${h.symbol.substring(0,2)}</div>
-                                    <div>
-                                        <div class="text-xs font-bold text-white">${h.symbol} <span class="text-[9px] text-text-muted ml-2">${h.side}</span></div>
-                                        <div class="mt-1"><span class="text-[8px] font-bold uppercase px-1.5 py-0.5 rounded ${badgeC}">${h.reason}</span></div>
+                                    <div class="grid grid-cols-2 gap-x-8">
+                                        <div>
+                                            <div class="text-[10px] font-bold text-white uppercase">${h.symbol} <span class="text-text-muted ml-1">${h.side}</span></div>
+                                            <div class="text-[8px] text-text-muted font-bold mt-0.5">E: ${h.entry.toFixed(4)} | S: ${h.exit.toFixed(4)}</div>
+                                        </div>
+                                        <div class="flex flex-col justify-center border-l border-white/5 pl-4">
+                                            <span class="text-[7px] text-text-muted uppercase font-bold tracking-widest">Causa de Cierre</span>
+                                            <span class="text-[9px] font-black uppercase ${textC}">${h.reason}</span>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="text-right">
