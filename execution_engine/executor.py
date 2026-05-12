@@ -46,7 +46,7 @@ class ExecutionEngine:
             return False
 
         if symbol in self.cooldowns:
-            if datetime.now() < self.cooldowns[symbol] + timedelta(minutes=15):
+            if datetime.now() < self.cooldowns[symbol] + timedelta(minutes=30):
                 return False
             else:
                 del self.cooldowns[symbol]

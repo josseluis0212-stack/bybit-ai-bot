@@ -1,7 +1,7 @@
 """
 LRMC PRO — Market Scanner
 Escanea los pares BTC, ETH y top altcoins líquidos en M1
-usando la estrategia EMA Crossover (9/21).
+usando la estrategia Fibonacci Cycle (13/34/89).
 """
 import asyncio
 import logging
@@ -60,8 +60,8 @@ class LRMCScanner:
             if df_m5 is None or len(df_m5) < 30:
                 return None
             
-            ema_fast_m5 = df_m5['close'].ewm(span=9, adjust=False).mean().iloc[-1]
-            ema_mid_m5 = df_m5['close'].ewm(span=21, adjust=False).mean().iloc[-1]
+            ema_fast_m5 = df_m5['close'].ewm(span=13, adjust=False).mean().iloc[-1]
+            ema_mid_m5 = df_m5['close'].ewm(span=34, adjust=False).mean().iloc[-1]
             trend_m5 = "BULLISH" if ema_fast_m5 > ema_mid_m5 else "BEARISH"
 
             # 2. Obtener y analizar velas M1

@@ -1,7 +1,7 @@
 """
 ANTIGRAVITY EMA PRO v2 — Estrategia Triple EMA Profesional
 =============================================================
-EMA 4 / 8 / 21 con filtros ADX, RSI y ATR profundo.
+EMA 13 / 34 / 89 (Ciclos Fibonacci) con filtros ADX (25+) y RSI.
 
 MATEMÁTICAS GANADORAS:
   - SL: 3x ATR  → lejos del ruido
@@ -20,11 +20,11 @@ logger = logging.getLogger(__name__)
 class EMAProStrategy:
 
     def __init__(self):
-        self.fast        = 4    # EMA Rápida
-        self.mid         = 8    # EMA Media
-        self.slow        = 21   # EMA Lenta — filtro macro
+        self.fast        = 13   # EMA Rápida (Momento)
+        self.mid         = 34   # EMA Media (Confirmación)
+        self.slow        = 89   # EMA Lenta (Ciclo Macro)
         self.adx_period  = 14
-        self.adx_min     = 20   # Fuerza de tendencia mínima
+        self.adx_min     = 25   # Mayor exigencia de tendencia para evitar laterales
         self.atr_period  = 14
         self.atr_sl_mult = 10.0 # SL = 10x ATR (bien lejos de las instituciones, debajo de los order blocks)
         self.rr_ratio    = 2.0  # TP = 2x el riesgo → 20x ATR
@@ -173,7 +173,7 @@ class EMAProStrategy:
             "atr":         round(atr, 8),
             "adx":         round(adx, 2),
             "rsi":         round(rsi, 2),
-            "strategy":    "EMA_SCALPER_4_8_21",
+            "strategy":    "FIBO_CYCLE_13_34_89",
         }
 
 
