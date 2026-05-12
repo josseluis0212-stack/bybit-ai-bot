@@ -212,23 +212,37 @@ class ExecutionEngine:
             return False
 
     def _sync_closed_trade(self, trade):
-        resp = bybit_client.get_closed_pnl(symbol=trade.symbol, limit=1)
-        reason = "Bybit Sync"
+        # Esperar un poco a que Bybit procese el PnL
+        import time
+        time.sleep(1)
+        
+        resp = bybit_client.get_closed_pnl(symbol=trade.symbol, limit=5)
+        reason = "DESCONOCIDO"
         if resp and resp.get("retCode") == 0 and resp["result"]["list"]:
-            last = resp["result"]["list"][0]
-            pnl = float(last["closedPnl"])
+            # Sumar PnL de las entradas más recientes (por si hubo cierre parcial o múltiples ejecuciones)
+            # En la mayoría de los casos del bot, solo nos interesa la última o las que coincidan en tiempo
+            last_entries = resp["result"]["list"]
+            pnl = float(last_entries[0]["closedPnl"])
+            exit_price = float(last_entries[0]["avgExitPrice"])
             
-            # Intentar determinar el motivo
+            # Intentar determinar el motivo real basado en el estado interno
             state = self.trade_state.get(trade.id, {})
-            if state.get("trailing_active"): reason = "TRAILING STOP"
-            elif state.get("breakeven_done"): reason = "BREAKEVEN"
-            elif pnl < 0: reason = "STOP LOSS"
-            elif pnl > 0: reason = "PROFIT (MANUAL/TP)"
+            if state.get("trailing_active"): 
+                reason = "TRAILING STOP"
+            elif state.get("breakeven_done"): 
+                reason = "BREAKEVEN"
+            elif pnl < 0: 
+                reason = "STOP LOSS"
+            else:
+                reason = "PROFIT"
+                
+            # Calcular PnL % real
+            pnl_pct = (pnl / (trade.entry_price * trade.qty / trade.leverage)) * 100 if trade.qty > 0 else 0
             
-            db_manager.close_trade(trade.id, float(last["avgExitPrice"]), pnl, 0, reason)
+            db_manager.close_trade(trade.id, exit_price, pnl, pnl_pct, reason)
             if pnl < 0:
                 self.cooldowns[trade.symbol] = datetime.now()
-            logger.info(f"✅ Operación cerrada {trade.symbol} | PnL: {pnl:+.2f} | Razón: {reason}")
+            logger.info(f"✅ Operación sincronizada {trade.symbol} | PnL: {pnl:+.4f} USDT ({pnl_pct:+.2f}%) | Razón: {reason}")
         else:
             db_manager.close_trade(trade.id, trade.entry_price, 0, 0, "UNKNOWN_SYNC")
         self.trade_state.pop(trade.id, None)
@@ -292,12 +306,35 @@ class ExecutionEngine:
             
             for trade in open_trades:
                 if trade.symbol in real_symbols and trade.id not in self.trade_state:
+                    # Intentar inferir el estado basado en el precio actual y el Take Profit en Bybit
+                    pos = next((p for p in active_positions if p["symbol"] == trade.symbol), None)
+                    be_done = False
+                    ts_active = False
+                    
+                    if pos:
+                        cur_price = float(pos["markPrice"])
+                        tp_bybit = pos.get("takeProfit", "")
+                        
+                        # Si no hay TP en Bybit, es muy probable que el Trailing esté activo (porque el bot lo borra)
+                        if not tp_bybit or tp_bybit == "0":
+                            ts_active = True
+                            be_done = True
+                            logger.info(f"🔄 Detectado Trailing Stop activo para {trade.symbol} tras reinicio.")
+                        else:
+                            # Verificar si ya pasó el umbral de Breakeven
+                            tp_dist = abs(trade.take_profit - trade.entry_price)
+                            if tp_dist > 0:
+                                cur_dist = (cur_price - trade.entry_price) if trade.side == "LONG" else (trade.entry_price - cur_price)
+                                if cur_dist >= tp_dist * settings.BREAKEVEN_ACTIVATION_PCT:
+                                    be_done = True
+                                    logger.info(f"🔄 Detectado Breakeven alcanzado para {trade.symbol} tras reinicio.")
+
                     self.trade_state[trade.id] = {
-                        "breakeven_done": False,
-                        "trailing_active": False,
+                        "breakeven_done": be_done,
+                        "trailing_active": ts_active,
                         "be_price": None
                     }
-                    logger.info(f"📋 Estado inicializado para {trade.symbol} (ID: {trade.id})")
+                    logger.info(f"📋 Estado restaurado para {trade.symbol} (ID: {trade.id}) | BE: {be_done} | TS: {ts_active}")
         except Exception as e:
             logger.error(f"Error en sincronización inicial: {e}")
 
