@@ -212,39 +212,53 @@ class ExecutionEngine:
             return False
 
     def _sync_closed_trade(self, trade):
-        # Esperar un poco a que Bybit procese el PnL
         import time
-        time.sleep(1)
+        time.sleep(1.5) # Aumentar espera para Bybit
         
-        resp = bybit_client.get_closed_pnl(symbol=trade.symbol, limit=5)
+        resp = bybit_client.get_closed_pnl(symbol=trade.symbol, limit=1)
         reason = "DESCONOCIDO"
+        
         if resp and resp.get("retCode") == 0 and resp["result"]["list"]:
-            # Sumar PnL de las entradas más recientes (por si hubo cierre parcial o múltiples ejecuciones)
-            # En la mayoría de los casos del bot, solo nos interesa la última o las que coincidan en tiempo
-            last_entries = resp["result"]["list"]
-            pnl = float(last_entries[0]["closedPnl"])
-            exit_price = float(last_entries[0]["avgExitPrice"])
+            last = resp["result"]["list"][0]
+            exit_price = float(last["avgExitPrice"])
+            pnl_bybit = float(last["closedPnl"])
             
-            # Intentar determinar el motivo real basado en el estado interno
+            # Cálculo matemático manual para verificación
+            is_long = trade.side == "LONG"
+            raw_pnl = (exit_price - trade.entry_price) * trade.qty if is_long else (trade.entry_price - exit_price) * trade.qty
+            
+            # Estimar comisiones (aprox 0.1% total)
+            volumen = trade.entry_price * trade.qty
+            comisiones_est = volumen * 0.001 
+            pnl_final = raw_pnl - comisiones_est
+
+            # Usar el mayor entre el calculado y el de Bybit (a veces Bybit no incluye todo el PnL en una entrada)
+            pnl = pnl_bybit if abs(pnl_bybit) > abs(pnl_final) * 0.8 else pnl_final
+            
+            # Determinar motivo REAL
             state = self.trade_state.get(trade.id, {})
             if state.get("trailing_active"): 
                 reason = "TRAILING STOP"
             elif state.get("breakeven_done"): 
                 reason = "BREAKEVEN"
-            elif pnl < 0: 
+            elif pnl < 0:
                 reason = "STOP LOSS"
             else:
-                reason = "PROFIT"
-                
-            # Calcular PnL % real
+                reason = "PROFIT (TS/BE)"
+
+            # Por seguridad, si el precio de salida está a favor, no puede ser STOP LOSS
+            if pnl > 0 and reason == "STOP LOSS":
+                reason = "BREAKEVEN"
+
             pnl_pct = (pnl / (trade.entry_price * trade.qty / trade.leverage)) * 100 if trade.qty > 0 else 0
             
             db_manager.close_trade(trade.id, exit_price, pnl, pnl_pct, reason)
             if pnl < 0:
                 self.cooldowns[trade.symbol] = datetime.now()
-            logger.info(f"✅ Operación sincronizada {trade.symbol} | PnL: {pnl:+.4f} USDT ({pnl_pct:+.2f}%) | Razón: {reason}")
+            logger.info(f"✅ Sincronizado {trade.symbol} | PnL: {pnl:+.4f} | Razón: {reason}")
         else:
-            db_manager.close_trade(trade.id, trade.entry_price, 0, 0, "UNKNOWN_SYNC")
+            logger.warning(f"⚠️ No se encontró PnL en Bybit para {trade.symbol}, usando cierre estimado")
+            db_manager.close_trade(trade.id, trade.entry_price, 0, 0, "SYNC_ERROR")
         self.trade_state.pop(trade.id, None)
 
 
