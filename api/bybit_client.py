@@ -29,7 +29,12 @@ class BybitClient:
                     'http': settings.PROXY_URL,
                     'https': settings.PROXY_URL
                 }
-                logger.info(f"Proxy configurado para Bybit (Sync)")
+                # Aumentar el pool de conexiones para el scanner intensivo (70+ monedas)
+                adapter = HTTPAdapter(pool_connections=50, pool_maxsize=50)
+                self.session.client.mount("https://", adapter)
+                self.session.client.mount("http://", adapter)
+                
+                logger.info(f"Conexión con Bybit establecida ({'DEMO' if settings.BYBIT_DEMO else 'REAL'}). Pool: 50.")
             except Exception as e:
                 logger.warning(f"Error configurando proxy: {e}")
 

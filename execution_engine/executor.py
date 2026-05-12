@@ -99,14 +99,20 @@ class ExecutionEngine:
         if resp and resp.get("retCode") == 0:
             trade_id = db_manager.add_trade(
                 symbol=symbol, side=side_sig, entry_price=entry_price,
-                sl=sl_price, tp=tp1, qty=float(qty_str),
-                leverage=settings.LEVERAGE, risk_usdt=0
+                sl=sl_price, tp=tp1 if signal_data["strategy"].startswith("EMA") else signal_data.get("tp3", tp1), 
+                qty=float(qty_str), leverage=settings.LEVERAGE, risk_usdt=0
             )
             if trade_id:
                 self.trade_state[trade_id] = {
                     "breakeven_done": False,
                     "trailing_active": False,
-                    "be_price": be_price
+                    "be_price": be_price,
+                    "strategy": signal_data["strategy"],
+                    "tp1": signal_data.get("tp1"),
+                    "tp1_done": False,
+                    "tp2": signal_data.get("tp2"),
+                    "tp2_done": False,
+                    "tp3": signal_data.get("tp3")
                 }
             return True
 
@@ -129,6 +135,42 @@ class ExecutionEngine:
             if cur_price <= 0:
                 continue
 
+            # ASEGURAR SL/TP SI FALTAN (Petición usuario)
+            sl_bybit = pos.get("stopLoss", "")
+            tp_bybit = pos.get("takeProfit", "")
+            ts_bybit = pos.get("trailingStop", "")
+            
+            # Obtener información del instrumento para formatear precios correctamente
+            inst = bybit_client.get_instruments_info(symbol=trade.symbol)
+            tick = inst[trade.symbol]["tickSize"] if inst and trade.symbol in inst else "0.000001"
+            
+            sl_str = self._format_step(trade.stop_loss, tick)
+            tp_str = self._format_step(trade.take_profit, tick)
+
+            state = self.trade_state.get(trade.id, {})
+            trailing_active_on_exchange = (ts_bybit and ts_bybit != "0")
+            
+            # Si el bot cree que hay trailing pero el exchange dice que no, resincronizamos
+            if state.get("trailing_active") and not trailing_active_on_exchange:
+                logger.warning(f"⚠️ [SYNC] Trailing Stop perdido en {trade.symbol}. Restaurando protecciones base.")
+                state["trailing_active"] = False
+
+            # Si falta el SL o el TP, los restauramos
+            # Para EMA_9_21_89, siempre queremos ambos si no hay trailing
+            if not trailing_active_on_exchange:
+                if not sl_bybit or sl_bybit == "0" or not tp_bybit or tp_bybit == "0":
+                    # Intentamos restaurar ambos a la vez para evitar que uno borre al otro
+                    # Si ya estamos en breakeven, usamos el precio de BE para el SL
+                    current_sl = self._format_step(state.get("be_price", trade.stop_loss), tick)
+                    bybit_client.set_trading_stop(trade.symbol, stop_loss=current_sl, take_profit=tp_str)
+                    logger.info(f"🛠️ [SAFEGUARD] Protecciones restauradas para {trade.symbol}: SL={current_sl} TP={tp_str}")
+            else:
+                # Si hay trailing, el TP suele ser "0" (opcional), pero el SL debe existir como red de seguridad
+                if not sl_bybit or sl_bybit == "0":
+                    current_sl = self._format_step(state.get("be_price", trade.stop_loss), tick)
+                    bybit_client.set_trading_stop(trade.symbol, stop_loss=current_sl)
+                    logger.info(f"🛠️ [SAFEGUARD] Red de seguridad (SL) restaurada para {trade.symbol} con Trailing activo")
+
             is_long = trade.side == "LONG"
             state = self.trade_state.get(trade.id, {
                 "breakeven_done": False,
@@ -136,17 +178,47 @@ class ExecutionEngine:
                 "be_price": None
             })
 
-            tp_dist = abs(trade.take_profit - trade.entry_price)
-            if tp_dist <= 0:
-                self.trade_state[trade.id] = state
-                continue
-
+            # 0. CÁLCULOS DE DISTANCIA
+            tp_dist  = abs(trade.take_profit - trade.entry_price)
             cur_dist = (cur_price - trade.entry_price) if is_long else (trade.entry_price - cur_price)
 
+            # 0. GESTIÓN DE TP ESCALONADO (LRMC PRO)
+            if state.get("strategy") == "LRMC_PRO_v15":
+                # TP1 (50%)
+                if not state.get("tp1_done") and state.get("tp1"):
+                    hit = (cur_price >= state["tp1"]) if is_long else (cur_price <= state["tp1"])
+                    if hit:
+                        inst = bybit_client.get_instruments_info(symbol=trade.symbol)
+                        qty_step = inst[trade.symbol]["qtyStep"] if inst and trade.symbol in inst else "0.01"
+                        qty_to_close = self._format_step(trade.qty * 0.50, qty_step, True)
+                        bybit_client.place_order(trade.symbol, side="Sell" if is_long else "Buy", order_type="Market", qty=qty_to_close, reduce_only=True)
+                        state["tp1_done"] = True
+                        logger.info(f"💰 TP1 alcanzado en {trade.symbol} | Cerrado 50% ({qty_to_close})")
+                
+                # TP2 (30%)
+                if not state.get("tp2_done") and state.get("tp2"):
+                    hit = (cur_price >= state["tp2"]) if is_long else (cur_price <= state["tp2"])
+                    if hit:
+                        inst = bybit_client.get_instruments_info(symbol=trade.symbol)
+                        qty_step = inst[trade.symbol]["qtyStep"] if inst and trade.symbol in inst else "0.01"
+                        qty_to_close = self._format_step(trade.qty * 0.30, qty_step, True)
+                        bybit_client.place_order(trade.symbol, side="Sell" if is_long else "Buy", order_type="Market", qty=qty_to_close, reduce_only=True)
+                        state["tp2_done"] = True
+                        logger.info(f"💰 TP2 alcanzado en {trade.symbol} | Cerrado 30% ({qty_to_close})")
+
             # 1. BREAKEVEN
-            if not state.get("breakeven_done", False) and cur_dist >= tp_dist * settings.BREAKEVEN_ACTIVATION_PCT:
+            # Para LRMC, BE se activa en 1R (distancia SL)
+            activation_dist = tp_dist * settings.BREAKEVEN_ACTIVATION_PCT
+            if state.get("strategy") == "LRMC_PRO_v15":
+                activation_dist = abs(trade.entry_price - trade.stop_loss) # 1R
+
+            if not state.get("breakeven_done", False) and cur_dist >= activation_dist:
                 try:
                     profit_to_lock = tp_dist * settings.BREAKEVEN_PROFIT_PCT
+                    if state.get("strategy") == "LRMC_PRO_v15":
+                        # Para LRMC: SL a Entrada + 20% del riesgo inicial
+                        profit_to_lock = abs(trade.entry_price - trade.stop_loss) * 0.20
+                    
                     be_price = trade.entry_price + profit_to_lock if is_long else trade.entry_price - profit_to_lock
 
                     inst = bybit_client.get_instruments_info(symbol=trade.symbol)
@@ -162,37 +234,28 @@ class ExecutionEngine:
                     logger.error(f"❌ Error activando Breakeven en {trade.symbol}: {e}")
 
             # 2. TRAILING STOP
+            # Solo activamos trailing si el usuario lo permite y estamos en zona de activación
             if state.get("breakeven_done", False) and not state.get("trailing_active", False) and cur_dist >= tp_dist * settings.TRAILING_STOP_ACTIVATION_PCT:
                 try:
-                    trail_dist = tp_dist * 0.10
+                    trail_dist = tp_dist * settings.TRAIL_PROTECTION_PCT
                     inst = bybit_client.get_instruments_info(symbol=trade.symbol)
                     tick = inst[trade.symbol]["tickSize"] if inst and trade.symbol in inst else None
                     trail_dist_str = self._format_step(trail_dist, tick) if tick else str(round(trail_dist, 8))
 
-                    resp_ts = bybit_client.set_trading_stop(trade.symbol, take_profit="0", trailing_stop=trail_dist_str)
+                    # Activar Trailing Stop nativo de Bybit
+                    # Mantenemos el SL de breakeven y el TP para máxima seguridad
+                    current_sl = self._format_step(state.get("be_price", trade.stop_loss), tick)
+                    tp_str = self._format_step(trade.take_profit, tick)
+                    
+                    resp_ts = bybit_client.set_trading_stop(trade.symbol, trailing_stop=trail_dist_str, stop_loss=current_sl, take_profit=tp_str)
                     if resp_ts and resp_ts.get("retCode") == 0:
                         state["trailing_active"] = True
                         logger.info(f"🚀 TRAILING STOP activado en {trade.symbol} | Distancia: {trail_dist_str}")
                 except Exception as e:
                     logger.error(f"❌ Error activando Trailing en {trade.symbol}: {e}")
 
-            # 3. EMA TRAILING CONDICIONAL (Solo en pérdida)
-            try:
-                cur_pnl_est = (cur_price - trade.entry_price) if is_long else (trade.entry_price - cur_price)
-                if cur_pnl_est < 0: 
-                    from strategy.ema_strategy import ema_strategy
-                    resp_k = await bybit_client.get_klines_async(trade.symbol, "1", 30)
-                    if resp_k and resp_k.get("retCode") == 0:
-                        df = pd.DataFrame(resp_k["result"]["list"], columns=["ts","o","h","l","c","v","t"])
-                        df = df.sort_values("ts", ascending=True).reset_index(drop=True)
-                        df['close'] = pd.to_numeric(df['c'])
-                        if ema_strategy.should_trail_close(df, trade.side):
-                            logger.info(f"📉 Salida preventiva EMA por debilidad en {trade.symbol} (en pérdida)")
-                            self._force_close(trade, "EMA_EXIT_LOSS")
-            except Exception as e:
-                logger.warning(f"⚠️ Error en EMA check para {trade.symbol}: {e}")
-
             self.trade_state[trade.id] = state
+
 
     def get_trade_status(self, trade_id):
         state = self.trade_state.get(trade_id, {})
@@ -228,12 +291,13 @@ class ExecutionEngine:
             raw_pnl = (exit_price - trade.entry_price) * trade.qty if is_long else (trade.entry_price - exit_price) * trade.qty
             volumen = trade.entry_price * trade.qty
             pnl_final = raw_pnl - (volumen * 0.001)
-            pnl = pnl_bybit if abs(pnl_bybit) > abs(pnl_final) * 0.8 else pnl_final
+            pnl = pnl_bybit if abs(pnl_bybit) > 0 else pnl_final
             
             state = self.trade_state.get(trade.id, {})
             if state.get("trailing_active"): reason = "TRAILING STOP"
             elif state.get("breakeven_done"): reason = "BREAKEVEN"
             elif pnl < 0: reason = "STOP LOSS"
+            elif pnl > 0: reason = "TAKE PROFIT"
             else: reason = "PROFIT (TS/BE)"
 
             if pnl > 0 and reason == "STOP LOSS": reason = "BREAKEVEN"
@@ -264,8 +328,18 @@ class ExecutionEngine:
                     side = "LONG" if pos["side"] == "Buy" else "SHORT"
                     entry_price, qty = float(pos["avgPrice"]), float(pos["size"])
                     sl_raw, tp_raw = pos.get("stopLoss", ""), pos.get("takeProfit", "")
-                    sl = float(sl_raw) if sl_raw else entry_price * 0.99
-                    tp = float(tp_raw) if tp_raw else entry_price * 1.02
+                    sl = float(sl_raw) if sl_raw and sl_raw != "0" else entry_price * 0.99
+                    tp = float(tp_raw) if tp_raw and tp_raw != "0" else entry_price * 1.02
+                    
+                    # Asegurar que Bybit tenga SL/TP si faltan
+                    if not sl_raw or sl_raw == "0" or not tp_raw or tp_raw == "0":
+                        inst = bybit_client.get_instruments_info(symbol=symbol)
+                        tick = inst[symbol]["tickSize"] if inst and symbol in inst else "0.000001"
+                        sl_str = self._format_step(sl, tick)
+                        tp_str = self._format_step(tp, tick)
+                        bybit_client.set_trading_stop(symbol, stop_loss=sl_str, take_profit=tp_str)
+                        logger.info(f"🛠️ Ajustado SL/TP faltante en Bybit para {symbol}: SL={sl_str} TP={tp_str}")
+
                     db_manager.add_trade(symbol=symbol, side=side, entry_price=entry_price, sl=sl, tp=tp, qty=qty, leverage=settings.LEVERAGE, risk_usdt=0)
             
             open_trades = db_manager.get_open_trades()
@@ -276,18 +350,42 @@ class ExecutionEngine:
                     be_done, ts_active = False, False
                     if pos:
                         tp_bybit = pos.get("takeProfit", "")
-                        if not tp_bybit or tp_bybit == "0": be_done, ts_active = True, True
-                        elif abs(float(pos["markPrice"]) - trade.entry_price) >= abs(trade.take_profit - trade.entry_price) * settings.BREAKEVEN_ACTIVATION_PCT: be_done = True
-                    self.trade_state[trade.id] = {"breakeven_done": be_done, "trailing_active": ts_active, "be_price": None}
+                        ts_bybit = pos.get("trailingStop", "")
+                        
+                        # Si el TP no existe pero hay Trailing Stop en el exchange, marcamos como TS activo
+                        if (not tp_bybit or tp_bybit == "0") and (ts_bybit and ts_bybit != "0"):
+                            ts_active = True
+                            be_done = True
+                        
+                        # Verificar si ya pasó del punto de breakeven
+                        cur_dist = abs(float(pos["markPrice"]) - trade.entry_price)
+                        tp_dist = abs(trade.take_profit - trade.entry_price)
+                        if tp_dist > 0 and cur_dist >= tp_dist * settings.BREAKEVEN_ACTIVATION_PCT:
+                            be_done = True
+                            
+                    self.trade_state[trade.id] = {
+                        "breakeven_done": be_done, 
+                        "trailing_active": ts_active, 
+                        "be_price": None,
+                        "strategy": "UNKNOWN_SYNC" # Podríamos intentar inferirlo pero mejor dejarlo así
+                    }
         except Exception as e: logger.error(f"Error en sincronización inicial: {e}")
 
     async def cleanup_old_orders(self):
         try:
+            # Solo limpiamos órdenes LIMIT/MARKET normales, no condicionales (TP/SL)
             open_orders = bybit_client.get_open_orders()
             if not open_orders: return
+            
             now_ts = int(time.time() * 1000)
             for order in open_orders:
-                if now_ts - int(order.get("createdTime", now_ts)) > 10 * 60 * 1000:
+                # Si la orden es condicional o de activación, la ignoramos en la limpieza automática
+                if order.get("stopOrderType") or order.get("orderFilter") == "StopOrder":
+                    continue
+                    
+                created_time = int(order.get("createdTime", now_ts))
+                if now_ts - created_time > 10 * 60 * 1000:
+                    logger.info(f"🧹 [CLEANUP] Cancelando orden antigua de {order['symbol']} (ID: {order['orderId']})")
                     bybit_client.cancel_order(order["symbol"], order["orderId"])
         except Exception as e: logger.error(f"Error en limpieza de órdenes: {e}")
 

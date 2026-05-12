@@ -25,7 +25,7 @@ class Settings:
     # PnL directo del exchange — sin simulación de fees
     # Las comisiones ya están incluidas en el closedPnl de Bybit
 
-    # --- HYPER SCALPER V1 PARAMS ---
+    # --- ANTIGRAVITY EMA v15 Alpha PARAMS ---
     SCAN_INTERVAL_SECONDS: int = 15
     MIN_VOLUME_24H: int = 500000
     TOP_COINS_LIMIT: int = 70
@@ -37,10 +37,13 @@ class Settings:
     
     COOLDOWN_MINUTES = 30
     
+    # GESTIÓN DINÁMICA v15
     BREAKEVEN_ACTIVATION_PCT = 0.45  # 45% hacia el TP
-    BREAKEVEN_PROFIT_PCT = 0.25  # Asegurar 25% de ganancia cuando se activa
+    BREAKEVEN_PROFIT_PCT = 0.25      # Asegurar 25% de ganancia (Precio Entrada + 25% del rango de TP)
     TRAILING_STOP_ACTIVATION_PCT = 0.80 # Activar trailing stop al 80% de TP
-    TRAIL_PROTECTION_PCT = 0.50  # Asegurar 50% de la ganancia
+    TRAIL_PROTECTION_PCT = 0.15      # Distancia del 15% para el Trailing
+    
+    # NOTA: Límite de pérdida diaria removido por petición del usuario (v15 Alpha)
 
 
 settings = Settings()

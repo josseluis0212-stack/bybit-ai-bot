@@ -1,13 +1,14 @@
 """
 LRMC PRO — Market Scanner
-Escanea los pares BTC, ETH y top altcoins líquidos en M1
-usando la estrategia Fibonacci Cycle (13/34/89).
+Escanea los pares top altcoins líquidos en M1 y M5
+usando EMA PRO (M1) y LRMC PRO (M5) de forma independiente.
 """
 import asyncio
 import logging
 import pandas as pd
 from api.bybit_client import bybit_client
 from strategy.ema_strategy import ema_strategy
+from strategy.lrmc_strategy import lrmc_strategy
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +20,7 @@ TOP_COINS_LIMIT = 70    # Límite de monedas a escanear (Top por volumen)
 class LRMCScanner:
     """
     Escanea todos los pares definidos en LRMC_SYMBOLS,
-    obtiene velas M5 y aplica la estrategia LRMC PRO.
+    obtiene velas M5 y aplica las estrategias EMA PRO y LRMC PRO.
     """
 
     async def scan_market(self) -> list[dict]:
@@ -45,44 +46,43 @@ class LRMCScanner:
                 logger.warning(f"[Scanner] Error critico en {sym}: {result}")
                 continue
             if result is not None:
-                signals.append(result)
+                if isinstance(result, list):
+                    signals.extend(result)
+                else:
+                    signals.append(result)
             elif sym == "BTCUSDT":
-                logger.info(f"[Scanner] BTC analizado sin señal (OK)")
+                logger.debug(f"[Scanner] BTC analizado sin señal")
 
-        logger.info(f"[Scanner] EMA scan completo — {len(signals)} señal(es) encontrada(s) en {len(symbols)} monedas")
+        logger.info(f"[Scanner] Doble Scan (EMA/LRMC) completo — {len(signals)} señal(es) encontrada(s)")
         return signals
 
-    async def _analyze_symbol(self, symbol: str) -> dict | None:
-        """Descarga velas M5 y M1, aplica filtro de tendencia M5 y analiza con la estrategia."""
+    async def _analyze_symbol(self, symbol: str) -> list[dict] | None:
+        """Descarga velas y analiza con ambas estrategias."""
+        found_signals = []
         try:
-            # 1. Filtro de tendencia M5 (EMA 9 vs EMA 21)
-            df_m5 = await asyncio.to_thread(self._get_klines, symbol, "5")
-            if df_m5 is None or len(df_m5) < 30:
-                return None
-            
-            ema_fast_m5 = df_m5['close'].ewm(span=13, adjust=False).mean().iloc[-1]
-            ema_mid_m5 = df_m5['close'].ewm(span=34, adjust=False).mean().iloc[-1]
-            trend_m5 = "BULLISH" if ema_fast_m5 > ema_mid_m5 else "BEARISH"
-
-            # 2. Obtener y analizar velas M1
+            # 1. Obtener Velas M1 y M5
             df_m1 = await asyncio.to_thread(self._get_klines, symbol, "1")
-            if df_m1 is None or len(df_m1) < CANDLES_NEEDED:
-                return None
-                
-            signal = ema_strategy.analyze(df_m1, symbol)
+            df_m5 = await asyncio.to_thread(self._get_klines, symbol, "5")
             
-            # 3. Filtrar señal M1 según tendencia M5
-            if signal:
-                if signal["signal"] == "LONG" and trend_m5 != "BULLISH":
-                    logger.debug(f"[Scanner] {symbol} LONG rechazado por filtro M5 (Tendencia {trend_m5})")
-                    return None
-                if signal["signal"] == "SHORT" and trend_m5 != "BEARISH":
-                    logger.debug(f"[Scanner] {symbol} SHORT rechazado por filtro M5 (Tendencia {trend_m5})")
-                    return None
-                
-                logger.info(f"[Scanner] {symbol} {signal['signal']} validado por filtro de tendencia M5 ({trend_m5})")
-                
-            return signal
+            if df_m1 is None or len(df_m1) < CANDLES_NEEDED:
+                logger.warning(f"[Scanner] {symbol} M1 insuficiente: {len(df_m1) if df_m1 is not None else 0}/{CANDLES_NEEDED}")
+                return None
+            if df_m5 is None or len(df_m5) < 30:
+                logger.warning(f"[Scanner] {symbol} M5 insuficiente: {len(df_m5) if df_m5 is not None else 0}/30")
+                return None
+
+            # --- ESTRATEGIA 1: EMA PRO (M1 Scalping) ---
+            ema_sig = ema_strategy.analyze(df_m1, symbol)
+            if ema_sig:
+                found_signals.append(ema_sig)
+
+            # --- ESTRATEGIA 2: LRMC PRO (M5 Sweep) ---
+            lrmc_sig = lrmc_strategy.analyze(df_m5, symbol)
+            if lrmc_sig:
+                found_signals.append(lrmc_sig)
+
+            return found_signals if found_signals else None
+            
         except Exception as e:
             logger.debug(f"[Scanner] {symbol} error: {e}")
             return None

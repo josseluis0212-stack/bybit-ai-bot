@@ -24,11 +24,16 @@ class SocketIOLogHandler(logging.Handler):
         try:
             log_entry = self.format(record)
             color = "text-text-muted"
-            if "SEÑAL" in log_entry: color = "neon-text-green font-black"
+            if "SE\u00d1AL" in log_entry: color = "neon-text-green font-black"
             elif "Error" in log_entry or "FALLIDA" in log_entry: color = "text-danger"
             elif "Escaneo" in log_entry: color = "text-cyan"
             
-            asyncio.create_task(sio.emit("bot_log", {"msg": log_entry, "color": color}))
+            try:
+                loop = asyncio.get_running_loop()
+                loop.create_task(sio.emit("bot_log", {"msg": log_entry, "color": color}))
+            except RuntimeError:
+                # No hay loop corriendo, ignoramos el log de socket
+                pass
         except:
             pass
 
@@ -105,12 +110,12 @@ async def get_stats(sid, data):
 
 
 async def bot_loop():
-    logger.info("🚀 Iniciando EMA CROSSOVER — EMA 9 / EMA 21 (M1)")
+    logger.info("🚀 Iniciando ANTIGRAVITY EMA v15 Alpha — PRODUCCIÓN")
     logger.info(
         f"Parámetros: {settings.LEVERAGE}x | Capital/Trade: {settings.TRADE_AMOUNT_USDT} USDT | Max Trades: {settings.MAX_CONCURRENT_TRADES}"
     )
 
-    logger.info("Estrategia: EMA 4/8/21 | Timeframe: 1m | TP: 2.0R | SL: 10x ATR")
+    logger.info("Estrategia: EMA 9/21/89 | M5 Trend Filter | BE 45% | TS 85%")
 
     while True:
         try:
@@ -174,7 +179,7 @@ async def handle_status(request):
 
     status = {
         "status": "Running" if BOT_ACTIVE else "Stopped",
-        "strategy": "Triple EMA Pro (9/21/100) — M1 Scalping",
+        "strategy": "Triple EMA Pro v15 Alpha (9/21/89) — Render.com",
         "balance": [c for c in balance_info["result"]["list"][0]["coin"] if c["coin"] in ["USDT", "USDC"]]
         if balance_info and balance_info.get("retCode") == 0
         else [],
@@ -197,16 +202,17 @@ async def handle_status(request):
 async def handle_start(request):
     global BOT_ACTIVE
     BOT_ACTIVE = True
-    logger.info("🚀 Bot ACTIVADO desde el dashboard")
+    logger.warning(f"🚀 [BOT_CONTROL] Bot ACTIVADO desde: {request.remote}")
     return web.json_response({"status": "success", "message": "Bot activado correctamente"})
 
 
 async def handle_stop(request):
     global BOT_ACTIVE
     BOT_ACTIVE = False
-    logger.info("🛑 Bot DETENIDO desde el dashboard")
-    await executor.emergency_close_all()
-    return web.json_response({"status": "success", "message": "Bot detenido y posiciones cerradas"})
+    logger.warning(f"🛑 [BOT_CONTROL] Bot DETENIDO desde: {request.remote} | Agente: {request.headers.get('User-Agent')}")
+    # No cerramos posiciones automáticamente en STOP, solo pausamos el escaneo
+    # await executor.emergency_close_all() 
+    return web.json_response({"status": "success", "message": "Bot detenido (Escaneo pausado)"})
 
 
 async def handle_trigger_scan(request):
@@ -235,7 +241,9 @@ async def handle_reset(request):
         analytics_manager.reset_date_now()
         executor.trade_state.clear()
         executor.cooldowns.clear()
-        return web.json_response({"status": "success", "message": "Reset completo — Todo en ceros"})
+        from risk_management.risk_manager import risk_manager
+        risk_manager.daily_pnl = 0.0
+        return web.json_response({"status": "success", "message": "Reset completo — Sistema v15 Alpha en ceros"})
     except Exception as e:
         return web.json_response({"status": "error", "message": str(e)}, status=500)
 
@@ -334,12 +342,9 @@ async def init_web_server():
     app.router.add_get("/health", handle_health_check)
     app.router.add_get("/api/status", handle_status)
     app.router.add_post("/api/start", handle_start)
-    app.router.add_get("/api/start", handle_start)
     app.router.add_post("/api/stop", handle_stop)
-    app.router.add_get("/api/stop", handle_stop)
     app.router.add_get("/api/trigger-scan", handle_trigger_scan)
     app.router.add_post("/api/panic-close", handle_panic_close)
-    app.router.add_get("/api/reset", handle_reset)
     app.router.add_post("/api/reset", handle_reset)
     app.router.add_get("/api/history", handle_history)
     app.router.add_get("/api/performance", handle_performance)

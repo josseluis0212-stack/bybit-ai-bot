@@ -1,14 +1,13 @@
 """
-ANTIGRAVITY EMA PRO v2 — Estrategia Triple EMA Profesional
+ANTIGRAVITY EMA PRO v15 Alpha | PRODUCCIÓN (Render.com)
 =============================================================
-EMA 13 / 34 / 89 (Ciclos Fibonacci) con filtros ADX (25+) y RSI.
+EMA 9 / 21 / 89 | ADX 20+ | RSI | ATR | Volumen 25
 
 MATEMÁTICAS GANADORAS:
-  - SL: 3x ATR  → lejos del ruido
-  - TP: 6x ATR  → ratio 2:1 real
-  - Trailing Stop: cierra cuando EMA Rápida cruza de vuelta EMA Media
-  - Breakeven: entrada + comisión cuando se alcanza 40% del TP
-  - RSI: no entra si RSI > 65 (long) o RSI < 35 (short)
+  - SL: ATR dynamic
+  - TP: ATR dynamic
+  - Trailing Stop: Activación 85% TP, Distancia 15%
+  - Breakeven: Activación 45% TP, Asegura 25% profit
 """
 import logging
 import numpy as np
@@ -20,18 +19,18 @@ logger = logging.getLogger(__name__)
 class EMAProStrategy:
 
     def __init__(self):
-        self.fast        = 13   # EMA Rápida (Momento)
-        self.mid         = 34   # EMA Media (Confirmación)
+        self.fast        = 9    # EMA Rápida (Momento)
+        self.mid         = 21   # EMA Media (Confirmación)
         self.slow        = 89   # EMA Lenta (Ciclo Macro)
         self.adx_period  = 14
-        self.adx_min     = 25   # Mayor exigencia de tendencia para evitar laterales
+        self.adx_min     = 20   # Filtro de fuerza de tendencia
         self.atr_period  = 14
-        self.atr_sl_mult = 10.0 # SL = 10x ATR (bien lejos de las instituciones, debajo de los order blocks)
-        self.rr_ratio    = 2.0  # TP = 2x el riesgo → 20x ATR
+        self.atr_sl_mult = 10.0 # SL = 10x ATR (bien lejos de las instituciones)
+        self.rr_ratio    = 2.0  # TP = 2x el riesgo
         self.rsi_period  = 14
-        self.rsi_ob      = 65   # RSI overbought (suave para no perder el inicio del momentum)
-        self.rsi_os      = 35   # RSI oversold   (suave)
-        self.vol_window  = 20
+        self.rsi_ob      = 75   # RSI overbought (Permitir más momentum)
+        self.rsi_os      = 25   # RSI oversold
+        self.vol_window  = 25   # Ventana de volumen aumentada
         self.cross_window = 4   # Velas máximas desde el cruce
 
     # ─── INDICADORES ─────────────────────────────────────────────────────────
@@ -73,7 +72,7 @@ class EMAProStrategy:
     # ─── ANÁLISIS PRINCIPAL ───────────────────────────────────────────────────
 
     def analyze(self, df: pd.DataFrame, symbol: str) -> dict | None:
-        if len(df) < 120:   # Necesitamos bastantes velas para EMA100
+        if len(df) < 120:
             return None
 
         df = df.copy()
@@ -97,11 +96,11 @@ class EMAProStrategy:
 
         # ── FILTRO 1: Tendencia (ADX) ────────────────────────────────────────
         if adx < self.adx_min:
-            return None   # Mercado lateral
+            return None
 
-        # ── FILTRO 2: Volumen ────────────────────────────────────────────────
-        if vol_avg > 0 and vol < vol_avg * 0.8:
-            return None   # Volumen insuficiente
+        # ── FILTRO 2: Volumen (RELAJADO) ─────────────────────────────────────
+        if vol_avg > 0 and vol < vol_avg * 0.4:
+            return None
 
         # ── DETECTAR CRUCE RECIENTE ──────────────────────────────────────────
         cross_up = cross_dn = False
@@ -113,7 +112,6 @@ class EMAProStrategy:
                 cross_dn = True
 
         # ── SEÑAL LONG ───────────────────────────────────────────────────────
-        # EMA9 > EMA21 > EMA100 + cruce reciente + RSI no sobrecomprado
         if (cross_up
                 and curr['ema_fast'] > curr['ema_mid'] > curr['ema_slow']
                 and rsi < self.rsi_ob):
@@ -122,13 +120,11 @@ class EMAProStrategy:
             risk  = entry - sl
             if risk <= 0: return None
             tp    = round(entry + risk * self.rr_ratio, 8)
-            # Breakeven: entrada + 0.15% (cubre comisiones y algo de ganancia)
             be    = round(entry * 1.0015, 8)
             logger.info(f"✅ [EMA PRO] LONG {symbol} | E={entry:.4f} SL={sl:.4f} TP={tp:.4f} ADX={adx:.1f} RSI={rsi:.1f}")
             return self._sig(symbol, "LONG", entry, sl, tp, be, atr, adx, rsi)
 
         # ── SEÑAL SHORT ──────────────────────────────────────────────────────
-        # EMA9 < EMA21 < EMA100 + cruce reciente + RSI no sobrevendido
         if (cross_dn
                 and curr['ema_fast'] < curr['ema_mid'] < curr['ema_slow']
                 and rsi > self.rsi_os):
@@ -143,23 +139,6 @@ class EMAProStrategy:
 
         return None
 
-    def should_trail_close(self, df: pd.DataFrame, side: str) -> bool:
-        """
-        Trailing Stop por EMA: cierra cuando EMA9 cruza de vuelta a EMA21.
-        Llama esto en cada ciclo de monitoreo.
-        """
-        if len(df) < 30: return False
-        df = df.copy()
-        df['ema_fast'] = df['close'].ewm(span=self.fast, adjust=False).mean()
-        df['ema_mid']  = df['close'].ewm(span=self.mid,  adjust=False).mean()
-        curr = df.iloc[-1]; prev = df.iloc[-2]
-        if side == "LONG":
-            # Cerrar LONG si EMA9 vuelve a cruzar por debajo de EMA21
-            return prev['ema_fast'] >= prev['ema_mid'] and curr['ema_fast'] < curr['ema_mid']
-        else:
-            # Cerrar SHORT si EMA9 vuelve a cruzar por encima de EMA21
-            return prev['ema_fast'] <= prev['ema_mid'] and curr['ema_fast'] > curr['ema_mid']
-
     def _sig(self, symbol, side, entry, sl, tp, breakeven, atr, adx, rsi):
         return {
             "symbol":      symbol,
@@ -173,7 +152,7 @@ class EMAProStrategy:
             "atr":         round(atr, 8),
             "adx":         round(adx, 2),
             "rsi":         round(rsi, 2),
-            "strategy":    "FIBO_CYCLE_13_34_89",
+            "strategy":    "EMA_9_21_89_v15_ALPHA",
         }
 
 
