@@ -110,7 +110,7 @@ async def bot_loop():
         f"Parámetros: {settings.LEVERAGE}x | Capital/Trade: {settings.TRADE_AMOUNT_USDT} USDT | Max Trades: {settings.MAX_CONCURRENT_TRADES}"
     )
 
-    logger.info("Estrategia: EMA 9/21 | Timeframe: 1m | TP: 2.0R | SL: 10x ATR")
+    logger.info("Estrategia: EMA 4/8/21 | Timeframe: 1m | TP: 2.0R | SL: 10x ATR")
 
     while True:
         try:
@@ -120,6 +120,7 @@ async def bot_loop():
 
             logger.info("🔍 [CICLO] Monitoreando posiciones y analizando oportunidades...")
             logger.info("📡 Bot Escaneando...") # Log para confirmar vida en terminal
+            await executor.cleanup_old_orders()
             await executor.check_open_positions()
             
             logger.info(f"📡 [SCANNER] Escaneando mercado: Top {settings.TOP_COINS_LIMIT} Monedas (>$500k vol)...")
