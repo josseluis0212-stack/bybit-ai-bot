@@ -343,15 +343,16 @@ class Engine:
             closed_candle = klines[-2]
 
             if check_macro_shock(closed_candle, Config.BTC_VOL_CUMUL_BODY_PCT / 100.0):
+                direction = "UP" if float(closed_candle.get("close", 0)) > float(closed_candle.get("open", 0)) else "DOWN"
                 reason = f"BTC Volatility Macro Shock Detected > {Config.BTC_VOL_CUMUL_BODY_PCT}% on 15m candle"
-                await self._trigger_btc_block(reason)
+                await self._trigger_btc_block(reason, direction=direction)
                 return
 
         except Exception as e:
             logger.error(f"[BTC BLOCK] Error checking BTC volatility: {e}")
 
-    async def _trigger_btc_block(self, reason: str):
-        """Activates a 2-hour trading block and persists it to disk."""
+    async def _trigger_btc_block(self, reason: str, direction: str = None):
+        """Activates a 2-hour trading block, persists it, and closes counter-trend positions."""
         now = time.time()
         new_blocked_until = now + Config.BTC_VOLATILITY_BLOCK_DURATION
         if new_blocked_until > self.btc_blocked_until + 10:  # 10s grace
@@ -361,6 +362,16 @@ class Engine:
             from datetime import datetime
             expire_str = datetime.fromtimestamp(self.btc_blocked_until).strftime('%Y-%m-%d %H:%M:%S')
             logger.warning(f"[BTC BLOCK] !!! VOLATILITY SPARK DETECTED! Blocking all new entries for 2 hours (until {expire_str}). Reason: {reason}")
+            
+            if direction:
+                logger.warning(f"[BTC EMERGENCY] Shock direction is {direction}. Closing all counter-trend positions immediately.")
+                for sym, trade in list(self.trade_state.items()):
+                    if not trade.get("entry_order_id") or not trade.get("filled"):
+                        continue
+                    side = trade.get("side")
+                    if (direction == "UP" and side == "SHORT") or (direction == "DOWN" and side == "LONG"):
+                        logger.error(f"[BTC EMERGENCY] Closing {sym} {side} to prevent liquidation from {direction} shock.")
+                        await self.executor.close_position_market(sym, side)
             
             # Persist block state to file
             from app.constants import BTC_BLOCK_FILE
