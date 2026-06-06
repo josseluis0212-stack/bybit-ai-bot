@@ -60,21 +60,21 @@ async def evaluate_v10_pro(client, symbol: str) -> dict:
         
         # FVG found
         # Apply Smart Money Order Flow (Volume Filter) on the displacement candle (c2)
-        # Relaxed to 50% for high frequency testing
+        # Displacement candle volume must be >= 90% of SMA-10 volume
         idx_c2 = len(volumes_5m) + i - 1  # Get absolute index of c2
-        if c2["volume"] < 0.5 * sma_vol_10[idx_c2]:
+        if c2["volume"] < 0.9 * sma_vol_10[idx_c2]:
             continue
             
         if bias == "LONG":
-            # Very soft bullish condition: Two bullish candles in a row
-            if c2["close"] > c2["open"] and c3["close"] > c3["open"]:
+            # Bullish FVG: Low actual (c3) > High prev (c1) + vela alcista
+            if c3["low"] > c1["high"] and c3["close"] > c3["open"]:
                 fvg_found = True
                 entry_price = c3["close"]  # Entrar de inmediato al precio de cierre actual
                 sl_price = entry_price - (2.5 * atr)
                 break
         else:
-            # Very soft bearish condition: Two bearish candles in a row
-            if c2["close"] < c2["open"] and c3["close"] < c3["open"]:
+            # Bearish FVG: High actual (c3) < Low prev (c1) + vela bajista
+            if c3["high"] < c1["low"] and c3["close"] < c3["open"]:
                 fvg_found = True
                 entry_price = c3["close"]  # Entrar de inmediato al precio de cierre actual
                 sl_price = entry_price + (2.5 * atr)
