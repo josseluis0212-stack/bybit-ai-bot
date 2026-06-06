@@ -181,6 +181,14 @@ class AsyncBingXClient:
         res = await self._request("POST", "/openApi/swap/v2/trade/leverage", params=params, signed=True)
         return res.get("success", False)
 
+    async def set_margin_type(self, symbol: str, margin_type: str = "ISOLATED"):
+        params = {
+            "symbol": symbol.upper(),
+            "marginType": margin_type.upper()
+        }
+        res = await self._request("POST", "/openApi/swap/v2/trade/marginType", params=params, signed=True)
+        return res.get("success", False)
+
     async def get_contract_precisions(self):
         if not self._contract_precisions:
             res = await self._request("GET", "/openApi/swap/v2/quote/contracts", signed=False)

@@ -746,12 +746,12 @@ class Engine:
             if tp_cancelled:
                 if side == "LONG":
                     # Floor is the Breakeven lock-in level
-                    floor_sl = entry_price + 0.10 * target_dist
+                    floor_sl = entry_price + 0.15 * target_dist
                     # Trailing distance: 15% of total TP target
                     trailing_sl = mark_price - 0.15 * target_dist
                     target_sl = max(floor_sl, trailing_sl)
                 else:
-                    floor_sl = entry_price - 0.10 * target_dist
+                    floor_sl = entry_price - 0.15 * target_dist
                     trailing_sl = mark_price + 0.15 * target_dist
                     target_sl = min(floor_sl, trailing_sl)
 
@@ -770,10 +770,13 @@ class Engine:
                     trade["highest_price"] = mark_price
                     highest_price = mark_price
                 trailing_sl = highest_price - 0.15 * target_dist
-                floor_sl = entry_price + 0.10 * target_dist
+                floor_sl = entry_price + 0.15 * target_dist
                 target_sl = max(trailing_sl, floor_sl)
                 
-                if target_sl > trade.get("sl_price", 0):
+                current_sl = trade.get("sl_price")
+                if current_sl is None: current_sl = 0.0
+                
+                if target_sl > current_sl:
                     new_sl_id = await self.executor.update_sl(symbol, side, trade.get("sl_order_id"), target_sl, pos_amt)
                     if new_sl_id:
                         trade["sl_order_id"] = new_sl_id
@@ -783,10 +786,13 @@ class Engine:
                     trade["highest_price"] = mark_price
                     highest_price = mark_price
                 trailing_sl = highest_price + 0.15 * target_dist
-                floor_sl = entry_price - 0.10 * target_dist
+                floor_sl = entry_price - 0.15 * target_dist
                 target_sl = min(trailing_sl, floor_sl)
                 
-                if target_sl < trade.get("sl_price", 0):
+                current_sl = trade.get("sl_price")
+                if current_sl is None: current_sl = float('inf')
+                
+                if target_sl < current_sl:
                     new_sl_id = await self.executor.update_sl(symbol, side, trade.get("sl_order_id"), target_sl, pos_amt)
                     if new_sl_id:
                         trade["sl_order_id"] = new_sl_id
@@ -794,9 +800,9 @@ class Engine:
 
         # --- Breakeven (50% of TP) ---
         elif progress >= 0.50 and not trade.get("breakeven_hit"):
-            lock_in_profit = 0.10 * target_dist
+            lock_in_profit = 0.15 * target_dist
             new_sl = entry_price + lock_in_profit if side == "LONG" else entry_price - lock_in_profit
-            logger.info(f"[BREAKEVEN] {symbol} progress reached {progress:.2%} (>= 50%). Moving SL to {new_sl:.6f} (+10% of TP).")
+            logger.info(f"[BREAKEVEN] {symbol} progress reached {progress:.2%} (>= 50%). Moving SL to {new_sl:.6f} (+15% of TP).")
             new_sl_id = await self.executor.update_sl(symbol, side, trade.get("sl_order_id"), new_sl, pos_amt)
             if new_sl_id:
                 trade["sl_order_id"] = new_sl_id

@@ -24,8 +24,14 @@ class OrderExecutor:
         self.tp_manager = TakeProfitManager()
 
     async def setup_leverage(self, symbol: str, side: str):
-        """Set leverage before entering a position."""
+        """Set margin mode to ISOLATED and set leverage before entering a position."""
         from app.config import Config
+        
+        # Enforce ISOLATED margin mode
+        margin_ok = await self.client.set_margin_type(symbol, "ISOLATED")
+        if not margin_ok:
+            logger.warning(f"Could not set ISOLATED margin mode for {symbol}")
+            
         ok = await self.client.set_leverage(symbol, side, Config.LEVERAGE)
         if not ok:
             logger.warning(f"Could not set leverage for {symbol} {side}")
@@ -199,6 +205,12 @@ class OrderExecutor:
             logger.info(f"[SL UPDATE] New SL placed @ {new_sl_price:.4f}. ID={new_id}")
             return new_id
 
+        code = sl_res.get("code")
+        if code in [110411, 110412]:
+            logger.error(f"[SL UPDATE] Price already breached new SL level! Emergency close for {symbol}.")
+            await self.close_position_market(symbol, side)
+            return "BREACHED"
+
         logger.error(f"[SL UPDATE] Failed to place new SL: {sl_res.get('msg')}")
         return None
 
@@ -276,8 +288,8 @@ class OrderExecutor:
             # If trailing is active, use the trailed stop price stored in state
             target_sl_price = trade.get("sl_price", sl_price)
         elif trade.get("breakeven_hit"):
-            # If breakeven is hit, target is 20% of target distance
-            target_sl_price = entry_price + (0.2 * target_distance) if side == "LONG" else entry_price - (0.2 * target_distance)
+            # If breakeven is hit, target is 15% of target distance (matches engine.py lock_in_profit)
+            target_sl_price = entry_price + (0.15 * target_distance) if side == "LONG" else entry_price - (0.15 * target_distance)
         else:
             target_sl_price = sl_price
 
@@ -296,7 +308,8 @@ class OrderExecutor:
             else:
                 code = sl_res.get("code")
                 if code in [110411, 110412]:
-                    logger.error(f"[SMART RESTORE] SL price already breached. Marking as BREACHED.")
+                    logger.error(f"[SMART RESTORE] SL price already breached! Emergency close for {symbol}.")
+                    await self.close_position_market(symbol, side)
                     trade["sl_order_id"] = "BREACHED"
                 else:
                     logger.error(f"[SMART RESTORE] SL restoration failed: {sl_res.get('msg')}")
