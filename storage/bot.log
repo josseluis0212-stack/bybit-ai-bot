@@ -1,0 +1,800 @@
+2026-05-29 13:14:35,744 [ERROR] LRMC - BingX API Error: Order price should be higher than 14794.3 | Code: 101211
+2026-05-29 13:14:43,970 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-29 13:14:44,239 [ERROR] LRMC - WebSocket Error: [Errno 11001] getaddrinfo failed. Reconnecting in 5s...
+2026-05-29 13:14:48,277 [ERROR] LRMC - BingX API Error: Please use the correct request method. The request method for this endpoint is DELETE | Code: 100404
+2026-05-29 13:14:49,565 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-29 13:14:49,815 [ERROR] LRMC - WebSocket Error: [Errno 11001] getaddrinfo failed. Reconnecting in 5s...
+2026-05-29 13:15:52,463 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-29 13:15:54,005 [INFO] LRMC - WebSocket Connected.
+2026-05-29 21:55:08,875 [INFO] LRMC - [ENTRY] Placing LIMIT SELL/SHORT 1.000000 @ 9.2500 on LINK-USDT
+2026-05-29 21:55:09,252 [ERROR] LRMC - BingX API Error: The Maker (Post Only) order ensures that the user always acts as a maker. If the order would immediately match with available orders in the market, it will be canceled. | Code: 101215
+2026-05-29 21:55:09,252 [ERROR] LRMC - [ENTRY] Failed to place order: The Maker (Post Only) order ensures that the user always acts as a maker. If the order would immediately match with available orders in the market, it will be canceled.
+2026-05-29 21:55:14,082 [INFO] LRMC - [ENTRY] Placing LIMIT BUY/LONG 0.001000 @ 73369.7100 on BTC-USDT
+2026-05-29 21:55:14,469 [INFO] LRMC - [ENTRY] Order placed OK. ID=2060555605711523840
+2026-05-29 21:57:09,307 [INFO] LRMC - [ENTRY] Placing LIMIT BUY/LONG 2.710880 @ 73369.9070 on BTC-USDT
+2026-05-29 21:57:09,713 [INFO] LRMC - [ENTRY] Order placed OK. ID=2060556089092476928
+2026-05-29 23:14:54,264 [WARNING] LRMC - [EMERGENCY CLOSE] Cancelling orders and closing NOMINA-USDT SHORT
+2026-05-29 23:14:55,765 [ERROR] LRMC - BingX API Error: In the Hedge mode, the 'ReduceOnly' field can not be filled. | Code: 109400
+2026-05-29 23:14:55,767 [WARNING] LRMC - [EMERGENCY CLOSE] Cancelling orders and closing PENGU-USDT LONG
+2026-05-29 23:14:56,714 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780114734331 | Code: 109429
+2026-05-29 23:14:56,715 [WARNING] LRMC - [EMERGENCY CLOSE] Cancelling orders and closing GALA-USDT LONG
+2026-05-29 23:14:57,682 [ERROR] LRMC - BingX API Error: In the Hedge mode, the 'ReduceOnly' field can not be filled. | Code: 109400
+2026-05-29 23:14:57,683 [WARNING] LRMC - [EMERGENCY CLOSE] Cancelling orders and closing LONGXIA-USDT LONG
+2026-05-29 23:14:59,643 [ERROR] LRMC - BingX API Error: In the Hedge mode, the 'ReduceOnly' field can not be filled. | Code: 109400
+2026-05-29 23:14:59,644 [WARNING] LRMC - [EMERGENCY CLOSE] Cancelling orders and closing INX-USDT LONG
+2026-05-29 23:15:00,262 [ERROR] LRMC - BingX API Error: Please try again later. | Code: 100410
+2026-05-29 23:15:00,263 [WARNING] LRMC - [EMERGENCY CLOSE] Cancelling orders and closing DOGE-USDT LONG
+2026-05-29 23:15:01,259 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780114734331 | Code: 109429
+2026-05-29 23:15:01,260 [WARNING] LRMC - [EMERGENCY CLOSE] Cancelling orders and closing SHIB-USDT LONG
+2026-05-29 23:15:02,236 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780114734331 | Code: 109429
+2026-05-29 23:15:02,238 [WARNING] LRMC - [EMERGENCY CLOSE] Cancelling orders and closing OWL-USDT LONG
+2026-05-29 23:15:03,174 [ERROR] LRMC - BingX API Error: In the Hedge mode, the 'ReduceOnly' field can not be filled. | Code: 109400
+2026-05-29 23:15:03,175 [WARNING] LRMC - [EMERGENCY CLOSE] Cancelling orders and closing US-USDT LONG
+2026-05-29 23:15:04,151 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780114734331 | Code: 109429
+2026-05-29 23:15:04,152 [WARNING] LRMC - [EMERGENCY CLOSE] Cancelling orders and closing XLM-USDT LONG
+2026-05-29 23:15:05,108 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780114734331 | Code: 109429
+2026-05-30 19:35:55,958 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:35:58,139 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:36:00,460 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:36:01,952 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:36:03,830 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:36:07,014 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:36:08,681 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:36:10,543 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:36:12,836 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:36:14,900 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:36:16,213 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:36:19,400 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:36:21,695 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:36:23,588 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:36:26,814 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:36:28,604 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:36:29,918 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:36:32,776 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:37:28,695 [INFO] LRMC - === LRMC PRO Engine Starting (HYBRID: REST polling + WS fills) ===
+2026-05-30 19:37:28,696 [INFO] LRMC - Restored 0 active positions from storage.
+2026-05-30 19:37:29,988 [INFO] LRMC - Successfully loaded precisions for 682 contracts.
+2026-05-30 19:37:30,683 [WARNING] LRMC - [ORPHAN ADOPTION] Adopting unmanaged position SLP-USDT LONG from BingX!
+2026-05-30 19:37:30,683 [WARNING] LRMC - [ORPHAN ADOPTION] Adopting unmanaged position QAIT-USDT LONG from BingX!
+2026-05-30 19:37:30,683 [WARNING] LRMC - [ORPHAN ADOPTION] Adopting unmanaged position 1000BONK-USDT SHORT from BingX!
+2026-05-30 19:37:30,683 [WARNING] LRMC - [ORPHAN ADOPTION] Adopting unmanaged position GALA-USDT SHORT from BingX!
+2026-05-30 19:37:30,683 [WARNING] LRMC - [ORPHAN ADOPTION] Adopting unmanaged position RSR-USDT SHORT from BingX!
+2026-05-30 19:37:30,683 [WARNING] LRMC - [ORPHAN ADOPTION] Adopting unmanaged position XPIN-USDT LONG from BingX!
+2026-05-30 19:37:30,683 [WARNING] LRMC - [ORPHAN ADOPTION] Adopting unmanaged position PENGU-USDT SHORT from BingX!
+2026-05-30 19:37:30,683 [WARNING] LRMC - [ORPHAN ADOPTION] Adopting unmanaged position DOGE-USDT SHORT from BingX!
+2026-05-30 19:37:30,684 [WARNING] LRMC - [ORPHAN ADOPTION] Adopting unmanaged position WHITEWHALE-USDT LONG from BingX!
+2026-05-30 19:37:30,684 [WARNING] LRMC - [ORPHAN ADOPTION] Adopting unmanaged position PIXEL-USDT LONG from BingX!
+2026-05-30 19:37:30,684 [INFO] LRMC - [POLL] Kline polling loop started. Interval=60s, TF=5m
+2026-05-30 19:37:31,280 [INFO] LRMC - Fetched top 80 volume symbols.
+2026-05-30 19:37:31,280 [INFO] LRMC - [SYSTEM] Tracking top 80 volume symbols: ['NEX-USDT', 'SHIB-USDT', 'FLORKETH-USDT', 'AEON-USDT', 'GITLAWB-USDT']...
+2026-05-30 19:37:31,571 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-30 19:37:32,873 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-30 19:37:35,193 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-30 19:37:36,800 [INFO] LRMC - WebSocket connected: wss://open-api-ws.bingx.com/market...
+2026-05-30 19:37:37,686 [INFO] LRMC - Subscribed to 8 symbols @ 5m
+2026-05-30 19:38:00,702 [DEBUG] LRMC - [RECONCILE] Checking state vs exchange...
+2026-05-30 19:38:01,609 [WARNING] LRMC - [RECONCILE] SLP-USDT missing SL! Restoring...
+2026-05-30 19:38:01,935 [INFO] LRMC - [TP/SL] Confirmed position SLP-USDT LONG size=239425.000000
+2026-05-30 19:38:03,004 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:38:04,601 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:38:05,217 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:38:06,919 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:38:06,919 [ERROR] LRMC - [SL] FAILED to place SL: Max retries exceeded
+2026-05-30 19:38:06,919 [INFO] LRMC - [TP CALC] TP1=0.0007(59856.25) | TP2=0.0007(59856.25) | TP3=0.0008(119712.5)
+2026-05-30 19:38:07,112 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:38:07,231 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:38:08,526 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:38:09,996 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:38:11,706 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:38:11,707 [ERROR] LRMC - [TP1] FAILED: Max retries exceeded
+2026-05-30 19:38:12,002 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:38:12,365 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:38:13,316 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:38:14,283 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:38:15,772 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:38:16,595 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:38:16,596 [ERROR] LRMC - [TP2] FAILED: Max retries exceeded
+2026-05-30 19:38:17,454 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:38:17,490 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:38:19,343 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:38:19,692 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:38:21,662 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:38:21,662 [ERROR] LRMC - [TP3] FAILED: Max retries exceeded
+2026-05-30 19:38:21,662 [WARNING] LRMC - [RECONCILE] QAIT-USDT missing SL! Restoring...
+2026-05-30 19:38:21,969 [INFO] LRMC - [TP/SL] Confirmed position QAIT-USDT LONG size=4930.900000
+2026-05-30 19:38:22,589 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:38:22,842 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:38:24,792 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:38:24,874 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:38:26,207 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:38:27,679 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:38:27,679 [ERROR] LRMC - [SL] FAILED to place SL: Max retries exceeded
+2026-05-30 19:38:27,679 [INFO] LRMC - [TP CALC] TP1=0.0213(1232.725) | TP2=0.0223(1232.725) | TP3=0.0243(2465.45)
+2026-05-30 19:38:27,992 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:38:28,538 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:38:29,312 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:38:29,656 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:38:30,967 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:38:32,207 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:38:32,208 [ERROR] LRMC - [TP1] FAILED: Max retries exceeded
+2026-05-30 19:38:33,099 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:38:33,278 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:38:34,413 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:38:35,006 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:38:36,562 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:38:37,920 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:38:37,920 [ERROR] LRMC - [TP2] FAILED: Max retries exceeded
+2026-05-30 19:38:39,079 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:38:39,464 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:38:40,384 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:38:40,605 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:38:41,951 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:38:42,707 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:38:42,707 [ERROR] LRMC - [TP3] FAILED: Max retries exceeded
+2026-05-30 19:38:42,707 [WARNING] LRMC - [RECONCILE] 1000BONK-USDT missing SL! Restoring...
+2026-05-30 19:38:43,029 [INFO] LRMC - [TP/SL] Confirmed position 1000BONK-USDT SHORT size=18198.000000
+2026-05-30 19:38:43,895 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:38:44,827 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:38:45,786 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:38:48,111 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:38:48,111 [ERROR] LRMC - [SL] FAILED to place SL: Max retries exceeded
+2026-05-30 19:38:48,111 [INFO] LRMC - [TP CALC] TP1=0.0052(4549.5) | TP2=0.0049(4549.5) | TP3=0.0044(9099.0)
+2026-05-30 19:38:49,021 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:38:51,207 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:38:54,112 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:38:54,112 [ERROR] LRMC - [TP1] FAILED: Max retries exceeded
+2026-05-30 19:38:55,007 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:38:56,906 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:38:59,235 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:38:59,236 [ERROR] LRMC - [TP2] FAILED: Max retries exceeded
+2026-05-30 19:38:59,542 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:39:00,863 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:39:03,734 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:39:03,735 [ERROR] LRMC - [TP3] FAILED: Max retries exceeded
+2026-05-30 19:39:03,735 [WARNING] LRMC - [RECONCILE] GALA-USDT missing SL! Restoring...
+2026-05-30 19:39:04,665 [INFO] LRMC - [TP/SL] Confirmed position GALA-USDT SHORT size=32040.000000
+2026-05-30 19:39:05,545 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:39:06,850 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:39:09,162 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:39:09,162 [ERROR] LRMC - [SL] FAILED to place SL: Max retries exceeded
+2026-05-30 19:39:09,162 [INFO] LRMC - [TP CALC] TP1=0.0030(8010.0) | TP2=0.0028(8010.0) | TP3=0.0025(16020.0)
+2026-05-30 19:39:10,031 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:39:11,922 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:39:14,829 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:39:14,829 [ERROR] LRMC - [TP1] FAILED: Max retries exceeded
+2026-05-30 19:39:15,139 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:39:16,545 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:39:19,420 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:39:19,421 [ERROR] LRMC - [TP2] FAILED: Max retries exceeded
+2026-05-30 19:39:19,722 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:39:21,601 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:39:24,488 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:39:24,488 [ERROR] LRMC - [TP3] FAILED: Max retries exceeded
+2026-05-30 19:39:24,488 [WARNING] LRMC - [RECONCILE] RSR-USDT missing SL! Restoring...
+2026-05-30 19:39:25,363 [INFO] LRMC - [TP/SL] Confirmed position RSR-USDT SHORT size=58823.000000
+2026-05-30 19:39:25,667 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:39:27,521 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:39:30,413 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:39:30,413 [ERROR] LRMC - [SL] FAILED to place SL: Max retries exceeded
+2026-05-30 19:39:30,414 [INFO] LRMC - [TP CALC] TP1=0.0016(14705.75) | TP2=0.0015(14705.75) | TP3=0.0014(29411.5)
+2026-05-30 19:39:31,319 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:39:32,639 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:39:35,527 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:39:35,528 [ERROR] LRMC - [TP1] FAILED: Max retries exceeded
+2026-05-30 19:39:36,399 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:39:37,713 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:39:40,595 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:39:40,595 [ERROR] LRMC - [TP2] FAILED: Max retries exceeded
+2026-05-30 19:39:41,480 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:39:43,381 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:39:46,267 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:39:46,268 [ERROR] LRMC - [TP3] FAILED: Max retries exceeded
+2026-05-30 19:39:46,268 [WARNING] LRMC - [RECONCILE] XPIN-USDT missing SL! Restoring...
+2026-05-30 19:39:46,580 [INFO] LRMC - [TP/SL] Confirmed position XPIN-USDT LONG size=162061.000000
+2026-05-30 19:39:47,451 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:39:49,334 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:39:51,640 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:39:51,640 [ERROR] LRMC - [SL] FAILED to place SL: Max retries exceeded
+2026-05-30 19:39:51,640 [INFO] LRMC - [TP CALC] TP1=0.0013(40515.25) | TP2=0.0014(40515.25) | TP3=0.0015(81030.5)
+2026-05-30 19:39:51,940 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:39:53,828 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:39:56,739 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:39:56,739 [ERROR] LRMC - [TP1] FAILED: Max retries exceeded
+2026-05-30 19:39:57,039 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:39:58,954 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:40:01,829 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:40:01,830 [ERROR] LRMC - [TP2] FAILED: Max retries exceeded
+2026-05-30 19:40:02,709 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:40:04,033 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:40:06,350 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:40:06,351 [ERROR] LRMC - [TP3] FAILED: Max retries exceeded
+2026-05-30 19:40:06,351 [WARNING] LRMC - [RECONCILE] PENGU-USDT missing SL! Restoring...
+2026-05-30 19:40:07,242 [INFO] LRMC - [TP/SL] Confirmed position PENGU-USDT SHORT size=18707.900000
+2026-05-30 19:40:07,552 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:40:09,455 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:40:11,771 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:40:11,773 [ERROR] LRMC - [SL] FAILED to place SL: Max retries exceeded
+2026-05-30 19:40:11,773 [INFO] LRMC - [TP CALC] TP1=0.0076(4676.975) | TP2=0.0072(4676.975) | TP3=0.0064(9353.95)
+2026-05-30 19:40:12,082 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:40:13,985 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:40:16,298 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:40:16,298 [ERROR] LRMC - [TP1] FAILED: Max retries exceeded
+2026-05-30 19:40:16,610 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:40:18,490 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:40:21,401 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:40:21,401 [ERROR] LRMC - [TP2] FAILED: Max retries exceeded
+2026-05-30 19:40:22,296 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:40:24,285 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:40:27,147 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:40:27,147 [ERROR] LRMC - [TP3] FAILED: Max retries exceeded
+2026-05-30 19:40:27,147 [WARNING] LRMC - [RECONCILE] DOGE-USDT missing SL! Restoring...
+2026-05-30 19:40:27,447 [INFO] LRMC - [TP/SL] Confirmed position DOGE-USDT SHORT size=1982.000000
+2026-05-30 19:40:27,741 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:40:29,634 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:40:32,537 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:40:32,538 [ERROR] LRMC - [SL] FAILED to place SL: Max retries exceeded
+2026-05-30 19:40:32,538 [INFO] LRMC - [TP CALC] TP1=0.0958(495.5) | TP2=0.0908(495.5) | TP3=0.0807(991.0)
+2026-05-30 19:40:33,423 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:40:35,312 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:40:37,632 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:40:37,632 [ERROR] LRMC - [TP1] FAILED: Max retries exceeded
+2026-05-30 19:40:38,503 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:40:40,406 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:40:43,289 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:40:43,290 [ERROR] LRMC - [TP2] FAILED: Max retries exceeded
+2026-05-30 19:40:43,600 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:40:45,490 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:40:48,374 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:40:48,374 [ERROR] LRMC - [TP3] FAILED: Max retries exceeded
+2026-05-30 19:40:48,374 [WARNING] LRMC - [RECONCILE] WHITEWHALE-USDT missing SL! Restoring...
+2026-05-30 19:40:48,682 [INFO] LRMC - [TP/SL] Confirmed position WHITEWHALE-USDT LONG size=17715.000000
+2026-05-30 19:40:49,570 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:40:51,444 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:40:54,332 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:40:54,332 [ERROR] LRMC - [SL] FAILED to place SL: Max retries exceeded
+2026-05-30 19:40:54,332 [INFO] LRMC - [TP CALC] TP1=0.0059(4428.75) | TP2=0.0062(4428.75) | TP3=0.0068(8857.5)
+2026-05-30 19:40:54,634 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:40:56,552 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:40:58,872 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:40:58,872 [ERROR] LRMC - [TP1] FAILED: Max retries exceeded
+2026-05-30 19:40:59,716 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:41:01,606 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:41:04,518 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:41:04,518 [ERROR] LRMC - [TP2] FAILED: Max retries exceeded
+2026-05-30 19:41:05,403 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:41:07,316 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188072664 | Code: 109429
+2026-05-30 19:41:10,207 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:41:10,207 [ERROR] LRMC - [TP3] FAILED: Max retries exceeded
+2026-05-30 19:41:10,207 [WARNING] LRMC - [RECONCILE] PIXEL-USDT missing SL! Restoring...
+2026-05-30 19:41:11,080 [INFO] LRMC - [TP/SL] Confirmed position PIXEL-USDT LONG size=21821.350000
+2026-05-30 19:41:11,393 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:41:13,286 [ERROR] LRMC - BingX API Error: In the Hedge mode, the 'ReduceOnly' field can not be filled. | Code: 109400
+2026-05-30 19:41:16,156 [ERROR] LRMC - BingX API Error: In the Hedge mode, the 'ReduceOnly' field can not be filled. | Code: 109400
+2026-05-30 19:41:16,156 [ERROR] LRMC - [SL] FAILED to place SL: Max retries exceeded
+2026-05-30 19:41:16,156 [INFO] LRMC - [TP CALC] TP1=0.0072(5455.3375) | TP2=0.0076(5455.3375) | TP3=0.0082(10910.675)
+2026-05-30 19:41:16,454 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:41:18,324 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:41:21,331 [ERROR] LRMC - BingX API Error: In the Hedge mode, the 'ReduceOnly' field can not be filled. | Code: 109400
+2026-05-30 19:41:21,331 [ERROR] LRMC - [TP1] FAILED: Max retries exceeded
+2026-05-30 19:41:21,626 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780188082328 | Code: 109429
+2026-05-30 19:41:23,538 [ERROR] LRMC - BingX API Error: In the Hedge mode, the 'ReduceOnly' field can not be filled. | Code: 109400
+2026-05-30 19:41:25,844 [ERROR] LRMC - BingX API Error: In the Hedge mode, the 'ReduceOnly' field can not be filled. | Code: 109400
+2026-05-30 19:41:25,844 [ERROR] LRMC - [TP2] FAILED: Max retries exceeded
+2026-05-30 19:41:26,145 [ERROR] LRMC - BingX API Error: In the Hedge mode, the 'ReduceOnly' field can not be filled. | Code: 109400
+2026-05-30 19:41:28,050 [ERROR] LRMC - BingX API Error: In the Hedge mode, the 'ReduceOnly' field can not be filled. | Code: 109400
+2026-05-30 19:41:30,947 [ERROR] LRMC - BingX API Error: In the Hedge mode, the 'ReduceOnly' field can not be filled. | Code: 109400
+2026-05-30 19:41:30,948 [ERROR] LRMC - [TP3] FAILED: Max retries exceeded
+2026-05-30 19:42:37,863 [ERROR] LRMC - WebSocket connection error: no close frame received or sent. Reconnecting in 2s...
+2026-05-30 19:42:40,923 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-30 19:42:42,226 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-30 19:42:44,521 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-30 19:42:46,098 [INFO] LRMC - WebSocket connected: wss://open-api-ws.bingx.com/market...
+2026-05-30 19:42:46,906 [INFO] LRMC - Subscribed to 8 symbols @ 5m
+2026-05-30 19:47:47,108 [ERROR] LRMC - WebSocket connection error: no close frame received or sent. Reconnecting in 2s...
+2026-05-30 19:47:50,156 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-30 19:47:52,029 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-30 19:47:54,322 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-30 19:47:56,005 [INFO] LRMC - WebSocket connected: wss://open-api-ws.bingx.com/market...
+2026-05-30 19:47:56,919 [INFO] LRMC - Subscribed to 8 symbols @ 5m
+2026-05-30 19:52:57,087 [ERROR] LRMC - WebSocket connection error: no close frame received or sent. Reconnecting in 2s...
+2026-05-30 19:53:00,120 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-30 19:53:01,440 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-30 19:53:03,750 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-30 19:53:05,231 [INFO] LRMC - WebSocket connected: wss://open-api-ws.bingx.com/market...
+2026-05-30 19:53:06,159 [INFO] LRMC - Subscribed to 8 symbols @ 5m
+2026-05-30 19:55:17,025 [WARNING] LRMC - === EMERGENCY RESET INITIATED ===
+2026-05-30 19:55:19,242 [INFO] LRMC - Saved PNL offset to normalize dashboard to 0.
+2026-05-30 19:55:19,244 [WARNING] LRMC - === RESET COMPLETED (Including History/Counters) ===
+2026-05-30 19:55:19,244 [WARNING] LRMC - === RESET COMPLETED ===
+2026-05-30 19:58:06,336 [ERROR] LRMC - WebSocket connection error: no close frame received or sent. Reconnecting in 2s...
+2026-05-30 19:58:09,404 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-30 19:58:11,275 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-30 19:58:13,571 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-30 19:58:15,024 [INFO] LRMC - WebSocket connected: wss://open-api-ws.bingx.com/market...
+2026-05-30 19:58:15,917 [INFO] LRMC - Subscribed to 8 symbols @ 5m
+2026-05-30 20:03:16,089 [ERROR] LRMC - WebSocket connection error: no close frame received or sent. Reconnecting in 2s...
+2026-05-30 20:03:19,176 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-30 20:03:21,068 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-30 20:03:23,963 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-30 20:03:25,512 [INFO] LRMC - WebSocket connected: wss://open-api-ws.bingx.com/market...
+2026-05-30 20:03:26,400 [INFO] LRMC - Subscribed to 8 symbols @ 5m
+2026-05-30 20:08:26,580 [ERROR] LRMC - WebSocket connection error: no close frame received or sent. Reconnecting in 2s...
+2026-05-30 20:08:29,628 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-30 20:08:30,932 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-30 20:08:33,230 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-30 20:08:34,906 [INFO] LRMC - WebSocket connected: wss://open-api-ws.bingx.com/market...
+2026-05-30 20:08:35,784 [INFO] LRMC - Subscribed to 8 symbols @ 5m
+2026-05-30 20:13:35,864 [ERROR] LRMC - WebSocket connection error: no close frame received or sent. Reconnecting in 2s...
+2026-05-30 20:13:39,079 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-30 20:13:40,389 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-30 20:13:43,256 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-30 20:13:44,808 [INFO] LRMC - WebSocket connected: wss://open-api-ws.bingx.com/market...
+2026-05-30 20:13:45,682 [INFO] LRMC - Subscribed to 8 symbols @ 5m
+2026-05-30 20:17:53,589 [DEBUG] LRMC - [RECONCILE] Checking state vs exchange...
+2026-05-30 20:17:54,530 [WARNING] LRMC - [ORPHAN ADOPTION] Real-time detection of unmanaged position 1000PEPE-USDT SHORT! The Guardian Agent is taking over.
+2026-05-30 20:17:54,530 [WARNING] LRMC - [RECONCILE] 1000PEPE-USDT missing SL! Restoring...
+2026-05-30 20:17:55,456 [INFO] LRMC - [TP/SL] Confirmed position 1000PEPE-USDT SHORT size=58474.000000
+2026-05-30 20:17:56,380 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780190428590 | Code: 109429
+2026-05-30 20:17:56,380 [ERROR] LRMC - API Request Exception (Attempt 1/3): name 're' is not defined
+2026-05-30 20:17:58,246 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780190502222 | Code: 109429
+2026-05-30 20:17:58,246 [ERROR] LRMC - API Request Exception (Attempt 2/3): name 're' is not defined
+2026-05-30 20:18:01,145 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780190428590 | Code: 109429
+2026-05-30 20:18:01,145 [ERROR] LRMC - API Request Exception (Attempt 3/3): name 're' is not defined
+2026-05-30 20:18:01,146 [ERROR] LRMC - [SL] FAILED to place SL: Max retries exceeded
+2026-05-30 20:18:01,146 [INFO] LRMC - [TP CALC] TP1=0.0032(14618.5) | TP2=0.0031(14618.5) | TP3=0.0027(29237.0)
+2026-05-30 20:18:01,450 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780190502222 | Code: 109429
+2026-05-30 20:18:01,450 [ERROR] LRMC - API Request Exception (Attempt 1/3): name 're' is not defined
+2026-05-30 20:18:03,344 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780190502222 | Code: 109429
+2026-05-30 20:18:03,344 [ERROR] LRMC - API Request Exception (Attempt 2/3): name 're' is not defined
+2026-05-30 20:18:06,229 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780190502222 | Code: 109429
+2026-05-30 20:18:06,229 [ERROR] LRMC - API Request Exception (Attempt 3/3): name 're' is not defined
+2026-05-30 20:18:06,229 [ERROR] LRMC - [TP1] FAILED: Max retries exceeded
+2026-05-30 20:18:06,536 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780190428590 | Code: 109429
+2026-05-30 20:18:06,536 [ERROR] LRMC - API Request Exception (Attempt 1/3): name 're' is not defined
+2026-05-30 20:18:07,851 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780190502222 | Code: 109429
+2026-05-30 20:18:07,852 [ERROR] LRMC - API Request Exception (Attempt 2/3): name 're' is not defined
+2026-05-30 20:18:10,155 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780190502222 | Code: 109429
+2026-05-30 20:18:10,155 [ERROR] LRMC - API Request Exception (Attempt 3/3): name 're' is not defined
+2026-05-30 20:18:10,155 [ERROR] LRMC - [TP2] FAILED: Max retries exceeded
+2026-05-30 20:18:10,462 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780190428590 | Code: 109429
+2026-05-30 20:18:10,462 [ERROR] LRMC - API Request Exception (Attempt 1/3): name 're' is not defined
+2026-05-30 20:18:12,611 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780190502222 | Code: 109429
+2026-05-30 20:18:12,612 [ERROR] LRMC - API Request Exception (Attempt 2/3): name 're' is not defined
+2026-05-30 20:18:15,522 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780190502222 | Code: 109429
+2026-05-30 20:18:15,522 [ERROR] LRMC - API Request Exception (Attempt 3/3): name 're' is not defined
+2026-05-30 20:18:15,522 [ERROR] LRMC - [TP3] FAILED: Max retries exceeded
+2026-05-30 20:18:45,759 [ERROR] LRMC - WebSocket connection error: no close frame received or sent. Reconnecting in 2s...
+2026-05-30 20:18:48,779 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-30 20:18:50,660 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-30 20:18:52,968 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-30 20:18:54,426 [INFO] LRMC - WebSocket connected: wss://open-api-ws.bingx.com/market...
+2026-05-30 20:18:55,275 [INFO] LRMC - Subscribed to 8 symbols @ 5m
+2026-05-30 20:23:55,479 [ERROR] LRMC - WebSocket connection error: no close frame received or sent. Reconnecting in 2s...
+2026-05-30 20:23:58,498 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-30 20:23:59,790 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-30 20:24:02,691 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-30 20:24:04,315 [INFO] LRMC - WebSocket connected: wss://open-api-ws.bingx.com/market...
+2026-05-30 20:24:05,117 [INFO] LRMC - Subscribed to 8 symbols @ 5m
+2026-05-30 20:29:05,018 [ERROR] LRMC - WebSocket connection error: no close frame received or sent. Reconnecting in 2s...
+2026-05-30 20:29:08,059 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-30 20:29:09,929 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-30 20:29:12,236 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-30 20:29:13,790 [INFO] LRMC - WebSocket connected: wss://open-api-ws.bingx.com/market...
+2026-05-30 20:29:14,704 [INFO] LRMC - Subscribed to 8 symbols @ 5m
+2026-05-30 20:31:48,408 [INFO] LRMC - [TP/SL] Confirmed position SHIB-USDT SHORT size=36343000.000000
+2026-05-30 20:31:48,725 [ERROR] LRMC - BingX API Error: In the Hedge mode, the 'ReduceOnly' field can not be filled. | Code: 109400
+2026-05-30 20:31:50,643 [ERROR] LRMC - BingX API Error: In the Hedge mode, the 'ReduceOnly' field can not be filled. | Code: 109400
+2026-05-30 20:31:53,538 [ERROR] LRMC - BingX API Error: In the Hedge mode, the 'ReduceOnly' field can not be filled. | Code: 109400
+2026-05-30 20:31:53,538 [ERROR] LRMC - [SL] FAILED to place SL: Max retries exceeded
+2026-05-30 20:31:53,538 [INFO] LRMC - [TP CALC] TP1=0.0000(9085750.0) | TP2=0.0000(9085750.0) | TP3=0.0000(18171500.0)
+2026-05-30 20:31:54,430 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780191544531 | Code: 109429
+2026-05-30 20:31:54,431 [ERROR] LRMC - [PENALTY BOX] API banned by BingX. Sleeping for 430.1 seconds to let the ban expire...
+2026-05-30 20:31:54,432 [ERROR] LRMC - API Request Exception (Attempt 1/3): cannot access local variable 'asyncio' where it is not associated with a value
+2026-05-30 20:31:55,760 [ERROR] LRMC - BingX API Error: In the Hedge mode, the 'ReduceOnly' field can not be filled. | Code: 109400
+2026-05-30 20:31:58,636 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780191544531 | Code: 109429
+2026-05-30 20:31:58,637 [ERROR] LRMC - [PENALTY BOX] API banned by BingX. Sleeping for 425.9 seconds to let the ban expire...
+2026-05-30 20:34:14,781 [ERROR] LRMC - WebSocket connection error: no close frame received or sent. Reconnecting in 2s...
+2026-05-30 20:34:17,863 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-30 20:34:19,176 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-30 20:34:21,479 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-05-30 20:34:23,129 [INFO] LRMC - WebSocket connected: wss://open-api-ws.bingx.com/market...
+2026-05-30 20:34:24,028 [INFO] LRMC - Subscribed to 8 symbols @ 5m
+2026-05-30 20:36:39,199 [INFO] LRMC - [TP/SL] Confirmed position LONGXIA-USDT LONG size=30807.100000
+2026-05-30 20:36:40,135 [INFO] LRMC - [SL] Placed @ 0.0063. ID=2060898220674473984
+2026-05-30 20:36:40,136 [INFO] LRMC - [TP CALC] TP1=0.0065(7701.775) | TP2=0.0066(7701.775) | TP3=0.0068(15403.549999999997)
+2026-05-30 20:36:40,439 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780191544531 | Code: 109429
+2026-05-30 20:36:40,440 [ERROR] LRMC - [PENALTY BOX] API banned by BingX. Sleeping for 144.1 seconds to let the ban expire...
+2026-05-31 22:58:04,622 [ERROR] LRMC - BingX API Error: Invalid parameters, err:incomeType: Key: 'GetIncomeRequest.BaseIncomeInfo.IncomeType' Error:Field validation for 'IncomeType' failed on the 'len=0|oneof=TRANSFER REALIZED_PNL FUNDING_FEE TRADING_FEE INSURANCE_CLEAR TRIAL_FUND ADL SYSTEM_DEDUCTION GTD_PRICE' tag.  | Code: 109400
+2026-05-31 22:58:06,504 [ERROR] LRMC - BingX API Error: Invalid parameters, err:incomeType: Key: 'GetIncomeRequest.BaseIncomeInfo.IncomeType' Error:Field validation for 'IncomeType' failed on the 'len=0|oneof=TRANSFER REALIZED_PNL FUNDING_FEE TRADING_FEE INSURANCE_CLEAR TRIAL_FUND ADL SYSTEM_DEDUCTION GTD_PRICE' tag.  | Code: 109400
+2026-05-31 22:58:08,824 [ERROR] LRMC - BingX API Error: Invalid parameters, err:incomeType: Key: 'GetIncomeRequest.BaseIncomeInfo.IncomeType' Error:Field validation for 'IncomeType' failed on the 'len=0|oneof=TRANSFER REALIZED_PNL FUNDING_FEE TRADING_FEE INSURANCE_CLEAR TRIAL_FUND ADL SYSTEM_DEDUCTION GTD_PRICE' tag.  | Code: 109400
+2026-05-31 22:58:28,708 [ERROR] LRMC - BingX API Error: Incorrect apiKey, please check your valid api key in https://bingx.com/en/account/api | Code: 100413
+2026-05-31 22:58:30,561 [ERROR] LRMC - BingX API Error: Incorrect apiKey, please check your valid api key in https://bingx.com/en/account/api | Code: 100413
+2026-05-31 22:58:32,882 [ERROR] LRMC - BingX API Error: Incorrect apiKey, please check your valid api key in https://bingx.com/en/account/api | Code: 100413
+2026-06-01 22:38:38,885 [ERROR] LRMC - BingX API Error: In the Hedge mode, the 'ReduceOnly' field can not be filled. | Code: 109400
+2026-06-01 22:38:40,204 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780371631568 | Code: 109429
+2026-06-01 22:38:40,204 [ERROR] LRMC - [PENALTY BOX] API banned by BingX. Sleeping for 111.4 seconds to let the ban expire...
+2026-06-01 23:34:25,885 [ERROR] LRMC - BingX API Error: over 20 error code:109400 requests within 480000 ms for this api, please verify and fix it ,can retry after time: 1780375062911 | Code: 109429
+2026-06-01 23:34:25,890 [ERROR] LRMC - [PENALTY BOX] API banned by BingX. Sleeping for 197.0 seconds to let the ban expire...
+2026-06-01 23:37:45,320 [ERROR] LRMC - BingX API Error: position not exist | Code: 109420
+2026-06-01 23:37:47,650 [ERROR] LRMC - BingX API Error: position not exist | Code: 109420
+2026-06-01 23:37:47,650 [INFO] LRMC - [TP CALC] TP1=0.0032(147084.5) | TP2=0.0031(147084.5) | TP3=0.0027(294169.0)
+2026-06-01 23:37:47,978 [ERROR] LRMC - BingX API Error: position not exist | Code: 109420
+2026-06-01 23:37:50,186 [ERROR] LRMC - BingX API Error: position not exist | Code: 109420
+2026-06-01 23:37:53,070 [ERROR] LRMC - BingX API Error: position not exist | Code: 109420
+2026-06-01 23:37:53,981 [ERROR] LRMC - BingX API Error: position not exist | Code: 109420
+2026-06-01 23:37:55,881 [ERROR] LRMC - BingX API Error: position not exist | Code: 109420
+2026-06-01 23:37:58,218 [ERROR] LRMC - BingX API Error: position not exist | Code: 109420
+2026-06-01 23:37:59,346 [ERROR] LRMC - BingX API Error: position not exist | Code: 109420
+2026-06-01 23:38:00,665 [ERROR] LRMC - BingX API Error: position not exist | Code: 109420
+2026-06-01 23:38:03,560 [ERROR] LRMC - BingX API Error: position not exist | Code: 109420
+2026-06-04 19:36:47,313 [INFO] LRMC - === STARTING TRAILING STOP SIMULATION TEST ===
+2026-06-04 19:36:47,313 [INFO] LRMC - Test case 1: Price = 100 (0% progress)
+2026-06-04 19:36:47,313 [DEBUG] LRMC - [RECONCILE] Checking state vs exchange...
+2026-06-04 19:36:47,314 [DEBUG] LRMC - [RECONCILE] BTC-USDT | Side=LONG | Price=100.000000 | Progress=0.00% | BE=False | Trailing=False | Peak=100.000000
+2026-06-04 19:36:47,314 [INFO] LRMC - Test case 2: Price = 107 (35% progress)
+2026-06-04 19:36:47,314 [DEBUG] LRMC - [RECONCILE] Checking state vs exchange...
+2026-06-04 19:36:47,314 [DEBUG] LRMC - [RECONCILE] BTC-USDT | Side=LONG | Price=107.000000 | Progress=35.00% | BE=False | Trailing=False | Peak=100.000000
+2026-06-04 19:36:47,315 [INFO] LRMC - Test case 3: Price = 109 (45% progress) -> Breakeven triggers
+2026-06-04 19:36:47,315 [DEBUG] LRMC - [RECONCILE] Checking state vs exchange...
+2026-06-04 19:36:47,315 [DEBUG] LRMC - [RECONCILE] BTC-USDT | Side=LONG | Price=109.000000 | Progress=45.00% | BE=False | Trailing=False | Peak=100.000000
+2026-06-04 19:36:47,315 [INFO] LRMC - [BREAKEVEN] BTC-USDT progress reached 45.00% (>= 40%). Moving SL to 104.000000 (locks 20% profit).
+2026-06-04 19:36:47,315 [INFO] LRMC - [BREAKEVEN] BTC-USDT SL updated successfully.
+2026-06-04 19:36:47,316 [INFO] LRMC - Test case 4: Price = 107 (35% progress) -> SL remains 104
+2026-06-04 19:36:47,316 [DEBUG] LRMC - [RECONCILE] Checking state vs exchange...
+2026-06-04 19:36:47,316 [DEBUG] LRMC - [RECONCILE] BTC-USDT | Side=LONG | Price=107.000000 | Progress=35.00% | BE=True | Trailing=False | Peak=100.000000
+2026-06-04 19:36:47,317 [INFO] LRMC - Test case 5: Price = 115 (75% progress) -> Trailing triggers
+2026-06-04 19:36:47,317 [DEBUG] LRMC - [RECONCILE] Checking state vs exchange...
+2026-06-04 19:36:47,317 [DEBUG] LRMC - [RECONCILE] BTC-USDT | Side=LONG | Price=115.000000 | Progress=75.00% | BE=True | Trailing=False | Peak=100.000000
+2026-06-04 19:36:47,317 [INFO] LRMC - [TRAILING ACTIVATE] BTC-USDT progress reached 75.00% (>= 70%). Cancelling TP and setting SL floor.
+2026-06-04 19:36:47,317 [INFO] LRMC - [TRAILING ACTIVATE] Cancelling TP order tp_1 on exchange...
+2026-06-04 19:36:47,317 [INFO] LRMC - [TRAILING ACTIVATE] TP order tp_1 cancelled.
+2026-06-04 19:36:47,317 [INFO] LRMC - [TRAILING ACTIVATE] Placing SL floor at 110.000000 (locks 50% profit).
+2026-06-04 19:36:47,317 [INFO] LRMC - [TRAILING ACTIVATE] SL floor updated successfully.
+2026-06-04 19:36:47,317 [INFO] LRMC - [TRAILING UPDATE] BTC-USDT price rose to 115.000000 (Peak=115.000000). Moving SL from 110.000000 to 111.000000
+2026-06-04 19:37:24,291 [INFO] LRMC - === STARTING TRAILING STOP SIMULATION TEST ===
+2026-06-04 19:37:24,291 [INFO] LRMC - Test case 1: Price = 100 (0% progress)
+2026-06-04 19:37:24,291 [DEBUG] LRMC - [RECONCILE] Checking state vs exchange...
+2026-06-04 19:37:24,291 [DEBUG] LRMC - [RECONCILE] BTC-USDT | Side=LONG | Price=100.000000 | Progress=0.00% | BE=False | Trailing=False | Peak=100.000000
+2026-06-04 19:37:24,292 [INFO] LRMC - Test case 2: Price = 107 (35% progress)
+2026-06-04 19:37:24,293 [DEBUG] LRMC - [RECONCILE] Checking state vs exchange...
+2026-06-04 19:37:24,293 [DEBUG] LRMC - [RECONCILE] BTC-USDT | Side=LONG | Price=107.000000 | Progress=35.00% | BE=False | Trailing=False | Peak=100.000000
+2026-06-04 19:37:24,293 [INFO] LRMC - Test case 3: Price = 109 (45% progress) -> Breakeven triggers
+2026-06-04 19:37:24,293 [DEBUG] LRMC - [RECONCILE] Checking state vs exchange...
+2026-06-04 19:37:24,293 [DEBUG] LRMC - [RECONCILE] BTC-USDT | Side=LONG | Price=109.000000 | Progress=45.00% | BE=False | Trailing=False | Peak=100.000000
+2026-06-04 19:37:24,293 [INFO] LRMC - [BREAKEVEN] BTC-USDT progress reached 45.00% (>= 40%). Moving SL to 104.000000 (locks 20% profit).
+2026-06-04 19:37:24,293 [INFO] LRMC - [BREAKEVEN] BTC-USDT SL updated successfully.
+2026-06-04 19:37:24,294 [INFO] LRMC - Test case 4: Price = 107 (35% progress) -> SL remains 104
+2026-06-04 19:37:24,294 [DEBUG] LRMC - [RECONCILE] Checking state vs exchange...
+2026-06-04 19:37:24,294 [DEBUG] LRMC - [RECONCILE] BTC-USDT | Side=LONG | Price=107.000000 | Progress=35.00% | BE=True | Trailing=False | Peak=100.000000
+2026-06-04 19:37:24,295 [INFO] LRMC - Test case 5: Price = 115 (75% progress) -> Trailing triggers
+2026-06-04 19:37:24,295 [DEBUG] LRMC - [RECONCILE] Checking state vs exchange...
+2026-06-04 19:37:24,295 [DEBUG] LRMC - [RECONCILE] BTC-USDT | Side=LONG | Price=115.000000 | Progress=75.00% | BE=True | Trailing=False | Peak=100.000000
+2026-06-04 19:37:24,295 [INFO] LRMC - [TRAILING ACTIVATE] BTC-USDT progress reached 75.00% (>= 70%). Cancelling TP and activating trailing stop.
+2026-06-04 19:37:24,295 [INFO] LRMC - [TRAILING ACTIVATE] Cancelling TP order tp_1 on exchange...
+2026-06-04 19:37:24,295 [INFO] LRMC - [TRAILING ACTIVATE] TP order tp_1 cancelled.
+2026-06-04 19:37:24,295 [INFO] LRMC - [TRAILING ACTIVATE] Initial SL set to 111.000000 (Floor=110.000000).
+2026-06-04 19:37:24,295 [INFO] LRMC - [TRAILING ACTIVATE] SL updated successfully.
+2026-06-04 19:37:34,071 [INFO] LRMC - === STARTING TRAILING STOP SIMULATION TEST ===
+2026-06-04 19:37:34,072 [INFO] LRMC - Test case 1: Price = 100 (0% progress)
+2026-06-04 19:37:34,072 [DEBUG] LRMC - [RECONCILE] Checking state vs exchange...
+2026-06-04 19:37:34,072 [DEBUG] LRMC - [RECONCILE] BTC-USDT | Side=LONG | Price=100.000000 | Progress=0.00% | BE=False | Trailing=False | Peak=100.000000
+2026-06-04 19:37:34,072 [INFO] LRMC - Test case 2: Price = 107 (35% progress)
+2026-06-04 19:37:34,072 [DEBUG] LRMC - [RECONCILE] Checking state vs exchange...
+2026-06-04 19:37:34,072 [DEBUG] LRMC - [RECONCILE] BTC-USDT | Side=LONG | Price=107.000000 | Progress=35.00% | BE=False | Trailing=False | Peak=100.000000
+2026-06-04 19:37:34,073 [INFO] LRMC - Test case 3: Price = 109 (45% progress) -> Breakeven triggers
+2026-06-04 19:37:34,073 [DEBUG] LRMC - [RECONCILE] Checking state vs exchange...
+2026-06-04 19:37:34,073 [DEBUG] LRMC - [RECONCILE] BTC-USDT | Side=LONG | Price=109.000000 | Progress=45.00% | BE=False | Trailing=False | Peak=100.000000
+2026-06-04 19:37:34,073 [INFO] LRMC - [BREAKEVEN] BTC-USDT progress reached 45.00% (>= 40%). Moving SL to 104.000000 (locks 20% profit).
+2026-06-04 19:37:34,073 [INFO] LRMC - [BREAKEVEN] BTC-USDT SL updated successfully.
+2026-06-04 19:37:34,074 [INFO] LRMC - Test case 4: Price = 107 (35% progress) -> SL remains 104
+2026-06-04 19:37:34,074 [DEBUG] LRMC - [RECONCILE] Checking state vs exchange...
+2026-06-04 19:37:34,074 [DEBUG] LRMC - [RECONCILE] BTC-USDT | Side=LONG | Price=107.000000 | Progress=35.00% | BE=True | Trailing=False | Peak=100.000000
+2026-06-04 19:37:34,074 [INFO] LRMC - Test case 5: Price = 115 (75% progress) -> Trailing triggers
+2026-06-04 19:37:34,074 [DEBUG] LRMC - [RECONCILE] Checking state vs exchange...
+2026-06-04 19:37:34,074 [DEBUG] LRMC - [RECONCILE] BTC-USDT | Side=LONG | Price=115.000000 | Progress=75.00% | BE=True | Trailing=False | Peak=100.000000
+2026-06-04 19:37:34,074 [INFO] LRMC - [TRAILING ACTIVATE] BTC-USDT progress reached 75.00% (>= 70%). Cancelling TP and activating trailing stop.
+2026-06-04 19:37:34,074 [INFO] LRMC - [TRAILING ACTIVATE] Cancelling TP order tp_1 on exchange...
+2026-06-04 19:37:34,074 [INFO] LRMC - [TRAILING ACTIVATE] TP order tp_1 cancelled.
+2026-06-04 19:37:34,074 [INFO] LRMC - [TRAILING ACTIVATE] Initial SL set to 111.000000 (Floor=110.000000).
+2026-06-04 19:37:34,074 [INFO] LRMC - [TRAILING ACTIVATE] SL updated successfully.
+2026-06-04 19:37:34,076 [INFO] LRMC - Test case 6: Price = 117 (85% progress) -> SL trails to 113
+2026-06-04 19:37:34,076 [DEBUG] LRMC - [RECONCILE] Checking state vs exchange...
+2026-06-04 19:37:34,076 [DEBUG] LRMC - [RECONCILE] BTC-USDT | Side=LONG | Price=117.000000 | Progress=85.00% | BE=True | Trailing=True | Peak=115.000000
+2026-06-04 19:37:34,076 [INFO] LRMC - [TRAILING UPDATE] BTC-USDT price rose to 117.000000 (Peak=117.000000). Moving SL from 111.000000 to 113.000000
+2026-06-04 19:37:34,076 [INFO] LRMC - Test case 7: Price falls to 116 (80% progress) -> SL remains 113
+2026-06-04 19:37:34,076 [DEBUG] LRMC - [RECONCILE] Checking state vs exchange...
+2026-06-04 19:37:34,076 [DEBUG] LRMC - [RECONCILE] BTC-USDT | Side=LONG | Price=116.000000 | Progress=80.00% | BE=True | Trailing=True | Peak=117.000000
+2026-06-04 19:37:34,076 [INFO] LRMC - Test case 8: Price goes to 122 -> SL trails to 118
+2026-06-04 19:37:34,076 [DEBUG] LRMC - [RECONCILE] Checking state vs exchange...
+2026-06-04 19:37:34,076 [DEBUG] LRMC - [RECONCILE] BTC-USDT | Side=LONG | Price=122.000000 | Progress=110.00% | BE=True | Trailing=True | Peak=117.000000
+2026-06-04 19:37:34,076 [INFO] LRMC - [TRAILING UPDATE] BTC-USDT price rose to 122.000000 (Peak=122.000000). Moving SL from 113.000000 to 118.000000
+2026-06-04 19:37:34,078 [INFO] LRMC - === SHORT SIDE SIMULATION TEST ===
+2026-06-04 19:37:34,078 [INFO] LRMC - Test case 9: Price = 93 (35% progress)
+2026-06-04 19:37:34,078 [DEBUG] LRMC - [RECONCILE] Checking state vs exchange...
+2026-06-04 19:37:34,078 [DEBUG] LRMC - [RECONCILE] BTC-USDT | Side=SHORT | Price=100.000000 | Progress=0.00% | BE=False | Trailing=False | Peak=100.000000
+2026-06-04 19:37:34,078 [INFO] LRMC - Test case 10: Price = 91 (45% progress) -> Breakeven triggers
+2026-06-04 19:37:34,078 [DEBUG] LRMC - [RECONCILE] Checking state vs exchange...
+2026-06-04 19:37:34,078 [DEBUG] LRMC - [RECONCILE] BTC-USDT | Side=SHORT | Price=91.000000 | Progress=45.00% | BE=False | Trailing=False | Peak=100.000000
+2026-06-04 19:37:34,078 [INFO] LRMC - [BREAKEVEN] BTC-USDT progress reached 45.00% (>= 40%). Moving SL to 96.000000 (locks 20% profit).
+2026-06-04 19:37:34,079 [INFO] LRMC - [BREAKEVEN] BTC-USDT SL updated successfully.
+2026-06-04 19:37:34,079 [INFO] LRMC - Test case 11: Price = 85 (75% progress) -> Trailing triggers
+2026-06-04 19:37:34,079 [DEBUG] LRMC - [RECONCILE] Checking state vs exchange...
+2026-06-04 19:37:34,079 [DEBUG] LRMC - [RECONCILE] BTC-USDT | Side=SHORT | Price=85.000000 | Progress=75.00% | BE=True | Trailing=False | Peak=100.000000
+2026-06-04 19:37:34,079 [INFO] LRMC - [TRAILING ACTIVATE] BTC-USDT progress reached 75.00% (>= 70%). Cancelling TP and activating trailing stop.
+2026-06-04 19:37:34,079 [INFO] LRMC - [TRAILING ACTIVATE] Cancelling TP order tp_2 on exchange...
+2026-06-04 19:37:34,079 [INFO] LRMC - [TRAILING ACTIVATE] TP order tp_2 cancelled.
+2026-06-04 19:37:34,079 [INFO] LRMC - [TRAILING ACTIVATE] Initial SL set to 89.000000 (Floor=90.000000).
+2026-06-04 19:37:34,079 [INFO] LRMC - [TRAILING ACTIVATE] SL updated successfully.
+2026-06-04 19:37:34,080 [INFO] LRMC - Test case 12: Price falls to 83 -> SL trails to 87
+2026-06-04 19:37:34,080 [DEBUG] LRMC - [RECONCILE] Checking state vs exchange...
+2026-06-04 19:37:34,081 [DEBUG] LRMC - [RECONCILE] BTC-USDT | Side=SHORT | Price=83.000000 | Progress=85.00% | BE=True | Trailing=True | Peak=85.000000
+2026-06-04 19:37:34,081 [INFO] LRMC - [TRAILING UPDATE] BTC-USDT price fell to 83.000000 (Peak=83.000000). Moving SL from 89.000000 to 87.000000
+2026-06-04 19:37:34,081 [INFO] LRMC - === ALL SIMULATION TESTS PASSED SUCCESSFULLY! ===
+2026-06-04 19:49:33,716 [INFO] LRMC - === STARTING TRAILING STOP SIMULATION TEST ===
+2026-06-04 19:49:33,717 [INFO] LRMC - Test case 1: Price = 100 (0% progress)
+2026-06-04 19:49:33,717 [DEBUG] LRMC - [RECONCILE] Checking state vs exchange...
+2026-06-04 19:49:33,718 [DEBUG] LRMC - [RECONCILE] BTC-USDT | Side=LONG | Price=100.000000 | Progress=0.00% | BE=False | Trailing=False | Peak=100.000000
+2026-06-04 19:49:33,719 [INFO] LRMC - Test case 2: Price = 107 (35% progress)
+2026-06-04 19:49:33,719 [DEBUG] LRMC - [RECONCILE] Checking state vs exchange...
+2026-06-04 19:49:33,719 [DEBUG] LRMC - [RECONCILE] BTC-USDT | Side=LONG | Price=107.000000 | Progress=35.00% | BE=False | Trailing=False | Peak=100.000000
+2026-06-04 19:49:33,720 [INFO] LRMC - Test case 3: Price = 109 (45% progress) -> Breakeven triggers
+2026-06-04 19:49:33,720 [DEBUG] LRMC - [RECONCILE] Checking state vs exchange...
+2026-06-04 19:49:33,720 [DEBUG] LRMC - [RECONCILE] BTC-USDT | Side=LONG | Price=109.000000 | Progress=45.00% | BE=False | Trailing=False | Peak=100.000000
+2026-06-04 19:49:33,720 [INFO] LRMC - [BREAKEVEN] BTC-USDT progress reached 45.00% (>= 40%). Moving SL to 104.000000 (locks 20% profit).
+2026-06-04 19:49:33,721 [INFO] LRMC - [BREAKEVEN] BTC-USDT SL updated successfully.
+2026-06-04 19:49:33,721 [INFO] LRMC - Test case 4: Price = 107 (35% progress) -> SL remains 104
+2026-06-04 19:49:33,721 [DEBUG] LRMC - [RECONCILE] Checking state vs exchange...
+2026-06-04 19:49:33,721 [DEBUG] LRMC - [RECONCILE] BTC-USDT | Side=LONG | Price=107.000000 | Progress=35.00% | BE=True | Trailing=False | Peak=100.000000
+2026-06-04 19:49:33,722 [INFO] LRMC - Test case 5: Price = 115 (75% progress) -> Trailing triggers
+2026-06-04 19:49:33,722 [DEBUG] LRMC - [RECONCILE] Checking state vs exchange...
+2026-06-04 19:49:33,722 [DEBUG] LRMC - [RECONCILE] BTC-USDT | Side=LONG | Price=115.000000 | Progress=75.00% | BE=True | Trailing=False | Peak=100.000000
+2026-06-04 19:49:33,722 [INFO] LRMC - [TRAILING ACTIVATE] BTC-USDT progress reached 75.00% (>= 70%). Cancelling TP and activating trailing stop.
+2026-06-04 19:49:33,722 [INFO] LRMC - [TRAILING ACTIVATE] Cancelling TP order tp_1 on exchange...
+2026-06-04 19:49:33,722 [INFO] LRMC - [TRAILING ACTIVATE] TP order tp_1 cancelled.
+2026-06-04 19:49:33,722 [INFO] LRMC - [TRAILING ACTIVATE] Initial SL set to 111.000000 (Floor=110.000000).
+2026-06-04 19:49:33,722 [INFO] LRMC - [TRAILING ACTIVATE] Trailing active. SL updated successfully.
+2026-06-04 19:49:33,723 [INFO] LRMC - Test case 6: Price = 117 (85% progress) -> SL trails to 113
+2026-06-04 19:49:33,723 [DEBUG] LRMC - [RECONCILE] Checking state vs exchange...
+2026-06-04 19:49:33,723 [DEBUG] LRMC - [RECONCILE] BTC-USDT | Side=LONG | Price=117.000000 | Progress=85.00% | BE=True | Trailing=True | Peak=115.000000
+2026-06-04 19:49:33,723 [INFO] LRMC - [TRAILING UPDATE] BTC-USDT price rose to 117.000000 (Peak=117.000000). Moving SL from 111.000000 to 113.000000
+2026-06-04 19:49:33,724 [INFO] LRMC - Test case 7: Price falls to 116 (80% progress) -> SL remains 113
+2026-06-04 19:49:33,724 [DEBUG] LRMC - [RECONCILE] Checking state vs exchange...
+2026-06-04 19:49:33,724 [DEBUG] LRMC - [RECONCILE] BTC-USDT | Side=LONG | Price=116.000000 | Progress=80.00% | BE=True | Trailing=True | Peak=117.000000
+2026-06-04 19:49:33,727 [INFO] LRMC - Test case 8: Price goes to 122 -> SL trails to 118
+2026-06-04 19:49:33,727 [DEBUG] LRMC - [RECONCILE] Checking state vs exchange...
+2026-06-04 19:49:33,727 [DEBUG] LRMC - [RECONCILE] BTC-USDT | Side=LONG | Price=122.000000 | Progress=110.00% | BE=True | Trailing=True | Peak=117.000000
+2026-06-04 19:49:33,727 [INFO] LRMC - [TRAILING UPDATE] BTC-USDT price rose to 122.000000 (Peak=122.000000). Moving SL from 113.000000 to 118.000000
+2026-06-04 19:49:33,728 [INFO] LRMC - === SHORT SIDE SIMULATION TEST ===
+2026-06-04 19:49:33,728 [INFO] LRMC - Test case 9: Price = 93 (35% progress)
+2026-06-04 19:49:33,728 [DEBUG] LRMC - [RECONCILE] Checking state vs exchange...
+2026-06-04 19:49:33,728 [DEBUG] LRMC - [RECONCILE] BTC-USDT | Side=SHORT | Price=100.000000 | Progress=0.00% | BE=False | Trailing=False | Peak=100.000000
+2026-06-04 19:49:33,729 [INFO] LRMC - Test case 10: Price = 91 (45% progress) -> Breakeven triggers
+2026-06-04 19:49:33,729 [DEBUG] LRMC - [RECONCILE] Checking state vs exchange...
+2026-06-04 19:49:33,729 [DEBUG] LRMC - [RECONCILE] BTC-USDT | Side=SHORT | Price=91.000000 | Progress=45.00% | BE=False | Trailing=False | Peak=100.000000
+2026-06-04 19:49:33,729 [INFO] LRMC - [BREAKEVEN] BTC-USDT progress reached 45.00% (>= 40%). Moving SL to 96.000000 (locks 20% profit).
+2026-06-04 19:49:33,729 [INFO] LRMC - [BREAKEVEN] BTC-USDT SL updated successfully.
+2026-06-04 19:49:33,730 [INFO] LRMC - Test case 11: Price = 85 (75% progress) -> Trailing triggers
+2026-06-04 19:49:33,730 [DEBUG] LRMC - [RECONCILE] Checking state vs exchange...
+2026-06-04 19:49:33,730 [DEBUG] LRMC - [RECONCILE] BTC-USDT | Side=SHORT | Price=85.000000 | Progress=75.00% | BE=True | Trailing=False | Peak=100.000000
+2026-06-04 19:49:33,730 [INFO] LRMC - [TRAILING ACTIVATE] BTC-USDT progress reached 75.00% (>= 70%). Cancelling TP and activating trailing stop.
+2026-06-04 19:49:33,730 [INFO] LRMC - [TRAILING ACTIVATE] Cancelling TP order tp_2 on exchange...
+2026-06-04 19:49:33,730 [INFO] LRMC - [TRAILING ACTIVATE] TP order tp_2 cancelled.
+2026-06-04 19:49:33,731 [INFO] LRMC - [TRAILING ACTIVATE] Initial SL set to 89.000000 (Floor=90.000000).
+2026-06-04 19:49:33,731 [INFO] LRMC - [TRAILING ACTIVATE] Trailing active. SL updated successfully.
+2026-06-04 19:49:33,732 [INFO] LRMC - Test case 12: Price falls to 83 -> SL trails to 87
+2026-06-04 19:49:33,733 [DEBUG] LRMC - [RECONCILE] Checking state vs exchange...
+2026-06-04 19:49:33,733 [DEBUG] LRMC - [RECONCILE] BTC-USDT | Side=SHORT | Price=83.000000 | Progress=85.00% | BE=True | Trailing=True | Peak=85.000000
+2026-06-04 19:49:33,733 [INFO] LRMC - [TRAILING UPDATE] BTC-USDT price fell to 83.000000 (Peak=83.000000). Moving SL from 89.000000 to 87.000000
+2026-06-04 19:49:33,734 [INFO] LRMC - === ALL SIMULATION TESTS PASSED SUCCESSFULLY! ===
+2026-06-04 19:50:05,783 [INFO] LRMC - Fetched top 50 volume symbols.
+2026-06-04 19:50:05,784 [INFO] LRMC - Fetched top 50 symbols. Querying contract details...
+2026-06-04 19:50:06,976 [INFO] LRMC - ======================================================================
+2026-06-04 19:50:06,976 [INFO] LRMC - SYMBOL          | MinQty     | MinUSDT    | Est Size ($8) | Est Value ($8)
+2026-06-04 19:50:06,976 [INFO] LRMC - ======================================================================
+2026-06-04 19:50:06,976 [INFO] LRMC - NEX-USDT        | 661376.000000 | 2.00       USDT
+2026-06-04 19:50:06,976 [INFO] LRMC - SHIB-USDT       | 403552.000000 | 2.00       USDT
+2026-06-04 19:50:06,976 [INFO] LRMC - AEON-USDT       | 81964.000000 | 2.00       USDT
+2026-06-04 19:50:06,976 [INFO] LRMC - TEA1-USDT       | 22051.000000 | 2.00       USDT
+2026-06-04 19:50:06,976 [INFO] LRMC - GITLAWB-USDT    | 25674.000000 | 2.00       USDT
+2026-06-04 19:50:06,976 [INFO] LRMC - RATS-USDT       | 67027.000000 | 2.00       USDT
+2026-06-04 19:50:06,976 [INFO] LRMC - FLOKI-USDT      | 80196.000000 | 2.00       USDT
+2026-06-04 19:50:06,976 [INFO] LRMC - LUNC-USDT       | 29701.000000 | 2.00       USDT
+2026-06-04 19:50:06,976 [INFO] LRMC - ASTEROID-USDT   | 10026.000000 | 2.00       USDT
+2026-06-04 19:50:06,976 [INFO] LRMC - ASTEROIDETH-USDT | 15198.000000 | 2.00       USDT
+2026-06-04 19:50:06,976 [INFO] LRMC - HANTA-USDT      | 8969.000000 | 2.00       USDT
+2026-06-04 19:50:06,976 [INFO] LRMC - 1000000BABYDOGE-USDT | 5665.000000 | 2.00       USDT
+2026-06-04 19:50:06,976 [INFO] LRMC - NOT-USDT        | 4899.000000 | 2.00       USDT
+2026-06-04 19:50:06,976 [INFO] LRMC - DOGS-USDT       | 47070.000000 | 2.00       USDT
+2026-06-04 19:50:06,976 [INFO] LRMC - BOME-USDT       | 4536.000000 | 2.00       USDT
+2026-06-04 19:50:06,976 [INFO] LRMC - TOSHI-USDT      | 15129.000000 | 2.00       USDT
+2026-06-04 19:50:06,976 [INFO] LRMC - 1000CHEEMS-USDT | 3728.000000 | 2.00       USDT
+2026-06-04 19:50:06,976 [INFO] LRMC - AMP-USDT        | 3195.000000 | 2.00       USDT
+2026-06-04 19:50:06,976 [INFO] LRMC - NEIROCTO-USDT   | 28051.000000 | 2.00       USDT
+2026-06-04 19:50:06,978 [INFO] LRMC - 10000NAT-USDT   | 2473.000000 | 2.00       USDT
+2026-06-04 19:50:06,978 [INFO] LRMC - TIMI-USDT       | 2458.600000 | 2.00       USDT
+2026-06-04 19:50:06,978 [INFO] LRMC - PUMP-USDT       | 1207.000000 | 2.00       USDT
+2026-06-04 19:50:06,978 [INFO] LRMC - IQ-USDT         | 2186.000000 | 2.00       USDT
+2026-06-04 19:50:06,978 [INFO] LRMC - AKE-USDT        | 7063.000000 | 2.00       USDT
+2026-06-04 19:50:06,978 [INFO] LRMC - HOOLI-USDT      | 1785.600000 | 2.00       USDT
+2026-06-04 19:50:06,978 [INFO] LRMC - RKC-USDT        | 1330.000000 | 2.00       USDT
+2026-06-04 19:50:06,978 [INFO] LRMC - MAGASOL-USDT    | 760.500000 | 2.00       USDT
+2026-06-04 19:50:06,978 [INFO] LRMC - BEAM-USDT       | 1335.000000 | 2.00       USDT
+2026-06-04 19:50:06,978 [INFO] LRMC - 1000CAT-USDT    | 1254.000000 | 2.00       USDT
+2026-06-04 19:50:06,978 [INFO] LRMC - BURNIE-USDT     | 674.000000 | 2.00       USDT
+2026-06-04 19:50:06,978 [INFO] LRMC - SLP-USDT        | 3532.000000 | 2.00       USDT
+2026-06-04 19:50:06,978 [INFO] LRMC - PTB-USDT        | 3066.100000 | 2.00       USDT
+2026-06-04 19:50:06,978 [INFO] LRMC - MEME-USDT       | 3169.600000 | 2.00       USDT
+2026-06-04 19:50:06,978 [INFO] LRMC - HMSTR-USDT      | 13072.000000 | 2.00       USDT
+2026-06-04 19:50:06,978 [INFO] LRMC - OWL-USDT        | 913.300000 | 2.00       USDT
+2026-06-04 19:50:06,978 [INFO] LRMC - FAI-USDT        | 877.000000 | 2.00       USDT
+2026-06-04 19:50:06,978 [INFO] LRMC - KIN-USDT        | 647.300000 | 2.00       USDT
+2026-06-04 19:50:06,978 [INFO] LRMC - TURBO-USDT      | 2149.000000 | 2.00       USDT
+2026-06-04 19:50:06,978 [INFO] LRMC - 1000PEPE-USDT   | 678.000000 | 2.00       USDT
+2026-06-04 19:50:06,978 [INFO] LRMC - SUP-USDT        | 699.300000 | 2.00       USDT
+2026-06-04 19:50:06,978 [INFO] LRMC - IOST-USDT       | 2245.000000 | 2.00       USDT
+2026-06-04 19:50:06,978 [INFO] LRMC - G-USDT          | 675.500000 | 2.00       USDT
+2026-06-04 19:50:06,978 [INFO] LRMC - GALA-USDT       | 741.000000 | 2.00       USDT
+2026-06-04 19:50:06,979 [INFO] LRMC - GOBLIN-USDT     | 572.000000 | 2.00       USDT
+2026-06-04 19:50:06,979 [INFO] LRMC - CKB-USDT        | 1778.000000 | 2.00       USDT
+2026-06-04 19:50:06,979 [INFO] LRMC - TESTICLE-USDT   | 537.700000 | 2.00       USDT
+2026-06-04 19:50:06,979 [INFO] LRMC - FIGHTID-USDT    | 539.100000 | 2.00       USDT
+2026-06-04 19:50:06,979 [INFO] LRMC - TAG-USDT        | 1691.000000 | 2.00       USDT
+2026-06-04 19:50:06,979 [INFO] LRMC - JCT-USDT        | 511.000000 | 2.00       USDT
+2026-06-04 19:50:06,979 [INFO] LRMC - XPIN-USDT       | 1559.000000 | 2.00       USDT
+2026-06-04 19:50:06,980 [INFO] LRMC - ======================================================================
+2026-06-04 19:50:06,980 [INFO] LRMC - ALL TOP 50 SYMBOLS ARE 100% COMPATIBLE WITH $8 RISK!
+2026-06-04 20:03:19,398 [INFO] LRMC - === STARTING GLOBAL EMERGENCY RESET ===
+2026-06-04 20:03:19,398 [INFO] LRMC - Connecting to BingX Futures to close positions...
+2026-06-04 20:03:19,889 [INFO] LRMC - Closing active position on exchange: DOGS-USDT SHORT (Size=8576486.0)...
+2026-06-04 20:03:23,712 [ERROR] LRMC - BingX API Error: In the Hedge mode, the 'ReduceOnly' field can not be filled. | Code: 109400
+2026-06-04 20:03:25,037 [ERROR] LRMC - BingX API Error: In the Hedge mode, the 'ReduceOnly' field can not be filled. | Code: 109400
+2026-06-04 20:03:28,167 [ERROR] LRMC - BingX API Error: In the Hedge mode, the 'ReduceOnly' field can not be filled. | Code: 109400
+2026-06-04 20:03:28,168 [ERROR] LRMC - Failed to close position: Max retries exceeded
+2026-06-04 20:03:28,681 [INFO] LRMC - Closed 0 positions and cancelled orders on exchange.
+2026-06-04 20:03:30,185 [INFO] LRMC - Calculated income offset to normalize dashboard to zero: {'pnl_today': -1003.7206835199996, 'pnl_week': -1197.6082821900004, 'pnl_month': -1197.6082821900004, 'pnl_total': -1197.6082821900004}
+2026-06-04 20:03:30,187 [INFO] LRMC - Wiping local state files...
+2026-06-04 20:03:30,189 [INFO] LRMC - Local storage successfully cleared and normalized.
+2026-06-04 20:03:30,189 [INFO] LRMC - Sending reset trigger to HF Space Space: https://luisalbertor-botbingx.hf.space...
+2026-06-04 20:03:37,539 [INFO] LRMC - HF Space Reset API Response: {"status":"reset_completed"}
+2026-06-04 20:03:37,925 [INFO] LRMC - HF Space Start API Response: {"status":"started"}
+2026-06-04 20:03:37,925 [INFO] LRMC - === GLOBAL EMERGENCY RESET COMPLETED SUCCESSFULLY ===
+2026-06-04 20:04:13,855 [INFO] LRMC - === STARTING GLOBAL EMERGENCY RESET ===
+2026-06-04 20:04:13,855 [INFO] LRMC - Connecting to BingX Futures to close positions...
+2026-06-04 20:04:14,207 [INFO] LRMC - Closing active position on exchange: DOGS-USDT SHORT (Size=8576486.0)...
+2026-06-04 20:04:19,856 [INFO] LRMC - Successfully closed DOGS-USDT SHORT position via MARKET order.
+2026-06-04 20:04:20,368 [INFO] LRMC - Closed 1 positions and cancelled orders on exchange.
+2026-06-04 20:04:21,858 [INFO] LRMC - Calculated income offset to normalize dashboard to zero: {'pnl_today': -896.6523036899999, 'pnl_week': -1084.91659571, 'pnl_month': -1084.91659571, 'pnl_total': -1084.91659571}
+2026-06-04 20:04:21,858 [INFO] LRMC - Wiping local state files...
+2026-06-04 20:04:21,860 [INFO] LRMC - Local storage successfully cleared and normalized.
+2026-06-04 20:04:21,860 [INFO] LRMC - Sending reset trigger to HF Space Space: https://luisalbertor-botbingx.hf.space...
+2026-06-04 20:04:28,787 [INFO] LRMC - HF Space Reset API Response: {"status":"reset_completed"}
+2026-06-04 20:04:29,137 [INFO] LRMC - HF Space Start API Response: {"status":"started"}
+2026-06-04 20:04:29,137 [INFO] LRMC - === GLOBAL EMERGENCY RESET COMPLETED SUCCESSFULLY ===
+2026-06-04 20:07:00,686 [INFO] LRMC - === STARTING GLOBAL EMERGENCY RESET ===
+2026-06-04 20:07:00,687 [INFO] LRMC - Connecting to BingX Futures to close positions...
+2026-06-04 20:07:01,110 [INFO] LRMC - Closed 0 positions and cancelled orders on exchange.
+2026-06-04 20:07:01,769 [INFO] LRMC - Calculated income offset to normalize dashboard to zero: {'pnl_today': -896.6523036899999, 'pnl_week': -1084.91659571, 'pnl_month': -1084.91659571, 'pnl_total': -1084.91659571}
+2026-06-04 20:07:01,770 [INFO] LRMC - Wiping local state files...
+2026-06-04 20:07:01,777 [INFO] LRMC - Local storage successfully cleared and normalized.
+2026-06-04 20:07:01,778 [INFO] LRMC - Sending reset trigger to HF Space Space: https://luisalbertor-botbingx.hf.space...
+2026-06-04 20:07:03,415 [INFO] LRMC - HF Space Reset API Response: {"status":"reset_completed"}
+2026-06-04 20:07:03,767 [INFO] LRMC - HF Space Start API Response: {"status":"started"}
+2026-06-04 20:07:03,767 [INFO] LRMC - === GLOBAL EMERGENCY RESET COMPLETED SUCCESSFULLY ===
+2026-06-04 20:08:04,343 [INFO] LRMC - === STARTING GLOBAL EMERGENCY RESET ===
+2026-06-04 20:08:04,343 [INFO] LRMC - Connecting to BingX Futures to close positions...
+2026-06-04 20:08:04,764 [INFO] LRMC - Closed 0 positions and cancelled orders on exchange.
+2026-06-04 20:08:05,951 [INFO] LRMC - Calculated income offset to normalize dashboard to zero: {'pnl_today': -902.4638819099999, 'pnl_week': -1025.9723169099998, 'pnl_month': -1025.9723169099998, 'pnl_total': -1025.9723169099998}
+2026-06-04 20:08:05,951 [INFO] LRMC - Wiping local state files...
+2026-06-04 20:08:05,954 [INFO] LRMC - Local storage successfully cleared and normalized.
+2026-06-04 20:08:05,954 [INFO] LRMC - Sending reset trigger to HF Space Space: https://luisalbertor-botbingx.hf.space...
+2026-06-04 20:08:07,578 [WARNING] LRMC - Could not connect to HF Space Reset API: HTTP Error 500: Internal Server Error
+2026-06-04 20:08:07,917 [INFO] LRMC - HF Space Start API Response: {"status":"started"}
+2026-06-04 20:08:07,918 [INFO] LRMC - === GLOBAL EMERGENCY RESET COMPLETED SUCCESSFULLY ===
+2026-06-04 20:08:26,976 [WARNING] LRMC - === EMERGENCY RESET INITIATED ===
+2026-06-04 20:08:28,000 [INFO] LRMC - Saved PNL offset to normalize dashboard to 0.
+2026-06-04 20:08:43,823 [WARNING] LRMC - === EMERGENCY RESET INITIATED ===
+2026-06-04 20:08:45,452 [INFO] LRMC - Saved PNL offset to normalize dashboard to 0.
+2026-06-04 20:08:45,455 [INFO] LRMC - Saved dynamic PNL start time to zero out dashboard counters.
+2026-06-04 20:08:45,457 [WARNING] LRMC - === RESET COMPLETED (Including History/Counters) ===
+2026-06-04 20:20:38,464 [WARNING] LRMC - [BTC BLOCK] !!! VOLATILITY SPARK DETECTED! Blocking all new entries for 2 hours (until 2026-06-04 22:20:38). Reason: BTC Live candle body change = 3.00% (Threshold: 1.2%)
+2026-06-04 20:20:38,466 [WARNING] LRMC - [BTC BLOCK] !!! VOLATILITY SPARK DETECTED! Blocking all new entries for 2 hours (until 2026-06-04 22:20:38). Reason: BTC Closed candle range = 2.58% (Threshold: 1.5%)
+2026-06-04 20:20:38,469 [WARNING] LRMC - [BTC BLOCK] !!! VOLATILITY SPARK DETECTED! Blocking all new entries for 2 hours (until 2026-06-04 22:20:38). Reason: BTC 15m cumulative body change = 2.17% (Threshold: 1.8%)
+2026-06-04 20:24:30,033 [WARNING] LRMC - [BTC BLOCK] !!! VOLATILITY SPARK DETECTED! Blocking all new entries for 2 hours (until 2026-06-04 22:24:30). Reason: BTC 15m cumulative range = 2.58% (Threshold: 1.5%)
+2026-06-04 20:25:26,191 [WARNING] LRMC - [BTC BLOCK] !!! VOLATILITY SPARK DETECTED! Blocking all new entries for 2 hours (until 2026-06-04 22:25:26). Reason: BTC 15m cumulative body change = 1.67% (Threshold: 1.5%)
+2026-06-04 20:36:10,397 [WARNING] LRMC - [BTC BLOCK] !!! VOLATILITY SPARK DETECTED! Blocking all new entries for 2 hours (until 2026-06-04 22:36:10). Reason: BTC 15m cumulative body change = 1.67% (Threshold: 1.5%)
+2026-06-04 20:37:28,844 [INFO] LRMC - [CLOSE TRADE] Cancelling all remaining orders for ETH-USDT on trade close (Reason: TP_HIT)...
+2026-06-04 20:37:28,845 [INFO] LRMC - [TRADE CLOSED] ETH-USDT reason=TP_HIT. Cooldown 15min aplicado.
+2026-06-04 20:39:45,160 [DEBUG] LRMC - [ETH-USDT] Not enough candles in buffer yet.
+2026-06-04 20:40:38,003 [INFO] LRMC - [ETH-USDT] detect_sweep() -> signal=LONG | entry=100.0 | sl=98.778125
+2026-06-04 20:40:38,009 [INFO] LRMC - [ETH-USDT] Ticker fetched. Live Entry Price: 99.500000 (Original: 100.000000)
+2026-06-04 20:40:38,009 [INFO] LRMC - [RISK] True Fixed Risk | Target Risk=8.0 USDT | SL Distance=0.721875 | Size=11.082251 | Entry=99.5 | SL=98.778125
+2026-06-04 20:40:38,009 [INFO] LRMC - [SIGNAL] ETH-USDT LONG | Score=80 | Entry=99.5000 | SL=98.7781
+2026-06-04 20:40:39,387 [INFO] LRMC - [ENTRY] Placing LIMIT BUY/LONG 11.082251 @ 99.5000 on ETH-USDT
+2026-06-04 20:40:41,755 [ERROR] LRMC - BingX API Error: Order price should be higher than 350.76 | Code: 101211
+2026-06-04 20:40:41,755 [ERROR] LRMC - [ENTRY] Failed to place order: Order price should be higher than 350.76
+2026-06-04 20:40:58,870 [INFO] LRMC - [ETH-USDT] detect_sweep() -> signal=LONG | entry=100.0 | sl=98.778125
+2026-06-04 20:40:58,871 [INFO] LRMC - [ETH-USDT] Signal score = 80 (threshold >= 40)
+2026-06-04 20:40:58,871 [INFO] LRMC - [ETH-USDT] Ticker fetched. Live Entry Price: 99.500000 (Original: 100.000000)
+2026-06-04 20:40:58,871 [INFO] LRMC - [RISK] True Fixed Risk | Target Risk=8.0 USDT | SL Distance=0.721875 | Size=11.082251 | Entry=99.5 | SL=98.778125
+2026-06-04 20:40:58,871 [INFO] LRMC - [SIGNAL] ETH-USDT LONG | Score=80 | Entry=99.5000 | SL=98.7781
+2026-06-04 20:40:58,871 [ERROR] LRMC - [ETH-USDT] Error in _on_closed_candle: 'MockBingXClient' object has no attribute 'set_leverage'
+2026-06-04 20:41:11,611 [INFO] LRMC - [ETH-USDT] detect_sweep() -> signal=LONG | entry=100.0 | sl=98.778125
+2026-06-04 20:41:11,611 [INFO] LRMC - [ETH-USDT] Signal score = 80 (threshold >= 40)
+2026-06-04 20:41:11,612 [INFO] LRMC - [ETH-USDT] Ticker fetched. Live Entry Price: 99.500000 (Original: 100.000000)
+2026-06-04 20:41:11,612 [INFO] LRMC - [RISK] True Fixed Risk | Target Risk=8.0 USDT | SL Distance=0.721875 | Size=11.082251 | Entry=99.5 | SL=98.778125
+2026-06-04 20:41:11,612 [INFO] LRMC - [SIGNAL] ETH-USDT LONG | Score=80 | Entry=99.5000 | SL=98.7781
+2026-06-04 20:41:11,612 [INFO] LRMC - [ENTRY] Placing LIMIT BUY/LONG 11.082251 @ 99.5000 on ETH-USDT
+2026-06-04 20:41:11,612 [INFO] LRMC - [ENTRY] Order placed OK. ID=mock_entry_123
+2026-06-04 20:41:11,613 [INFO] LRMC - [ETH-USDT] detect_sweep() -> signal=LONG | entry=100.0 | sl=98.778125
+2026-06-04 20:41:11,613 [INFO] LRMC - [ETH-USDT] Signal score = 80 (threshold >= 40)
+2026-06-04 20:41:11,613 [INFO] LRMC - [ETH-USDT] Ticker fetched. Live Entry Price: 102.000000 (Original: 100.000000)
+2026-06-04 20:41:11,614 [WARNING] LRMC - [ETH-USDT] Entry rejected: Live SL distance 3.16% is too large (> 2.0%)
+2026-06-04 20:41:11,614 [INFO] LRMC - [ETH-USDT] detect_sweep() -> signal=LONG | entry=100.0 | sl=98.778125
+2026-06-04 20:41:11,614 [INFO] LRMC - [ETH-USDT] Signal score = 80 (threshold >= 40)
+2026-06-04 20:41:11,614 [INFO] LRMC - [ETH-USDT] Ticker fetched. Live Entry Price: 99.000000 (Original: 100.000000)
+2026-06-04 20:41:11,614 [INFO] LRMC - [ETH-USDT] Adjusting SL to maintain min distance of 0.5%: 98.505000
+2026-06-04 20:41:11,614 [INFO] LRMC - [RISK] True Fixed Risk | Target Risk=8.0 USDT | SL Distance=0.495000 | Size=16.161616 | Entry=99.0 | SL=98.505
+2026-06-04 20:41:11,614 [INFO] LRMC - [SIGNAL] ETH-USDT LONG | Score=80 | Entry=99.0000 | SL=98.5050
+2026-06-04 20:41:11,614 [INFO] LRMC - [ENTRY] Placing LIMIT BUY/LONG 16.161616 @ 99.0000 on ETH-USDT
+2026-06-04 20:41:11,614 [INFO] LRMC - [ENTRY] Order placed OK. ID=mock_entry_123
+2026-06-04 20:41:11,616 [DEBUG] LRMC - [RECONCILE] Checking state vs exchange...
+2026-06-04 20:41:11,616 [WARNING] LRMC - [RECONCILE] ETH-USDT entry order stale (240s > 180s). Cancelling.
+2026-06-04 20:41:11,616 [INFO] LRMC - [CLOSE TRADE] Cancelling all remaining orders for ETH-USDT on trade close (Reason: STALE_ENTRY)...
+2026-06-04 20:41:11,618 [INFO] LRMC - [TRADE CLOSED] ETH-USDT reason=STALE_ENTRY. Cooldown 1min aplicado.
+2026-06-04 20:52:25,740 [INFO] LRMC - [RISK] True Fixed Risk | Target Risk=8.0 USDT | SL Distance=1000.000000 | Size=0.008000 | Entry=100000 | SL=99000
+2026-06-04 20:52:51,996 [INFO] LRMC - [RISK] True Fixed Risk | Target Risk=8.0 USDT | SL Distance=1000.000000 | Size=0.008000 | Entry=100000 | SL=99000
+2026-06-05 03:05:24,984 [INFO] LRMC - [RISK] Max open trades reached (10). Skipping.
+2026-06-05 03:05:25,000 [INFO] LRMC - [RISK] Max open trades reached (10). Skipping.
+2026-06-05 03:05:42,608 [INFO] LRMC - [RISK] Max open trades reached (10). Skipping.
+2026-06-05 03:05:42,609 [INFO] LRMC - [RISK] Max open trades reached (10). Skipping.
+2026-06-05 03:05:42,609 [INFO] LRMC - [RISK] Max open trades reached (10). Skipping.
+2026-06-05 03:05:42,609 [INFO] LRMC - [RISK] Max open trades reached (10). Skipping.
+2026-06-05 03:05:42,609 [INFO] LRMC - [RISK] Max open trades reached (10). Skipping.
+2026-06-05 04:49:56,315 [INFO] LRMC - Checking Hedge Mode...
+2026-06-05 04:49:56,808 [INFO] LRMC - Hedge Mode already active.
+2026-06-05 04:49:56,809 [INFO] LRMC - Starting LRMC PRO Bot...
+2026-06-05 04:49:56,809 [INFO] LRMC - === LRMC PRO Engine Starting (HYBRID: REST polling + WS fills) ===
+2026-06-05 04:49:56,810 [INFO] LRMC - Restored 1 active positions from storage.
+2026-06-05 04:49:56,810 [INFO] LRMC - [WATCHDOG] Started.
+2026-06-05 04:49:58,166 [INFO] LRMC - Successfully loaded precisions for 686 contracts.
+2026-06-05 04:49:58,463 [WARNING] LRMC - [ORPHAN ADOPTION] Adopting unmanaged position TEA1-USDT LONG from BingX!
+2026-06-05 04:49:58,464 [INFO] LRMC - [POLL] Kline polling loop started. Interval=60s, TF=5m
+2026-06-05 04:49:58,764 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-06-05 04:49:59,063 [INFO] LRMC - Fetched top 50 volume symbols.
+2026-06-05 04:49:59,063 [INFO] LRMC - [SYSTEM] Tracking top 51 volume symbols: ['NEX-USDT', 'SHIB-USDT', 'AEON-USDT', 'TEA1-USDT', 'GITLAWB-USDT']...
+2026-06-05 04:50:00,085 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-06-05 04:50:02,378 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-06-05 04:50:03,960 [INFO] LRMC - WebSocket connected: wss://open-api-ws.bingx.com/market...
+2026-06-05 04:50:04,350 [INFO] LRMC - [POLL] NEX-USDT – NEW closed candle detected @ ts=1780652700000 O=0.0000 H=0.0000 L=0.0000 C=0.0000 V=3521406658.00
+2026-06-05 04:50:04,350 [INFO] LRMC - [NEX-USDT] detect_sweep() -> signal=NONE | entry=N/A | sl=N/A
+2026-06-05 04:50:04,737 [INFO] LRMC - Subscribed to 8 symbols @ 5m
+2026-06-05 04:50:04,753 [INFO] LRMC - [POLL] SHIB-USDT – NEW closed candle detected @ ts=1780652700000 O=0.0000 H=0.0000 L=0.0000 C=0.0000 V=1421186000.00
+2026-06-05 04:50:04,753 [INFO] LRMC - [SHIB-USDT] detect_sweep() -> signal=NONE | entry=N/A | sl=N/A
+2026-06-05 04:50:05,764 [INFO] LRMC - [POLL] AEON-USDT – NEW closed candle detected @ ts=1780652700000 O=0.0000 H=0.0000 L=0.0000 C=0.0000 V=1020606412.00
+2026-06-05 04:50:05,764 [DEBUG] LRMC - [AEON-USDT] Volatility filter rejected.
+2026-06-05 04:50:07,004 [INFO] LRMC - [POLL] TEA1-USDT – NEW closed candle detected @ ts=1780652700000 O=0.0001 H=0.0001 L=0.0001 C=0.0001 V=469506469.00
+2026-06-05 04:50:07,004 [DEBUG] LRMC - [TEA1-USDT] Active trade exists. Skipping new signal.
+2026-06-05 04:50:07,960 [INFO] LRMC - [POLL] GITLAWB-USDT – NEW closed candle detected @ ts=1780652700000 O=0.0001 H=0.0001 L=0.0001 C=0.0001 V=303231298.00
+2026-06-05 04:50:07,960 [INFO] LRMC - [GITLAWB-USDT] detect_sweep() -> signal=NONE | entry=N/A | sl=N/A
+2026-06-05 04:50:08,936 [INFO] LRMC - [POLL] LUNC-USDT – NEW closed candle detected @ ts=1780652700000 O=0.0001 H=0.0001 L=0.0001 C=0.0001 V=53099142.00
+2026-06-05 04:50:08,937 [INFO] LRMC - [LUNC-USDT] detect_sweep() -> signal=NONE | entry=N/A | sl=N/A
+2026-06-05 04:50:09,909 [INFO] LRMC - [POLL] RATS-USDT – NEW closed candle detected @ ts=1780652700000 O=0.0000 H=0.0000 L=0.0000 C=0.0000 V=184715263.00
+2026-06-05 04:50:09,909 [INFO] LRMC - [RATS-USDT] detect_sweep() -> signal=NONE | entry=N/A | sl=N/A
+2026-06-05 04:50:10,310 [INFO] LRMC - [POLL] FLOKI-USDT – NEW closed candle detected @ ts=1780652700000 O=0.0000 H=0.0000 L=0.0000 C=0.0000 V=141876133.00
+2026-06-05 04:50:10,312 [INFO] LRMC - [FLOKI-USDT] detect_sweep() -> signal=NONE | entry=N/A | sl=N/A
+2026-06-05 04:50:10,726 [INFO] LRMC - [POLL] ASTEROIDETH-USDT – NEW closed candle detected @ ts=1780652700000 O=0.0001 H=0.0001 L=0.0001 C=0.0001 V=120635306.00
+2026-06-05 04:50:10,726 [INFO] LRMC - [ASTEROIDETH-USDT] detect_sweep() -> signal=NONE | entry=N/A | sl=N/A
+2026-06-05 04:50:11,138 [INFO] LRMC - [POLL] ASTEROID-USDT – NEW closed candle detected @ ts=1780652700000 O=0.0002 H=0.0002 L=0.0002 C=0.0002 V=113285090.00
+2026-06-05 04:50:11,139 [INFO] LRMC - [ASTEROID-USDT] detect_sweep() -> signal=NONE | entry=N/A | sl=N/A
+2026-06-05 04:50:12,424 [INFO] LRMC - [POLL] HANTA-USDT – NEW closed candle detected @ ts=1780652700000 O=0.0002 H=0.0002 L=0.0002 C=0.0002 V=100279617.00
+2026-06-05 04:50:12,424 [INFO] LRMC - [HANTA-USDT] detect_sweep() -> signal=NONE | entry=N/A | sl=N/A
+2026-06-05 04:50:12,824 [INFO] LRMC - [POLL] 1000000BABYDOGE-USDT – NEW closed candle detected @ ts=1780652700000 O=0.0003 H=0.0003 L=0.0003 C=0.0003 V=66082325.00
+2026-06-05 04:50:12,824 [INFO] LRMC - [1000000BABYDOGE-USDT] detect_sweep() -> signal=NONE | entry=N/A | sl=N/A
+2026-06-05 04:50:13,235 [INFO] LRMC - [POLL] NOT-USDT – NEW closed candle detected @ ts=1780652700000 O=0.0004 H=0.0004 L=0.0004 C=0.0004 V=58962402.00
+2026-06-05 04:50:13,236 [INFO] LRMC - [NOT-USDT] detect_sweep() -> signal=NONE | entry=N/A | sl=N/A
+2026-06-05 23:39:57,501 [WARNING] LRMC - === EMERGENCY RESET INITIATED ===
+2026-06-05 23:39:58,671 [WARNING] LRMC - Reset: Canceling orders and closing TEA1-USDT LONG
+2026-06-05 23:39:58,671 [WARNING] LRMC - [EMERGENCY CLOSE] Cancelling orders and closing TEA1-USDT LONG
+2026-06-05 23:40:04,893 [INFO] LRMC - Saved PNL offset to normalize dashboard to 0.
+2026-06-05 23:40:04,895 [INFO] LRMC - Saved dynamic PNL start time to zero out dashboard counters.
+2026-06-05 23:40:04,935 [WARNING] LRMC - === RESET COMPLETED (Including History/Counters) ===

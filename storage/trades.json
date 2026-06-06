@@ -1,0 +1,34 @@
+[
+    {
+        "symbol": "ETH-USDT",
+        "side": "LONG",
+        "entry_price": 3000.0,
+        "sl_price": 2940.0,
+        "total_size": 0.1,
+        "tp_price": null,
+        "tp1_hit": null,
+        "breakeven_hit": false,
+        "trailing_active": false,
+        "score": null,
+        "close_reason": "TP_HIT",
+        "pnl": 0.0,
+        "timestamp": null,
+        "close_timestamp": 1780623448
+    },
+    {
+        "symbol": "ETH-USDT",
+        "side": "LONG",
+        "entry_price": 99.0,
+        "sl_price": 98.505,
+        "total_size": 1.0,
+        "tp_price": null,
+        "tp1_hit": null,
+        "breakeven_hit": false,
+        "trailing_active": false,
+        "score": null,
+        "close_reason": "STALE_ENTRY",
+        "pnl": 0.0,
+        "timestamp": 1780623431.6163094,
+        "close_timestamp": 1780623671
+    }
+]
