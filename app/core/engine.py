@@ -498,8 +498,8 @@ class Engine:
 
                     sl_price = sweep_result["sl_price"]
                     sl_dist_pct = abs(entry_price - sl_price) / entry_price
-                    if sl_dist_pct > 0.02:
-                        logger.warning(f"[{symbol}] Entry rejected: Live SL distance {sl_dist_pct:.2%} is too large (> 2.0%)")
+                    if sl_dist_pct > 0.15: # Increased to 15% to allow highly volatile coins
+                        logger.warning(f"[{symbol}] Entry rejected: Live SL distance {sl_dist_pct:.2%} is too large (> 15.0%)")
                         return
                     if sl_dist_pct < 0.005:
                         # Re-adjust SL price to maintain minimum distance
