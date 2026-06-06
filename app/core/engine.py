@@ -96,6 +96,7 @@ class Engine:
         for t in db_trades:
             self.trade_state[t.symbol] = {
                 "side": t.signal,
+                "strategy": getattr(t, "strategy", "UNKNOWN") or "UNKNOWN",
                 "entry_price": t.entry_price,
                 "sl_price": t.sl_price,
                 "target_distance": t.target_distance,
@@ -546,6 +547,7 @@ class Engine:
                         "tp1_hit": False,
                         "filled": False,
                         "score": score,
+                        "strategy": sweep_result.get("strategy", "UNKNOWN"),
                         "cooldown_until": 0,
                         "timestamp": int(time.time())
                     }
@@ -919,6 +921,7 @@ class Engine:
             db_trade = TradeState(
                 symbol=sym,
                 signal=t.get("side"),
+                strategy=t.get("strategy", "UNKNOWN"),
                 entry_price=t.get("entry_price"),
                 sl_price=t.get("sl_price"),
                 target_distance=t.get("target_distance"),

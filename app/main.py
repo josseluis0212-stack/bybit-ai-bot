@@ -111,6 +111,7 @@ async def api_dashboard():
         enriched["sl_price"]         = trade_state.get("sl_price", None)
         enriched["tp_price"]         = trade_state.get("tp_price", None)
         enriched["score"]            = trade_state.get("score", None)
+        enriched["strategy"]         = trade_state.get("strategy", "N/A")
         enriched_positions.append(enriched)
 
     return JSONResponse({

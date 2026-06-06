@@ -8,6 +8,7 @@ class TradeState(Base):
     __tablename__ = 'trade_state'
     symbol = Column(String, primary_key=True)
     signal = Column(String)
+    strategy = Column(String, nullable=True, default="UNKNOWN")
     entry_price = Column(Float)
     sl_price = Column(Float)
     target_distance = Column(Float)

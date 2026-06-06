@@ -44,7 +44,7 @@ function updateDashboard(data) {
     document.getElementById('active-count-val').innerText = positions.length;
 
     if (positions.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="color:#64748b; padding:2rem;">NO HAY POSICIONES ACTIVAS EN BINGX</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center" style="color:#64748b; padding:2rem;">NO HAY POSICIONES ACTIVAS EN BINGX</td></tr>';
         document.getElementById('global-pnl').innerText = '$0.00';
         document.getElementById('global-pnl').className = '';
     } else {
@@ -70,9 +70,17 @@ function updateDashboard(data) {
             const tpStr = p.tp_price ? `TP ${formatPrice(p.tp_price)}` : '';
             const levels = [slStr, tpStr].filter(Boolean).join(' · ');
 
+            const strategyName = p.strategy || 'N/A';
+            const strategyBadge = strategyName === 'QUANTUM_V10_PRO' 
+                                  ? `<span class="badge" style="background:rgba(59,130,246,0.2);color:#3b82f6;border:1px solid #3b82f6">V10 PRO</span>`
+                                  : strategyName === 'QUANTUM_DIVERGENCE'
+                                  ? `<span class="badge" style="background:rgba(168,85,247,0.2);color:#a855f7;border:1px solid #a855f7">DIVERGENCE</span>`
+                                  : `<span class="badge">${strategyName}</span>`;
+
             rows += `
                 <tr>
                     <td><span style="font-weight:800">${p.symbol}</span></td>
+                    <td>${strategyBadge}</td>
                     <td><span class="${sideClass}" style="font-weight:700">${p.positionSide}</span></td>
                     <td><span style="font-family:monospace">${entry}</span></td>
                     <td>
