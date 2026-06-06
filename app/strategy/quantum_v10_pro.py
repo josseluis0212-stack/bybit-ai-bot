@@ -22,15 +22,16 @@ async def evaluate_v10_pro(client, symbol: str) -> dict:
     adx_15m = calculate_adx(highs_15m, lows_15m, closes_15m, 14)[-1]
     current_close_15m = closes_15m[-1]
     
-    if adx_15m < 20:
-        return {"signal": "NONE"}
+    # Softened: ADX and RSI filters disabled for testing
+    # if adx_15m < 20:
+    #     return {"signal": "NONE"}
         
-    if bias == "LONG":
-        if not (current_close_15m > ema50_15m and rsi_15m < 65):
-            return {"signal": "NONE"}
-    else:
-        if not (current_close_15m < ema50_15m and rsi_15m > 35):
-            return {"signal": "NONE"}
+    # if bias == "LONG":
+    #     if not (current_close_15m > ema50_15m and rsi_15m < 65):
+    #         return {"signal": "NONE"}
+    # else:
+    #     if not (current_close_15m < ema50_15m and rsi_15m > 35):
+    #         return {"signal": "NONE"}
             
     # 3. Sniper Gatillo (5M FVG)
     klines_5m = await client.get_klines(symbol, "5m", 20)
@@ -55,17 +56,17 @@ async def evaluate_v10_pro(client, symbol: str) -> dict:
         c3 = klines_5m[i]
         
         if bias == "LONG":
-            # Bullish FVG: Low actual (c3) > High prev (c1) + vela alcista
-            if c3["low"] > c1["high"] and c3["close"] > c3["open"]:
+            # Bullish: just a green candle
+            if c3["close"] > c3["open"]:
                 fvg_found = True
-                entry_price = (c3["low"] + c1["high"]) / 2.0  # Punto medio del FVG
+                entry_price = c3["close"]
                 sl_price = entry_price - (2.5 * atr)
                 break
         else:
-            # Bearish FVG: High actual (c3) < Low prev (c1) + vela bajista
-            if c3["high"] < c1["low"] and c3["close"] < c3["open"]:
+            # Bearish: just a red candle
+            if c3["close"] < c3["open"]:
                 fvg_found = True
-                entry_price = (c3["high"] + c1["low"]) / 2.0  # Punto medio del FVG
+                entry_price = c3["close"]
                 sl_price = entry_price + (2.5 * atr)
                 break
                 

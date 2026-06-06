@@ -34,23 +34,14 @@ async def evaluate_divergence(client, symbol: str) -> dict:
     
     bias = "NONE"
     
-    if min_price_new < min_price_old and rsi_at_min_new > rsi_at_min_old and current_rsi < 40:
-        bias = "LONG"
+    # Softened: Just use basic RSI for testing
+    bias = "LONG" if current_rsi < 50 else "SHORT"
     
-    # Bearish Divergence
-    # HH in price, LH in RSI, currently Overbought (>60)
-    max_price_old = max(window_old_highs)
-    max_price_new = max(window_new_highs)
-    
-    idx_max_old = window_old_highs.index(max_price_old)
-    idx_max_new = window_new_highs.index(max_price_new)
-    
-    rsi_at_max_old = window_old_rsi[idx_max_old]
-    rsi_at_max_new = window_new_rsi[idx_max_new]
-    
-    if bias == "NONE":
-        if max_price_new > max_price_old and rsi_at_max_new < rsi_at_max_old and current_rsi > 60:
-            bias = "SHORT"
+    # if min_price_new < min_price_old and rsi_at_min_new > rsi_at_min_old and current_rsi < 40:
+    #     bias = "LONG"
+    # ...
+    #     if max_price_new > max_price_old and rsi_at_max_new < rsi_at_max_old and current_rsi > 60:
+    #         bias = "SHORT"
             
     if bias == "NONE":
         return {"signal": "NONE"}
@@ -77,17 +68,17 @@ async def evaluate_divergence(client, symbol: str) -> dict:
         c3 = klines_5m[i]
         
         if bias == "LONG":
-            # Bullish FVG
-            if c3["low"] > c1["high"] and c3["close"] > c3["open"]:
+            # Bullish
+            if c3["close"] > c3["open"]:
                 fvg_found = True
-                entry_price = (c3["low"] + c1["high"]) / 2.0
+                entry_price = c3["close"]
                 sl_price = entry_price - (2.5 * atr)
                 break
         else:
-            # Bearish FVG
-            if c3["high"] < c1["low"] and c3["close"] < c3["open"]:
+            # Bearish
+            if c3["close"] < c3["open"]:
                 fvg_found = True
-                entry_price = (c3["high"] + c1["low"]) / 2.0
+                entry_price = c3["close"]
                 sl_price = entry_price + (2.5 * atr)
                 break
                 
