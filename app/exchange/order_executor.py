@@ -47,25 +47,43 @@ class OrderExecutor:
         await self.setup_leverage(symbol, "LONG")
         await self.setup_leverage(symbol, "SHORT")
 
-        logger.info(f"[ENTRY] Placing LIMIT {order_side}/{pos_side} {size:.6f} @ {price:.4f} on {symbol}")
-        res = await self.client.place_order(
-            symbol=symbol,
-            side=order_side,
-            position_side=pos_side,
-            order_type="LIMIT",
-            quantity=size,
-            price=price,
-            post_only=True,
-            reduce_only=False
-        )
+        current_size = size
+        max_retries = 3
+        
+        for attempt in range(max_retries):
+            logger.info(f"[ENTRY] Placing LIMIT {order_side}/{pos_side} {current_size:.6f} @ {price:.4f} on {symbol} (Attempt {attempt+1}/{max_retries})")
+            res = await self.client.place_order(
+                symbol=symbol,
+                side=order_side,
+                position_side=pos_side,
+                order_type="LIMIT",
+                quantity=current_size,
+                price=price,
+                post_only=True,
+                reduce_only=False
+            )
 
-        if res.get("success") and res.get("data"):
-            order_data = res["data"].get("order", res["data"])
-            order_id = str(order_data.get("orderId", ""))
-            logger.info(f"[ENTRY] Order placed OK. ID={order_id}")
-            return order_id
+            if res.get("success") and res.get("data"):
+                order_data = res["data"].get("order", res["data"])
+                order_id = str(order_data.get("orderId", ""))
+                logger.info(f"[ENTRY] Order placed OK. ID={order_id}")
+                return order_id
+                
+            code = res.get("code")
+            msg = res.get("msg", "")
+            logger.error(f"[ENTRY] Failed to place order: {msg} (Code: {code})")
+            
+            # Insufficient Margin codes
+            if code in [100412, 100438, 80001, 100440]:
+                logger.warning(f"[AUTO-HEALING] Insufficient margin detected for {symbol}. Scaling down size by 50%...")
+                current_size = current_size / 2.0
+                await asyncio.sleep(0.5)
+                continue
+            else:
+                # Other error, don't retry
+                break
 
-        logger.error(f"[ENTRY] Failed to place order: {res.get('msg')}")
+        logger.error(f"[ENTRY] Aborting entry for {symbol} after failures.")
         return None
 
     async def verify_position_exists(self, symbol: str, side: str) -> dict:
@@ -296,23 +314,42 @@ class OrderExecutor:
         # Restore Stop Loss if missing
         if not has_sl:
             logger.info(f"[SMART RESTORE] {symbol} SL missing on exchange. Placing at {target_sl_price:.6f} for size {real_size}...")
-            sl_res = await self.client.place_order(
-                symbol=symbol, side=close_side, position_side=pos_side,
-                order_type="STOP_MARKET", quantity=real_size, stop_price=target_sl_price
-            )
-            if sl_res.get("success") and sl_res.get("data"):
-                new_sl_id = str(sl_res["data"].get("order", sl_res["data"]).get("orderId", ""))
-                trade["sl_order_id"] = new_sl_id
-                trade["sl_price"] = target_sl_price
-                logger.info(f"[SMART RESTORE] SL restored successfully. ID={new_sl_id}")
-            else:
-                code = sl_res.get("code")
-                if code in [110411, 110412]:
-                    logger.error(f"[SMART RESTORE] SL price already breached! Emergency close for {symbol}.")
-                    await self.close_position_market(symbol, side)
-                    trade["sl_order_id"] = "BREACHED"
+            
+            max_sl_retries = 5
+            sl_placed = False
+            current_sl_price = target_sl_price
+            
+            for attempt in range(max_sl_retries):
+                sl_res = await self.client.place_order(
+                    symbol=symbol, side=close_side, position_side=pos_side,
+                    order_type="STOP_MARKET", quantity=real_size, stop_price=current_sl_price
+                )
+                if sl_res.get("success") and sl_res.get("data"):
+                    new_sl_id = str(sl_res["data"].get("order", sl_res["data"]).get("orderId", ""))
+                    trade["sl_order_id"] = new_sl_id
+                    trade["sl_price"] = current_sl_price
+                    logger.info(f"[SMART RESTORE] SL restored successfully. ID={new_sl_id}")
+                    sl_placed = True
+                    break
                 else:
-                    logger.error(f"[SMART RESTORE] SL restoration failed: {sl_res.get('msg')}")
+                    code = sl_res.get("code")
+                    msg = sl_res.get("msg", "")
+                    if code in [110411, 110412]:
+                        logger.warning(f"[AUTO-HEALING] SL price {current_sl_price:.6f} rejected. Adjusting 0.2% towards entry (Attempt {attempt+1}/{max_sl_retries})...")
+                        if side == "LONG":
+                            current_sl_price = current_sl_price * 1.002
+                        else:
+                            current_sl_price = current_sl_price * 0.998
+                        await asyncio.sleep(0.5)
+                        continue
+                    else:
+                        logger.error(f"[SMART RESTORE] SL restoration failed: {msg}")
+                        break
+                        
+            if not sl_placed:
+                logger.error(f"[SMART RESTORE] SL placement failed after {max_sl_retries} attempts. Emergency closing {symbol} to prevent unprotected position.")
+                await self.close_position_market(symbol, side)
+                trade["sl_order_id"] = "BREACHED"
 
         # 2. Restore Take Profit if missing (only if trailing is NOT active yet)
         if not trade.get("trailing_active") and not has_tp:

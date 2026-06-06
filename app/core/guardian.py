@@ -17,6 +17,8 @@ class PositionGuardian:
         await self._patrol()
 
     async def _patrol(self):
+        backoff_time = 2
+        max_backoff = 60
         while self.running:
             await asyncio.sleep(15)  # Patrol every 15 seconds
             try:
@@ -51,7 +53,16 @@ class PositionGuardian:
                             logger.info(f"🛡️ [GUARDIAN AGENT] {symbol}: Verificando Trailing Stop de ganancias.")
 
             except Exception as e:
-                logger.error(f"🛡️ [GUARDIAN AGENT] Error durante patrullaje: {e}")
+                error_msg = str(e)
+                if "429" in error_msg or "Too Many Requests" in error_msg or "timeout" in error_msg.lower():
+                    backoff_time = min(backoff_time * 2, max_backoff)
+                    logger.error(f"🛡️ [GUARDIAN AGENT] Network/API Error detectado: {e}. Activando Exponential Backoff: durmiendo {backoff_time}s.")
+                    await asyncio.sleep(backoff_time)
+                else:
+                    logger.error(f"🛡️ [GUARDIAN AGENT] Error durante patrullaje: {e}")
+            else:
+                # Reset backoff on success
+                backoff_time = 2
 
     async def stop(self):
         self.running = False
