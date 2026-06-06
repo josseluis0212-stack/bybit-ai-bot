@@ -798,3 +798,7 @@
 2026-06-05 23:40:04,893 [INFO] LRMC - Saved PNL offset to normalize dashboard to 0.
 2026-06-05 23:40:04,895 [INFO] LRMC - Saved dynamic PNL start time to zero out dashboard counters.
 2026-06-05 23:40:04,935 [WARNING] LRMC - === RESET COMPLETED (Including History/Counters) ===
+2026-06-06 16:59:59,498 [INFO] LRMC - Fetched top 5 volume symbols.
+2026-06-06 17:02:18,882 [ERROR] LRMC - BingX API Error on https://open-api-vst.bingx.com/openApi/user/auth/userDataStream: Unknown error | Code: None | Raw: {'listenKey': '7db81638f2cabb2cd28f61b2ee9b596074262470fc33445e3a2a8597ec035c1e'}
+2026-06-06 17:02:20,743 [ERROR] LRMC - BingX API Error on https://open-api-vst.bingx.com/openApi/user/auth/userDataStream: Unknown error | Code: None | Raw: {'listenKey': '7db81638f2cabb2cd28f61b2ee9b596074262470fc33445e3a2a8597ec035c1e'}
+2026-06-06 17:02:23,040 [ERROR] LRMC - BingX API Error on https://open-api-vst.bingx.com/openApi/user/auth/userDataStream: Unknown error | Code: None | Raw: {'listenKey': '7db81638f2cabb2cd28f61b2ee9b596074262470fc33445e3a2a8597ec035c1e'}

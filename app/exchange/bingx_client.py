@@ -86,6 +86,9 @@ class AsyncBingXClient:
                 else:
                     raise ValueError(f"Unsupported HTTP method: {method}")
                 
+                if "listenKey" in res_json and "code" not in res_json:
+                    return {"success": True, "data": res_json, "msg": "Success", "code": 0}
+                
                 if res_json.get("code") != 0:
                     err_msg = res_json.get("msg", "Unknown error")
                     code = res_json.get("code")

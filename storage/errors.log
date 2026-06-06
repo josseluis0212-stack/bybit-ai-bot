@@ -335,3 +335,6 @@
 2026-06-05 04:49:58,764 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
 2026-06-05 04:50:00,085 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
 2026-06-05 04:50:02,378 [ERROR] LRMC - BingX API Error: Unknown error | Code: None
+2026-06-06 17:02:18,882 [ERROR] LRMC - BingX API Error on https://open-api-vst.bingx.com/openApi/user/auth/userDataStream: Unknown error | Code: None | Raw: {'listenKey': '7db81638f2cabb2cd28f61b2ee9b596074262470fc33445e3a2a8597ec035c1e'}
+2026-06-06 17:02:20,743 [ERROR] LRMC - BingX API Error on https://open-api-vst.bingx.com/openApi/user/auth/userDataStream: Unknown error | Code: None | Raw: {'listenKey': '7db81638f2cabb2cd28f61b2ee9b596074262470fc33445e3a2a8597ec035c1e'}
+2026-06-06 17:02:23,040 [ERROR] LRMC - BingX API Error on https://open-api-vst.bingx.com/openApi/user/auth/userDataStream: Unknown error | Code: None | Raw: {'listenKey': '7db81638f2cabb2cd28f61b2ee9b596074262470fc33445e3a2a8597ec035c1e'}
