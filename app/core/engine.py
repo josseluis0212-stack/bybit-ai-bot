@@ -130,6 +130,11 @@ class Engine:
                         logger.warning(f"[BTC BLOCK] Restored active BTC block! Blocked until {expire_str} ({remaining/60:.1f}m remaining). Reason: {self.btc_block_reason}")
             except Exception as e:
                 logger.error(f"[BTC BLOCK] Error loading btc_block.json: {e}")
+                
+        # USER REQUEST: Force clear the block for this session
+        self.btc_blocked_until = 0
+        self.btc_block_reason = ""
+        logger.info("[BTC BLOCK] Volatility block has been forcefully cleared by user request.")
 
         # Force BTC-USDT to be tracked immediately
         if "BTC-USDT" not in self.tracked_symbols:
@@ -326,18 +331,19 @@ class Engine:
 
     async def _check_btc_volatility(self, symbol: str):
         """
-        Checks BTC-USDT candles in the buffer for sharp/sudden price movements.
+        Checks BTC-USDT 15m candles for sharp/sudden price movements.
         Triggers a 2-hour trading block if thresholds are breached.
         """
         try:
-            recent = self.buffers[symbol].get_recent(2)
-            if not recent or len(recent) < 2:
+            # Fetch the latest 15m candles directly from API instead of using 5m buffer
+            klines = await self.client.get_klines(symbol, interval="15m", limit=3)
+            if not klines or len(klines) < 2:
                 return
 
-            closed_candle = recent[-2]
+            closed_candle = klines[-2]
 
             if check_macro_shock(closed_candle, Config.BTC_VOL_CUMUL_BODY_PCT / 100.0):
-                reason = f"BTC Volatility Macro Shock Detected > {Config.BTC_VOL_CUMUL_BODY_PCT}%"
+                reason = f"BTC Volatility Macro Shock Detected > {Config.BTC_VOL_CUMUL_BODY_PCT}% on 15m candle"
                 await self._trigger_btc_block(reason)
                 return
 
