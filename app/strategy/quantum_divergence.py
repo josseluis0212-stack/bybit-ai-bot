@@ -90,14 +90,14 @@ async def evaluate_divergence(client, symbol: str) -> dict:
             # Bullish FVG
             if c3["low"] > c1["high"] and c3["close"] > c3["open"]:
                 fvg_found = True
-                entry_price = (c3["low"] + c1["high"]) / 2.0
+                entry_price = c3["close"]  # Entrar de inmediato
                 sl_price = entry_price - (2.5 * atr)
                 break
         else:
             # Bearish FVG
             if c3["high"] < c1["low"] and c3["close"] < c3["open"]:
                 fvg_found = True
-                entry_price = (c3["high"] + c1["low"]) / 2.0
+                entry_price = c3["close"]  # Entrar de inmediato
                 sl_price = entry_price + (2.5 * atr)
                 break
                 

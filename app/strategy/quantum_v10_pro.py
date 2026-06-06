@@ -69,14 +69,14 @@ async def evaluate_v10_pro(client, symbol: str) -> dict:
             # Bullish FVG: Low actual (c3) > High prev (c1) + vela alcista
             if c3["low"] > c1["high"] and c3["close"] > c3["open"]:
                 fvg_found = True
-                entry_price = (c3["low"] + c1["high"]) / 2.0  # Punto medio del FVG
+                entry_price = c3["close"]  # Entrar de inmediato al precio de cierre actual
                 sl_price = entry_price - (2.5 * atr)
                 break
         else:
             # Bearish FVG: High actual (c3) < Low prev (c1) + vela bajista
             if c3["high"] < c1["low"] and c3["close"] < c3["open"]:
                 fvg_found = True
-                entry_price = (c3["high"] + c1["low"]) / 2.0  # Punto medio del FVG
+                entry_price = c3["close"]  # Entrar de inmediato al precio de cierre actual
                 sl_price = entry_price + (2.5 * atr)
                 break
                 

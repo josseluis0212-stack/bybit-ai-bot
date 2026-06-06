@@ -59,7 +59,7 @@ class OrderExecutor:
                 order_type="LIMIT",
                 quantity=current_size,
                 price=price,
-                post_only=True,
+                post_only=False,  # Allow immediate fill if at market price
                 reduce_only=False
             )
 
