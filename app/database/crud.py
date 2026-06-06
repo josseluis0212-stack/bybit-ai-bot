@@ -25,7 +25,7 @@ async def get_trade(symbol: str):
 
 async def save_trade(trade: TradeState):
     async with async_session() as session:
-        session.add(trade)
+        await session.merge(trade)
         await session.commit()
 
 async def delete_trade(symbol: str):
