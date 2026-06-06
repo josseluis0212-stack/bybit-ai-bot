@@ -89,7 +89,7 @@ class AsyncBingXClient:
                 if res_json.get("code") != 0:
                     err_msg = res_json.get("msg", "Unknown error")
                     code = res_json.get("code")
-                    logger.error(f"BingX API Error: {err_msg} | Code: {code}")
+                    logger.error(f"BingX API Error on {url}: {err_msg} | Code: {code} | Raw: {res_json}")
                     
                     # Handle IP Ban (109429)
                     if code == 109429:
