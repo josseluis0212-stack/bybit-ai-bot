@@ -778,8 +778,8 @@ class Engine:
                     tp_cancelled = False
 
             if tp_cancelled:
-                # 2.5x ATR dynamic trailing distance (very loose, gives room to breathe)
-                trailing_distance = 2.5 * atr
+                # 1.0x ATR dynamic trailing distance (very tight, secures profit quickly)
+                trailing_distance = 1.0 * atr
                 if side == "LONG":
                     # Floor is the Breakeven lock-in level
                     floor_sl = entry_price + Config.BREAKEVEN_LOCK_PCT * target_dist
@@ -800,7 +800,7 @@ class Engine:
         
         elif trade.get("trailing_active"):
             highest_price = trade.get("highest_price", mark_price)
-            trailing_distance = 2.5 * atr
+            trailing_distance = 1.0 * atr
             if side == "LONG":
                 if mark_price > highest_price:
                     trade["highest_price"] = mark_price
