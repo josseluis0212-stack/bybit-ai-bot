@@ -536,6 +536,7 @@ class Engine:
                         "sl_price": sl_price,
                         "tp_price": tp_price,
                         "target_distance": target_dist,
+                        "atr": sweep_result.get("atr", risk_dist / 2.5),
                         "breakeven_hit": False,
                         "trailing_active": False,
                         "highest_price": 0.0,
@@ -721,33 +722,47 @@ class Engine:
         target_dist = trade.get("target_distance", 0)
         entry_price = trade.get("entry_price", 0)
         side = trade.get("side")
+        atr = trade.get("atr", target_dist / 5.0) # Fallback to 1/5th of TP dist
 
-        if target_dist > 0:
-            if side == "LONG":
-                progress = (mark_price - entry_price) / target_dist
-            else:
-                progress = (entry_price - mark_price) / target_dist
+        # Floating PnL calculation
+        if side == "LONG":
+            floating_pnl = (mark_price - entry_price) * pos_amt
+            progress = (mark_price - entry_price) / target_dist if target_dist > 0 else 0.0
         else:
-            progress = 0.0
+            floating_pnl = (entry_price - mark_price) * pos_amt
+            progress = (entry_price - mark_price) / target_dist if target_dist > 0 else 0.0
+
+        # --- Hard Stop Loss (Asfixia) ---
+        if floating_pnl <= -Config.HARD_SL_USDT:
+            logger.error(f"[HARD SL ASFIXIA] {symbol} floating PnL {floating_pnl:.2f} <= -{Config.HARD_SL_USDT}. Executing immediate IOC market close.")
+            await self.executor.close_position_market(symbol, side)
+            await self._close_trade(symbol, reason="HARD_SL_ASFIXIA")
+            return
 
         # --- Early Exit (-40% of Risk) ---
-        # SL distance is exactly 50% of target_dist. 40% of SL distance is 20% of target_dist.
-        if progress <= -0.20 and not trade.get("trailing_active") and not trade.get("breakeven_hit"):
+        if progress <= -Config.EARLY_CUT_LOSS_PCT and not trade.get("trailing_active") and not trade.get("breakeven_hit"):
             trade_age = time.time() - trade.get("timestamp", time.time())
-            if trade_age <= Config.EARLY_EXIT_LOOKBACK_MINUTES * 60:
+            if trade_age <= Config.EARLY_CUT_TIME_MINS * 60:
                 if symbol in self.buffers:
-                    recent = self.buffers[symbol].get_recent(10)
-                    if recent and len(recent) > 5:
-                        avg_vol = sum(c["volume"] for c in recent[:-3]) / max(1, len(recent[:-3]))
-                        current_vol = sum(c["volume"] for c in recent[-3:]) / 3.0
-                        if current_vol >= Config.EARLY_EXIT_VOL_MULT * avg_vol:
-                            logger.info(f"[EARLY EXIT] {symbol} Price rejecting. PnL reached -40% of risk and adverse volume detected. Cutting losses.")
+                    recent = self.buffers[symbol].get_recent(2)
+                    if len(recent) >= 2:
+                        latest_candle = recent[-1]
+                        # Bounce failure check
+                        bounce_failed = False
+                        if side == "LONG" and latest_candle["close"] < latest_candle["open"]:
+                            bounce_failed = True
+                        elif side == "SHORT" and latest_candle["close"] > latest_candle["open"]:
+                            bounce_failed = True
+                            
+                        if bounce_failed:
+                            logger.info(f"[EARLY EXIT] {symbol} Price rejecting. PnL reached -{Config.EARLY_CUT_LOSS_PCT*100}% of TP and bounce failed. Cutting losses.")
+                            await self.executor.close_position_market(symbol, side)
                             await self._close_trade(symbol, reason="EARLY_EXIT_REJECTION")
                             return
 
-        # --- Trailing Stop (75% of TP) ---
-        if progress >= 0.75 and not trade.get("trailing_active"):
-            logger.info(f"[TRAILING ACTIVATE] {symbol} progress reached {progress:.2%} (>= 75%). Cancelling TP and activating trailing stop.")
+        # --- Trailing Stop (Activation: 75%) ---
+        if progress >= Config.TRAILING_ACTIVATION_PCT and not trade.get("trailing_active"):
+            logger.info(f"[TRAILING ACTIVATE] {symbol} progress reached {progress:.2%} (>= {Config.TRAILING_ACTIVATION_PCT*100}%). Cancelling TP and activating trailing stop.")
             tp_id = trade.get("tp1_order_id")
             tp_cancelled = True
             if tp_id:
@@ -763,15 +778,16 @@ class Engine:
                     tp_cancelled = False
 
             if tp_cancelled:
+                # 1.5x ATR dynamic trailing distance
+                trailing_distance = 1.5 * atr
                 if side == "LONG":
                     # Floor is the Breakeven lock-in level
-                    floor_sl = entry_price + 0.15 * target_dist
-                    # Trailing distance: 15% of total TP target
-                    trailing_sl = mark_price - 0.15 * target_dist
+                    floor_sl = entry_price + Config.BREAKEVEN_LOCK_PCT * target_dist
+                    trailing_sl = mark_price - trailing_distance
                     target_sl = max(floor_sl, trailing_sl)
                 else:
-                    floor_sl = entry_price - 0.15 * target_dist
-                    trailing_sl = mark_price + 0.15 * target_dist
+                    floor_sl = entry_price - Config.BREAKEVEN_LOCK_PCT * target_dist
+                    trailing_sl = mark_price + trailing_distance
                     target_sl = min(floor_sl, trailing_sl)
 
                 new_sl_id = await self.executor.update_sl(symbol, side, trade.get("sl_order_id"), target_sl, pos_amt)
@@ -784,17 +800,16 @@ class Engine:
         
         elif trade.get("trailing_active"):
             highest_price = trade.get("highest_price", mark_price)
+            trailing_distance = 1.5 * atr
             if side == "LONG":
                 if mark_price > highest_price:
                     trade["highest_price"] = mark_price
                     highest_price = mark_price
-                trailing_sl = highest_price - 0.15 * target_dist
-                floor_sl = entry_price + 0.15 * target_dist
+                trailing_sl = highest_price - trailing_distance
+                floor_sl = entry_price + Config.BREAKEVEN_LOCK_PCT * target_dist
                 target_sl = max(trailing_sl, floor_sl)
                 
-                current_sl = trade.get("sl_price")
-                if current_sl is None: current_sl = 0.0
-                
+                current_sl = trade.get("sl_price", 0.0)
                 if target_sl > current_sl:
                     new_sl_id = await self.executor.update_sl(symbol, side, trade.get("sl_order_id"), target_sl, pos_amt)
                     if new_sl_id:
@@ -804,24 +819,22 @@ class Engine:
                 if mark_price < highest_price:
                     trade["highest_price"] = mark_price
                     highest_price = mark_price
-                trailing_sl = highest_price + 0.15 * target_dist
-                floor_sl = entry_price - 0.15 * target_dist
+                trailing_sl = highest_price + trailing_distance
+                floor_sl = entry_price - Config.BREAKEVEN_LOCK_PCT * target_dist
                 target_sl = min(trailing_sl, floor_sl)
                 
-                current_sl = trade.get("sl_price")
-                if current_sl is None: current_sl = float('inf')
-                
+                current_sl = trade.get("sl_price", float('inf'))
                 if target_sl < current_sl:
                     new_sl_id = await self.executor.update_sl(symbol, side, trade.get("sl_order_id"), target_sl, pos_amt)
                     if new_sl_id:
                         trade["sl_order_id"] = new_sl_id
                         trade["sl_price"] = target_sl
 
-        # --- Breakeven (50% of TP) ---
-        elif progress >= 0.50 and not trade.get("breakeven_hit"):
-            lock_in_profit = 0.15 * target_dist
+        # --- Breakeven (Activation: 35%) ---
+        elif progress >= Config.BREAKEVEN_ACTIVATION_PCT and not trade.get("breakeven_hit"):
+            lock_in_profit = Config.BREAKEVEN_LOCK_PCT * target_dist
             new_sl = entry_price + lock_in_profit if side == "LONG" else entry_price - lock_in_profit
-            logger.info(f"[BREAKEVEN] {symbol} progress reached {progress:.2%} (>= 50%). Moving SL to {new_sl:.6f} (+15% of TP).")
+            logger.info(f"[BREAKEVEN] {symbol} progress reached {progress:.2%} (>= {Config.BREAKEVEN_ACTIVATION_PCT*100}%). Moving SL to {new_sl:.6f} (+{Config.BREAKEVEN_LOCK_PCT*100}% of TP).")
             new_sl_id = await self.executor.update_sl(symbol, side, trade.get("sl_order_id"), new_sl, pos_amt)
             if new_sl_id:
                 trade["sl_order_id"] = new_sl_id

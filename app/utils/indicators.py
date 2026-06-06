@@ -1,6 +1,13 @@
 import pandas as pd
 import numpy as np
 
+def calculate_sma(data: list[float], period: int) -> list[float]:
+    if len(data) < period:
+        return [0.0] * len(data)
+    s = pd.Series(data)
+    sma = s.rolling(window=period).mean()
+    return sma.fillna(0.0).tolist()
+
 def calculate_ema(closes: list[float], period: int) -> list[float]:
     if len(closes) < period:
         return [0.0] * len(closes)

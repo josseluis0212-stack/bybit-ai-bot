@@ -1,4 +1,4 @@
-from app.utils.indicators import calculate_rsi, calculate_atr
+from app.utils.indicators import calculate_rsi, calculate_atr, calculate_sma
 
 async def evaluate_divergence(client, symbol: str) -> dict:
     # 1. Divergence Radar (15M)
@@ -63,7 +63,11 @@ async def evaluate_divergence(client, symbol: str) -> dict:
     highs_5m = [c["high"] for c in klines_5m]
     lows_5m = [c["low"] for c in klines_5m]
     closes_5m = [c["close"] for c in klines_5m]
+    volumes_5m = [c["volume"] for c in klines_5m]
     atr = calculate_atr(highs_5m, lows_5m, closes_5m, 14)[-1]
+    
+    # Calculate 10-period SMA of Volume
+    sma_vol_10 = calculate_sma(volumes_5m, 10)
     
     fvg_found = False
     entry_price = 0.0
@@ -76,6 +80,12 @@ async def evaluate_divergence(client, symbol: str) -> dict:
         c2 = klines_5m[i-1]
         c3 = klines_5m[i]
         
+        # Apply Smart Money Order Flow (Volume Filter) on the displacement candle (c2)
+        # Displacement candle volume must be >= 90% of SMA-10 volume
+        idx_c2 = len(volumes_5m) + i - 1  # Get absolute index of c2
+        if c2["volume"] < 0.9 * sma_vol_10[idx_c2]:
+            continue
+            
         if bias == "LONG":
             # Bullish FVG
             if c3["low"] > c1["high"] and c3["close"] > c3["open"]:

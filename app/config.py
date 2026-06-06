@@ -27,6 +27,14 @@ class Config:
     # Cooldown
     COOLDOWN_MINUTES = int(os.getenv("COOLDOWN_MINUTES", "30"))
     
+    # v2.0 Specifications
+    HARD_SL_USDT = float(os.getenv("HARD_SL_USDT", "5.0"))
+    EARLY_CUT_TIME_MINS = int(os.getenv("EARLY_CUT_TIME_MINS", "120"))
+    EARLY_CUT_LOSS_PCT = float(os.getenv("EARLY_CUT_LOSS_PCT", "0.40"))
+    BREAKEVEN_ACTIVATION_PCT = float(os.getenv("BREAKEVEN_ACTIVATION_PCT", "0.35"))
+    BREAKEVEN_LOCK_PCT = float(os.getenv("BREAKEVEN_LOCK_PCT", "0.15"))
+    TRAILING_ACTIVATION_PCT = float(os.getenv("TRAILING_ACTIVATION_PCT", "0.75"))
+    
     # Base URLs
     REST_URL = "https://open-api-vst.bingx.com" if DEMO_MODE else "https://open-api.bingx.com"
     WS_URL = "wss://open-api-ws.bingx.com/market"
