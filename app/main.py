@@ -260,13 +260,34 @@ async def api_stats():
                 
                 side = "LONG" if "Sell" in info else ("SHORT" if "Buy" in info else "TRADE")
                 
+                # Try to enrich with local trade data
+                local_strat = "UNKNOWN"
+                local_reason = info
+                local_be = False
+                local_trail = False
+                if 'trade_list' in locals() and trade_list:
+                    for lt in trade_list:
+                        if lt.get("symbol") == sym:
+                            lt_time = lt.get("close_timestamp", 0) * 1000
+                            # Allow up to 3 minutes delta
+                            if abs(ts - lt_time) < 180000:
+                                local_strat = lt.get("strategy", "UNKNOWN")
+                                local_reason = lt.get("close_reason", info)
+                                local_be = lt.get("breakeven_hit", False)
+                                local_trail = lt.get("trailing_active", False)
+                                break
+                
                 real_trades.append({
                     "symbol": sym,
                     "side": side,
                     "pnl": amt,
-                    "reason": info,
+                    "reason": local_reason,
+                    "strategy": local_strat,
+                    "breakeven_hit": local_be,
+                    "trailing_active": local_trail,
                     "time": ts
                 })
+
         
         # Calculate real stats from real_trades
         wins = sum(1 for t in real_trades if t["pnl"] > 0)

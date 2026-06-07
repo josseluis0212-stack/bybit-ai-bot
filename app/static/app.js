@@ -152,11 +152,21 @@ function updateStats(stats) {
                 timeStr = `<span style="font-size:0.6rem;color:#555">${d.toLocaleTimeString()}</span>`;
             }
 
+            const strategyName = t.strategy || 'UNKNOWN';
+            const strategyBadge = strategyName === 'QUANTUM_V10_PRO' 
+                                  ? `<span class="badge" style="background:rgba(59,130,246,0.1);color:#3b82f6;border:1px solid #3b82f6;font-size:0.5rem;padding:0.1rem 0.3rem;">V10 PRO</span>`
+                                  : strategyName === 'QUANTUM_DIVERGENCE'
+                                  ? `<span class="badge" style="background:rgba(168,85,247,0.1);color:#a855f7;border:1px solid #a855f7;font-size:0.5rem;padding:0.1rem 0.3rem;">DIVERGENCE</span>`
+                                  : strategyName === 'BUSTOS_PULLBACK'
+                                  ? `<span class="badge" style="background:rgba(234,179,8,0.1);color:#eab308;border:1px solid #eab308;font-size:0.5rem;padding:0.1rem 0.3rem;">BUSTOS EMA 21</span>`
+                                  : (strategyName !== 'UNKNOWN' ? `<span class="badge" style="font-size:0.5rem;padding:0.1rem 0.3rem;">${strategyName}</span>` : '');
+
             hHTML += `
                 <div class="hist-item" style="border-left: 3px solid ${isWin ? '#22c55e' : '#ef4444'}">
                     <div>
                         <span class="hist-symbol">${t.symbol}</span>
                         <span class="hist-side">${t.side}</span>
+                        ${strategyBadge}
                         ${timeStr}
                     </div>
                     <div style="display:flex;gap:0.4rem;align-items:center">

@@ -925,6 +925,7 @@ class Engine:
             "breakeven_hit": trade.get("breakeven_hit", False),
             "trailing_active": trade.get("trailing_active", False),
             "score": trade.get("score"),
+            "strategy": trade.get("strategy", "UNKNOWN"),
             "close_reason": reason,
             "pnl": pnl,
             "timestamp": trade.get("timestamp"),
