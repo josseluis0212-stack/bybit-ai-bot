@@ -1,4 +1,4 @@
-from app.utils.indicators import calculate_ema, calculate_sma
+from app.utils.indicators import calculate_ema, calculate_sma, calculate_atr
 
 async def evaluate_bustos_pullback(client, symbol: str) -> dict:
     """
@@ -25,8 +25,19 @@ async def evaluate_bustos_pullback(client, symbol: str) -> dict:
     highs_5m = [c["high"] for c in klines_5m]
     lows_5m = [c["low"] for c in klines_5m]
     
-    ema21_5m = calculate_ema(closes_5m, 21)[-1]
+    ema21_5m = calculate_ema(closes_5m, 21)
     sma50_5m = calculate_sma(closes_5m, 50)[-1]
+    
+    # Calculate ATR and Volume SMA
+    highs = [c["high"] for c in klines_5m]
+    lows = [c["low"] for c in klines_5m]
+    atr_5m = calculate_atr(highs, lows, closes_5m, 14)[-1]
+    
+    volumes_5m = [c["volume"] for c in klines_5m]
+    sma_vol_10 = calculate_sma(volumes_5m, 10)[-1]
+    
+    current_ema21 = ema21_5m[-1]
+    old_ema21 = ema21_5m[-4] if len(ema21_5m) >= 4 else ema21_5m[-1]
     
     c = klines_5m[-1]  # La vela que acaba de cerrar
     
@@ -36,12 +47,12 @@ async def evaluate_bustos_pullback(client, symbol: str) -> dict:
     signal = "NONE"
     
     if bias == "LONG":
-        # Condición de tendencia en 5M: EMA 21 debe estar por encima de SMA 50
-        if ema21_5m > sma50_5m:
-            # Pullback a la EMA 21 con rechazo alcista
-            if c["low"] <= ema21_5m and c["close"] > ema21_5m and c["close"] > c["open"]:
+        # Condición de tendencia en 5M: EMA 21 por encima de SMA 50 y pendiente positiva
+        if current_ema21 > sma50_5m and current_ema21 > old_ema21:
+            # Pullback a la EMA 21 con rechazo alcista y volumen alto
+            if c["low"] <= current_ema21 and c["close"] > current_ema21 and c["close"] > c["open"] and c["volume"] > sma_vol_10:
                 entry_price = c["close"]  # Entramos al mercado inmediatamente
-                sl_price = sma50_5m * 0.9995  # SL ligeramente por debajo de la SMA 50
+                sl_price = sma50_5m - (atr_5m * 1.5)  # SL adaptativo debajo de la SMA 50
                 
                 # Buscar el máximo reciente (Take Profit)
                 recent_high = max(highs_5m[-20:])
@@ -54,12 +65,12 @@ async def evaluate_bustos_pullback(client, symbol: str) -> dict:
                     tp_price = recent_high
                     signal = "LONG"
     else:
-        # Condición de tendencia bajista en 5M: EMA 21 por debajo de SMA 50
-        if ema21_5m < sma50_5m:
-            # Pullback a la EMA 21 con rechazo bajista
-            if c["high"] >= ema21_5m and c["close"] < ema21_5m and c["close"] < c["open"]:
+        # Condición de tendencia bajista en 5M: EMA 21 por debajo de SMA 50 y pendiente negativa
+        if current_ema21 < sma50_5m and current_ema21 < old_ema21:
+            # Pullback a la EMA 21 con rechazo bajista y volumen alto
+            if c["high"] >= current_ema21 and c["close"] < current_ema21 and c["close"] < c["open"] and c["volume"] > sma_vol_10:
                 entry_price = c["close"]
-                sl_price = sma50_5m * 1.0005  # SL ligeramente por encima de la SMA 50
+                sl_price = sma50_5m + (atr_5m * 1.5)  # SL adaptativo encima de la SMA 50
                 
                 # Buscar el mínimo reciente (Take Profit)
                 recent_low = min(lows_5m[-20:])

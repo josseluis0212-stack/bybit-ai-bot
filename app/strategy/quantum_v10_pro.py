@@ -26,10 +26,10 @@ async def evaluate_v10_pro(client, symbol: str) -> dict:
         return {"signal": "NONE"}
         
     if bias == "LONG":
-        if not (current_close_15m > ema50_15m and rsi_15m < 65):
+        if not (current_close_15m > ema50_15m and 50 < rsi_15m < 65):
             return {"signal": "NONE"}
     else:
-        if not (current_close_15m < ema50_15m and rsi_15m > 35):
+        if not (current_close_15m < ema50_15m and 35 < rsi_15m < 50):
             return {"signal": "NONE"}
             
     # 3. Sniper Gatillo (5M FVG)
@@ -65,22 +65,42 @@ async def evaluate_v10_pro(client, symbol: str) -> dict:
         if c2["volume"] < 0.9 * sma_vol_10[idx_c2]:
             continue
             
+        # Break of Structure (BOS) Validation
+        start_idx = i - 12
+        end_idx = i - 2
+        if start_idx < -len(klines_5m): start_idx = -len(klines_5m)
+        local_high = max([c["high"] for c in klines_5m[start_idx:end_idx]]) if end_idx > start_idx else c1["high"]
+        local_low = min([c["low"] for c in klines_5m[start_idx:end_idx]]) if end_idx > start_idx else c1["low"]
+        
         range_c3 = c3["high"] - c3["low"]
+        latest_c = klines_5m[-1]
         
         if bias == "LONG":
-            # Bullish FVG: Low actual (c3) > High prev (c1) + vela alcista fuerte (cierra en la mitad superior)
-            if c3["low"] > c1["high"] and c3["close"] > c3["open"] and (c3["close"] - c3["low"]) > (range_c3 * 0.5):
-                fvg_found = True
-                entry_price = c3["close"]  # Entrar de inmediato al precio de cierre actual
-                sl_price = entry_price - (2.5 * atr)
-                break
+            # Bullish FVG with BOS
+            if c3["low"] > c1["high"] and c3["close"] > c3["open"] and c3["close"] > local_high:
+                fvg_top = c3["low"]
+                fvg_bottom = c1["high"]
+                mitigation_price = fvg_bottom + ((fvg_top - fvg_bottom) * 0.5)
+                
+                # Check if mitigated by the most recent candles
+                if latest_c["low"] <= mitigation_price <= latest_c["high"] or (i == -1 and c3["low"] <= mitigation_price):
+                    fvg_found = True
+                    entry_price = latest_c["close"]  # Execute market at current close
+                    sl_price = c1["low"] - (0.5 * atr)
+                    break
         else:
-            # Bearish FVG: High actual (c3) < Low prev (c1) + vela bajista fuerte (cierra en la mitad inferior)
-            if c3["high"] < c1["low"] and c3["close"] < c3["open"] and (c3["high"] - c3["close"]) > (range_c3 * 0.5):
-                fvg_found = True
-                entry_price = c3["close"]  # Entrar de inmediato al precio de cierre actual
-                sl_price = entry_price + (2.5 * atr)
-                break
+            # Bearish FVG with BOS
+            if c3["high"] < c1["low"] and c3["close"] < c3["open"] and c3["close"] < local_low:
+                fvg_top = c1["low"]
+                fvg_bottom = c3["high"]
+                mitigation_price = fvg_bottom + ((fvg_top - fvg_bottom) * 0.5)
+                
+                # Check if mitigated by the most recent candles
+                if latest_c["low"] <= mitigation_price <= latest_c["high"] or (i == -1 and c3["high"] >= mitigation_price):
+                    fvg_found = True
+                    entry_price = latest_c["close"]
+                    sl_price = c1["high"] + (0.5 * atr)
+                    break
                 
     if fvg_found:
         return {

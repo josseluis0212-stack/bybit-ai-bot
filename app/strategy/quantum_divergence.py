@@ -12,44 +12,37 @@ async def evaluate_divergence(client, symbol: str) -> dict:
     rsi_15m = calculate_rsi(closes_15m, 14)
     current_rsi = rsi_15m[-1]
     
-    # We analyze the last 30 candles, split into two windows of 15
-    window_old_lows = lows_15m[-30:-15]
-    window_new_lows = lows_15m[-15:]
-    window_old_highs = highs_15m[-30:-15]
-    window_new_highs = highs_15m[-15:]
+    # Detect Swing Lows and Swing Highs
+    swing_lows = []
+    swing_highs = []
     
-    window_old_rsi = rsi_15m[-30:-15]
-    window_new_rsi = rsi_15m[-15:]
-    
-    # Bullish Divergence
-    # LL in price, HL in RSI, currently Oversold (<40)
-    min_price_old = min(window_old_lows)
-    min_price_new = min(window_new_lows)
-    
-    idx_min_old = window_old_lows.index(min_price_old)
-    idx_min_new = window_new_lows.index(min_price_new)
-    
-    rsi_at_min_old = window_old_rsi[idx_min_old]
-    rsi_at_min_new = window_new_rsi[idx_min_new]
-    
+    for i in range(2, len(klines_15m) - 2):
+        # Swing Low
+        if lows_15m[i] < lows_15m[i-1] and lows_15m[i] < lows_15m[i-2] and lows_15m[i] < lows_15m[i+1] and lows_15m[i] < lows_15m[i+2]:
+            swing_lows.append((i, lows_15m[i], rsi_15m[i]))
+            
+        # Swing High
+        if highs_15m[i] > highs_15m[i-1] and highs_15m[i] > highs_15m[i-2] and highs_15m[i] > highs_15m[i+1] and highs_15m[i] > highs_15m[i+2]:
+            swing_highs.append((i, highs_15m[i], rsi_15m[i]))
+            
     bias = "NONE"
     
-    if min_price_new < min_price_old and rsi_at_min_new > rsi_at_min_old and current_rsi < 40:
-        bias = "LONG"
-    
-    # Bearish Divergence
-    # HH in price, LH in RSI, currently Overbought (>60)
-    max_price_old = max(window_old_highs)
-    max_price_new = max(window_new_highs)
-    
-    idx_max_old = window_old_highs.index(max_price_old)
-    idx_max_new = window_new_highs.index(max_price_new)
-    
-    rsi_at_max_old = window_old_rsi[idx_max_old]
-    rsi_at_max_new = window_new_rsi[idx_max_new]
-    
-    if bias == "NONE":
-        if max_price_new > max_price_old and rsi_at_max_new < rsi_at_max_old and current_rsi > 60:
+    # Bullish Divergence check
+    if len(swing_lows) >= 2:
+        idx_old, min_old, rsi_old = swing_lows[-2]
+        idx_new, min_new, rsi_new = swing_lows[-1]
+        
+        # LL in price, HL in RSI, old RSI extreme <= 30, momentum reversing
+        if min_new < min_old and rsi_new > rsi_old and rsi_old <= 30 and current_rsi > rsi_new:
+            bias = "LONG"
+            
+    # Bearish Divergence check
+    if bias == "NONE" and len(swing_highs) >= 2:
+        idx_old, max_old, rsi_old = swing_highs[-2]
+        idx_new, max_new, rsi_new = swing_highs[-1]
+        
+        # HH in price, LH in RSI, old RSI extreme >= 70, momentum reversing
+        if max_new > max_old and rsi_new < rsi_old and rsi_old >= 70 and current_rsi < rsi_new:
             bias = "SHORT"
             
     if bias == "NONE":
@@ -87,21 +80,34 @@ async def evaluate_divergence(client, symbol: str) -> dict:
             continue
             
         range_c3 = c3["high"] - c3["low"]
+        latest_c = klines_5m[-1]
         
         if bias == "LONG":
             # Bullish FVG with strong rejection
             if c3["low"] > c1["high"] and c3["close"] > c3["open"] and (c3["close"] - c3["low"]) > (range_c3 * 0.5):
-                fvg_found = True
-                entry_price = c3["close"]  # Entrar de inmediato
-                sl_price = entry_price - (2.5 * atr)
-                break
+                fvg_top = c3["low"]
+                fvg_bottom = c1["high"]
+                mitigation_price = fvg_bottom + ((fvg_top - fvg_bottom) * 0.5)
+                
+                # Check if mitigated
+                if latest_c["low"] <= mitigation_price <= latest_c["high"] or (i == -1 and c3["low"] <= mitigation_price):
+                    fvg_found = True
+                    entry_price = latest_c["close"]
+                    sl_price = c1["low"] - (0.5 * atr)
+                    break
         else:
             # Bearish FVG with strong rejection
             if c3["high"] < c1["low"] and c3["close"] < c3["open"] and (c3["high"] - c3["close"]) > (range_c3 * 0.5):
-                fvg_found = True
-                entry_price = c3["close"]  # Entrar de inmediato
-                sl_price = entry_price + (2.5 * atr)
-                break
+                fvg_top = c1["low"]
+                fvg_bottom = c3["high"]
+                mitigation_price = fvg_bottom + ((fvg_top - fvg_bottom) * 0.5)
+                
+                # Check if mitigated
+                if latest_c["low"] <= mitigation_price <= latest_c["high"] or (i == -1 and c3["high"] >= mitigation_price):
+                    fvg_found = True
+                    entry_price = latest_c["close"]
+                    sl_price = c1["high"] + (0.5 * atr)
+                    break
                 
     if fvg_found:
         return {
