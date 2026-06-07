@@ -11,3 +11,4 @@ uvicorn
 pytz
 sqlalchemy
 aiosqlite
+httpx
