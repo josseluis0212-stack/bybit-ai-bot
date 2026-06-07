@@ -39,7 +39,7 @@ class OrderExecutor:
 
     async def place_entry(self, symbol: str, side: str, size: float, price: float, strategy: str = "") -> Optional[str]:
         """
-        Place a LIMIT postOnly entry order.
+        Place a MARKET entry order for instant execution.
         Returns order_id string if successful, None otherwise.
         """
         pos_side = "LONG" if side == "LONG" else "SHORT"
@@ -57,10 +57,10 @@ class OrderExecutor:
                 symbol=symbol,
                 side=order_side,
                 position_side=pos_side,
-                order_type="LIMIT",
+                order_type="MARKET",
                 quantity=current_size,
-                price=price,
-                post_only=False,  # Allow immediate fill if at market price
+                price=None,
+                post_only=False,
                 reduce_only=False
             )
 
