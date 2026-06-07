@@ -522,7 +522,7 @@ class Engine:
                     )
 
                     order_id = await self.executor.place_entry(
-                        symbol, sweep_result["signal"], size, entry_price
+                        symbol, sweep_result["signal"], size, entry_price, sweep_result.get("strategy", "UNKNOWN")
                     )
                     if not order_id:
                         return

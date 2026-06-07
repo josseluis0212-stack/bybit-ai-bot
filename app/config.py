@@ -17,6 +17,8 @@ class Config:
     EARLY_EXIT_LOOKBACK_MINUTES = int(os.getenv("EARLY_EXIT_LOOKBACK_MINUTES", "20"))
     SCAN_INTERVAL_SECONDS = int(os.getenv("SCAN_INTERVAL_SECONDS", "15"))
     USE_TELEGRAM = os.getenv("USE_TELEGRAM", "false").lower() == "true"
+    TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "")
+    TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
     PNL_START_TIME = 1780621725454 # Timestamp to zero-out past PNL
     
     # BTC Volatility Block Parameters

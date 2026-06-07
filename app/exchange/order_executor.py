@@ -7,6 +7,7 @@ from app.risk.takeprofit_manager import TakeProfitManager
 from app.logger import logger
 from app.constants import POSITIONS_FILE, TRADES_FILE
 from app.state_manager import StateManager
+from app.notifications.telegram import notifier
 
 class OrderExecutor:
     """
@@ -36,7 +37,7 @@ class OrderExecutor:
         if not ok:
             logger.warning(f"Could not set leverage for {symbol} {side}")
 
-    async def place_entry(self, symbol: str, side: str, size: float, price: float) -> Optional[str]:
+    async def place_entry(self, symbol: str, side: str, size: float, price: float, strategy: str = "") -> Optional[str]:
         """
         Place a LIMIT postOnly entry order.
         Returns order_id string if successful, None otherwise.
@@ -117,6 +118,9 @@ class OrderExecutor:
 
         real_size = abs(float(pos.get("positionAmt", total_size)))
         logger.info(f"[TP/SL] Confirmed position {symbol} {side} size={real_size:.6f}")
+        
+        # Enviar notificación a Telegram sin bloquear
+        asyncio.create_task(notifier.notify_open(symbol, side, entry_price, real_size, strategy))
 
         pos_side = "LONG" if side == "LONG" else "SHORT"
         close_side = "SELL" if side == "LONG" else "BUY"
@@ -251,6 +255,7 @@ class OrderExecutor:
                     quantity=real_size,
                     reduce_only=False
                 )
+                asyncio.create_task(notifier.notify_close(symbol, side, reason="Cierre de Emergencia"))
 
     async def verify_and_restore_protection(self, symbol: str, trade: dict):
         """
