@@ -1,9 +1,7 @@
 import asyncio
 import httpx
 from app.config import Config
-from app.logger import get_logger
-
-logger = get_logger(__name__)
+from app.logger import logger
 
 class TelegramNotifier:
     BASE_URL = "https://api.telegram.org"
