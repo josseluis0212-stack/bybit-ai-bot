@@ -12,6 +12,7 @@ from app.exchange.position_manager import PositionManager
 from app.data.candle_buffer import CandleBuffer
 from app.strategy.quantum_v10_pro import evaluate_v10_pro
 from app.strategy.quantum_divergence import evaluate_divergence
+from app.strategy.bustos_pullback import evaluate_bustos_pullback
 from app.strategy.volatility_filter import check_macro_shock
 from app.database.crud import init_db, get_all_active_trades, save_trade, delete_trade, add_history, is_on_cooldown, set_cooldown
 from app.database.models import TradeState
@@ -460,7 +461,9 @@ class Engine:
                     return
 
                 # === Dual Strategy Pipeline ===
-                sweep_result = await evaluate_v10_pro(self.client, symbol)
+                sweep_result = await evaluate_bustos_pullback(self.client, symbol)
+                if sweep_result["signal"] == "NONE":
+                    sweep_result = await evaluate_v10_pro(self.client, symbol)
                 if sweep_result["signal"] == "NONE":
                     sweep_result = await evaluate_divergence(self.client, symbol)
                 
