@@ -540,6 +540,7 @@ class Engine:
                         "tp_price": tp_price,
                         "target_distance": target_dist,
                         "atr": sweep_result.get("atr", risk_dist / 2.5),
+                        "strategy": sweep_result.get("strategy", "N/A"),
                         "breakeven_hit": False,
                         "trailing_active": False,
                         "highest_price": 0.0,
