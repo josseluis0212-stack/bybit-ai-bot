@@ -38,8 +38,8 @@ async def evaluate_bustos_pullback(client, symbol: str) -> dict:
     if bias == "LONG":
         # Condición de tendencia en 5M: EMA 21 debe estar por encima de SMA 50
         if ema21_5m > sma50_5m:
-            # Pullback a la EMA 21: El low tocó o cruzó la EMA 21, pero el cierre se mantuvo por encima
-            if c["low"] <= ema21_5m and c["close"] > ema21_5m:
+            # Pullback a la EMA 21 con rechazo alcista
+            if c["low"] <= ema21_5m and c["close"] > ema21_5m and c["close"] > c["open"]:
                 entry_price = c["close"]  # Entramos al mercado inmediatamente
                 sl_price = sma50_5m * 0.9995  # SL ligeramente por debajo de la SMA 50
                 
@@ -56,8 +56,8 @@ async def evaluate_bustos_pullback(client, symbol: str) -> dict:
     else:
         # Condición de tendencia bajista en 5M: EMA 21 por debajo de SMA 50
         if ema21_5m < sma50_5m:
-            # Pullback a la EMA 21: El high tocó o cruzó la EMA 21, pero el cierre se mantuvo por debajo
-            if c["high"] >= ema21_5m and c["close"] < ema21_5m:
+            # Pullback a la EMA 21 con rechazo bajista
+            if c["high"] >= ema21_5m and c["close"] < ema21_5m and c["close"] < c["open"]:
                 entry_price = c["close"]
                 sl_price = sma50_5m * 1.0005  # SL ligeramente por encima de la SMA 50
                 

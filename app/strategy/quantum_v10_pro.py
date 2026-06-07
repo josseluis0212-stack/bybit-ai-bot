@@ -65,16 +65,18 @@ async def evaluate_v10_pro(client, symbol: str) -> dict:
         if c2["volume"] < 0.9 * sma_vol_10[idx_c2]:
             continue
             
+        range_c3 = c3["high"] - c3["low"]
+        
         if bias == "LONG":
-            # Bullish FVG: Low actual (c3) > High prev (c1) + vela alcista
-            if c3["low"] > c1["high"] and c3["close"] > c3["open"]:
+            # Bullish FVG: Low actual (c3) > High prev (c1) + vela alcista fuerte (cierra en la mitad superior)
+            if c3["low"] > c1["high"] and c3["close"] > c3["open"] and (c3["close"] - c3["low"]) > (range_c3 * 0.5):
                 fvg_found = True
                 entry_price = c3["close"]  # Entrar de inmediato al precio de cierre actual
                 sl_price = entry_price - (2.5 * atr)
                 break
         else:
-            # Bearish FVG: High actual (c3) < Low prev (c1) + vela bajista
-            if c3["high"] < c1["low"] and c3["close"] < c3["open"]:
+            # Bearish FVG: High actual (c3) < Low prev (c1) + vela bajista fuerte (cierra en la mitad inferior)
+            if c3["high"] < c1["low"] and c3["close"] < c3["open"] and (c3["high"] - c3["close"]) > (range_c3 * 0.5):
                 fvg_found = True
                 entry_price = c3["close"]  # Entrar de inmediato al precio de cierre actual
                 sl_price = entry_price + (2.5 * atr)

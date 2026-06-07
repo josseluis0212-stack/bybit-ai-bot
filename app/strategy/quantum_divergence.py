@@ -86,16 +86,18 @@ async def evaluate_divergence(client, symbol: str) -> dict:
         if c2["volume"] < 0.9 * sma_vol_10[idx_c2]:
             continue
             
+        range_c3 = c3["high"] - c3["low"]
+        
         if bias == "LONG":
-            # Bullish FVG
-            if c3["low"] > c1["high"] and c3["close"] > c3["open"]:
+            # Bullish FVG with strong rejection
+            if c3["low"] > c1["high"] and c3["close"] > c3["open"] and (c3["close"] - c3["low"]) > (range_c3 * 0.5):
                 fvg_found = True
                 entry_price = c3["close"]  # Entrar de inmediato
                 sl_price = entry_price - (2.5 * atr)
                 break
         else:
-            # Bearish FVG
-            if c3["high"] < c1["low"] and c3["close"] < c3["open"]:
+            # Bearish FVG with strong rejection
+            if c3["high"] < c1["low"] and c3["close"] < c3["open"] and (c3["high"] - c3["close"]) > (range_c3 * 0.5):
                 fvg_found = True
                 entry_price = c3["close"]  # Entrar de inmediato
                 sl_price = entry_price + (2.5 * atr)
