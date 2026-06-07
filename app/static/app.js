@@ -75,6 +75,8 @@ function updateDashboard(data) {
                                   ? `<span class="badge" style="background:rgba(59,130,246,0.2);color:#3b82f6;border:1px solid #3b82f6">V10 PRO</span>`
                                   : strategyName === 'QUANTUM_DIVERGENCE'
                                   ? `<span class="badge" style="background:rgba(168,85,247,0.2);color:#a855f7;border:1px solid #a855f7">DIVERGENCE</span>`
+                                  : strategyName === 'BUSTOS_PULLBACK'
+                                  ? `<span class="badge" style="background:rgba(234,179,8,0.2);color:#eab308;border:1px solid #eab308">BUSTOS EMA 21</span>`
                                   : `<span class="badge">${strategyName}</span>`;
 
             rows += `
