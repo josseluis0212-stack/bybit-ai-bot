@@ -1,7 +1,7 @@
 import asyncio
 import httpx
 from app.config import Config
-from app.core.logger import get_logger
+from app.logger import get_logger
 
 logger = get_logger(__name__)
 
