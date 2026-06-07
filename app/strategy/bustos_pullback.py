@@ -87,9 +87,8 @@ async def evaluate_bustos_pullback(client, symbol: str) -> dict:
             "signal": signal,
             "entry_price": entry_price,
             "sl_price": sl_price,
-            # we also return tp_price so the engine can use it, though engine uses ATR currently
             "tp_price": tp_price,
-            "atr": abs(entry_price - sl_price) / 2.5,  # Fake ATR to satisfy engine logic if needed
+            "atr": atr_5m,
             "strategy": "BUSTOS_PULLBACK"
         }
         
