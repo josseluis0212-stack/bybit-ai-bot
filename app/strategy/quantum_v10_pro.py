@@ -7,7 +7,7 @@ async def evaluate_v10_pro(client, symbol: str) -> dict:
     - Liquidity Sweep (Barrida de últimos 15 mínimos/máximos).
     - Volumen de desplazamiento > 1.25x SMA(15)
     - FVG (Fair Value Gap) mitigation al 50%.
-    - SL a 2.5x ATR.
+    - SL a 2.0x ATR.
     """
     # Descargar 100 velas para tener data de sobra para historial (Sweep) y SMA
     klines_5m = await client.get_klines(symbol, "5m", 100)
@@ -60,7 +60,7 @@ async def evaluate_v10_pro(client, symbol: str) -> dict:
                 signal = "LONG"
                 # Limit Order mitigation at 50% FVG
                 entry_price = (c2["low"] + c1["high"]) / 2.0
-                sl_price = entry_price - (2.5 * atr)
+                sl_price = entry_price - (2.0 * atr)
             else:
                 logger.info(f"[{symbol} SMC-LONG] Failed FVG: c2_low={c2['low']:.2f} <= c1_high={c1['high']:.2f} or not green")
         else:
@@ -81,7 +81,7 @@ async def evaluate_v10_pro(client, symbol: str) -> dict:
                 if c2["high"] < c1["low"] and c3["close"] < c3["open"]:
                     signal = "SHORT"
                     entry_price = (c2["high"] + c1["low"]) / 2.0
-                    sl_price = entry_price + (2.5 * atr)
+                    sl_price = entry_price + (2.0 * atr)
                 else:
                     logger.info(f"[{symbol} SMC-SHORT] Failed FVG: c2_high={c2['high']:.2f} >= c1_low={c1['low']:.2f} or not red")
             else:
