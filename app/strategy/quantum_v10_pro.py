@@ -1,114 +1,106 @@
-from app.utils.indicators import calculate_ema, calculate_rsi, calculate_atr, calculate_adx, calculate_sma
+from app.utils.indicators import calculate_atr, calculate_sma
 
 async def evaluate_v10_pro(client, symbol: str) -> dict:
-    # 1. Macro Bias (1H)
-    klines_1h = await client.get_klines(symbol, "1h", 100)
-    if not klines_1h or len(klines_1h) < 50: return {"signal": "NONE"}
-    closes_1h = [c["close"] for c in klines_1h]
-    ema50_1h = calculate_ema(closes_1h, 50)[-1]
-    current_close_1h = closes_1h[-1]
-    
-    bias = "LONG" if current_close_1h > ema50_1h else "SHORT"
-    
-    # 2. Momentum (15M)
-    klines_15m = await client.get_klines(symbol, "15m", 100)
-    if not klines_15m or len(klines_15m) < 50: return {"signal": "NONE"}
-    closes_15m = [c["close"] for c in klines_15m]
-    highs_15m = [c["high"] for c in klines_15m]
-    lows_15m = [c["low"] for c in klines_15m]
-    
-    ema50_15m = calculate_ema(closes_15m, 50)[-1]
-    rsi_15m = calculate_rsi(closes_15m, 14)[-1]
-    adx_15m = calculate_adx(highs_15m, lows_15m, closes_15m, 14)[-1]
-    current_close_15m = closes_15m[-1]
-    
-    if adx_15m < 20:
+    """
+    ESTRATEGIA A: QUANTUM SMC V10 PRO (Vacíos de Liquidez)
+    - Temporalidad: 5 Minutos (5M).
+    - Liquidity Sweep (Barrida de últimos 15 mínimos/máximos).
+    - Volumen de desplazamiento > 1.25x SMA(15)
+    - FVG (Fair Value Gap) mitigation al 50%.
+    - SL a 2.5x ATR.
+    """
+    # Descargar 100 velas para tener data de sobra para historial (Sweep) y SMA
+    klines_5m = await client.get_klines(symbol, "5m", 100)
+    if not klines_5m or len(klines_5m) < 40: 
         return {"signal": "NONE"}
         
-    if bias == "LONG":
-        if not (current_close_15m > ema50_15m and 50 < rsi_15m < 65):
-            return {"signal": "NONE"}
-    else:
-        if not (current_close_15m < ema50_15m and 35 < rsi_15m < 50):
-            return {"signal": "NONE"}
-            
-    # 3. Sniper Gatillo (5M FVG)
-    klines_5m = await client.get_klines(symbol, "5m", 20)
-    if not klines_5m or len(klines_5m) < 5: return {"signal": "NONE"}
+    # Descartar la última vela (está incompleta/abierta y arruina los cálculos de volumen)
+    klines_5m = klines_5m[:-1]
     
-    # Calculate ATR for SL/TP
+    from app.logger import logger
+    
+    # Extraer arrays para cálculos
     highs = [c["high"] for c in klines_5m]
     lows = [c["low"] for c in klines_5m]
-    closes_5m = [c["close"] for c in klines_5m]
-    volumes_5m = [c["volume"] for c in klines_5m]
-    atr = calculate_atr(highs, lows, closes_5m, 14)[-1]
+    closes = [c["close"] for c in klines_5m]
+    volumes = [c["volume"] for c in klines_5m]
     
-    # Calculate 10-period SMA of Volume
-    sma_vol_10 = calculate_sma(volumes_5m, 10)
+    atr = calculate_atr(highs, lows, closes, 14)[-1]
+    sma_vol_15 = calculate_sma(volumes, 15)
     
-    fvg_found = False
+    # Analizamos la estructura de 3 velas más reciente:
+    # Vela 1 = klines_5m[-3]
+    # Vela 2 = klines_5m[-2]
+    # Vela 3 = klines_5m[-1]  (La vela que acaba de cerrar)
+    
+    c1 = klines_5m[-3]
+    c2 = klines_5m[-2]
+    c3 = klines_5m[-1]
+    
+    # Volumen de la Vela 3 (Desplazamiento) vs SMA 15
+    # SMA de volumen correspondiente a la vela 3
+    vol_sma3 = sma_vol_15[-1]
+    
+    signal = "NONE"
     entry_price = 0.0
     sl_price = 0.0
     
-    # Look for FVG in the last 5 candles
-    # We iterate backwards through the last 5 indices (-1 to -5)
-    for i in range(-1, -6, -1):
-        if len(klines_5m) < abs(i) + 2: continue
-        c1 = klines_5m[i-2]
-        c2 = klines_5m[i-1] # The big candle
-        c3 = klines_5m[i]
+    # ------------------ LONG LOGIC ------------------
+    # 1. Filtro de Volumen: Vela 3 > 1.15x SMA(15)
+    if c3["volume"] > 1.15 * vol_sma3:
+        # 2. Liquidity Sweep: Mínimo de c1 o c3 rompió el mínimo de las 15 velas anteriores a c1
+        # Obtenemos las 15 velas antes de c1 (índices -18 a -4)
+        history_15_low = min([k["low"] for k in klines_5m[-18:-3]])
         
-        # FVG found
-        # Apply Smart Money Order Flow (Volume Filter) on the displacement candle (c2)
-        # Displacement candle volume must be >= 90% of SMA-10 volume
-        idx_c2 = len(volumes_5m) + i - 1  # Get absolute index of c2
-        if c2["volume"] < 0.9 * sma_vol_10[idx_c2]:
-            continue
-            
-        # Break of Structure (BOS) Validation
-        start_idx = i - 12
-        end_idx = i - 2
-        if start_idx < -len(klines_5m): start_idx = -len(klines_5m)
-        local_high = max([c["high"] for c in klines_5m[start_idx:end_idx]]) if end_idx > start_idx else c1["high"]
-        local_low = min([c["low"] for c in klines_5m[start_idx:end_idx]]) if end_idx > start_idx else c1["low"]
+        sweep_valid_long = (c1["low"] < history_15_low) or (c3["low"] < history_15_low)
         
-        range_c3 = c3["high"] - c3["low"]
-        latest_c = klines_5m[-1]
-        
-        if bias == "LONG":
-            # Bullish FVG with BOS
-            if c3["low"] > c1["high"] and c3["close"] > c3["open"] and c3["close"] > local_high:
-                fvg_top = c3["low"]
-                fvg_bottom = c1["high"]
-                mitigation_price = fvg_bottom + ((fvg_top - fvg_bottom) * 0.5)
-                
-                # Check if mitigated by the most recent candles
-                if latest_c["low"] <= mitigation_price <= latest_c["high"] or (i == -1 and c3["low"] <= mitigation_price):
-                    fvg_found = True
-                    entry_price = latest_c["close"]  # Execute market at current close
-                    sl_price = c1["low"] - (0.5 * atr)
-                    break
+        if sweep_valid_long:
+            # 3. Fair Value Gap: Mínimo de c2 > Máximo de c1 AND c3 Verde
+            if c2["low"] > c1["high"] and c3["close"] > c3["open"]:
+                signal = "LONG"
+                # Limit Order mitigation at 50% FVG
+                entry_price = (c2["low"] + c1["high"]) / 2.0
+                sl_price = entry_price - (2.5 * atr)
+            else:
+                logger.info(f"[{symbol} SMC-LONG] Failed FVG: c2_low={c2['low']:.2f} <= c1_high={c1['high']:.2f} or not green")
         else:
-            # Bearish FVG with BOS
-            if c3["high"] < c1["low"] and c3["close"] < c3["open"] and c3["close"] < local_low:
-                fvg_top = c1["low"]
-                fvg_bottom = c3["high"]
-                mitigation_price = fvg_bottom + ((fvg_top - fvg_bottom) * 0.5)
-                
-                # Check if mitigated by the most recent candles
-                if latest_c["low"] <= mitigation_price <= latest_c["high"] or (i == -1 and c3["high"] >= mitigation_price):
-                    fvg_found = True
-                    entry_price = latest_c["close"]
-                    sl_price = c1["high"] + (0.5 * atr)
-                    break
-                
-    if fvg_found:
+            logger.info(f"[{symbol} SMC-LONG] Failed Sweep: lows not < {history_15_low:.2f}")
+    else:
+        logger.info(f"[{symbol} SMC] Failed Volume: vol_c3={c3['volume']:.2f} <= 1.15*SMA({vol_sma3:.2f})")
+
+    # ------------------ SHORT LOGIC ------------------
+    if signal == "NONE":
+        if c3["volume"] > 1.15 * vol_sma3:
+            # 2. Liquidity Sweep: Máximo de c1 o c3 rompió el máximo de las 15 velas anteriores a c1
+            history_15_high = max([k["high"] for k in klines_5m[-18:-3]])
+            
+            sweep_valid_short = (c1["high"] > history_15_high) or (c3["high"] > history_15_high)
+            
+            if sweep_valid_short:
+                # 3. Fair Value Gap: Máximo de c2 < Mínimo de c1 AND c3 Roja
+                if c2["high"] < c1["low"] and c3["close"] < c3["open"]:
+                    signal = "SHORT"
+                    entry_price = (c2["high"] + c1["low"]) / 2.0
+                    sl_price = entry_price + (2.5 * atr)
+                else:
+                    logger.info(f"[{symbol} SMC-SHORT] Failed FVG: c2_high={c2['high']:.2f} >= c1_low={c1['low']:.2f} or not red")
+            else:
+                logger.info(f"[{symbol} SMC-SHORT] Failed Sweep: highs not > {history_15_high:.2f}")
+
+    # Invalidation Check: If current close or low touched the SL before we can even place the limit
+    if signal == "LONG" and c3["close"] <= sl_price:
+        signal = "NONE"
+    if signal == "SHORT" and c3["close"] >= sl_price:
+        signal = "NONE"
+
+    if signal != "NONE":
         return {
-            "signal": bias,
-            "entry_price": entry_price,
+            "signal": signal,
+            "entry_price": entry_price, # Limit price for engine to wait for
             "sl_price": sl_price,
             "atr": atr,
-            "strategy": "QUANTUM_V10_PRO"
+            "strategy": "SMC_V10_PRO",
+            "is_limit": True
         }
         
     return {"signal": "NONE"}

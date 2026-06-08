@@ -11,8 +11,7 @@ from app.exchange.order_executor import OrderExecutor
 from app.exchange.position_manager import PositionManager
 from app.data.candle_buffer import CandleBuffer
 from app.strategy.quantum_v10_pro import evaluate_v10_pro
-from app.strategy.quantum_divergence import evaluate_divergence
-from app.strategy.bustos_pullback import evaluate_bustos_pullback
+from app.strategy.supertrend_pullback import evaluate_supertrend_pullback
 from app.strategy.volatility_filter import check_macro_shock
 from app.database.crud import init_db, get_all_active_trades, save_trade, delete_trade, add_history, is_on_cooldown, set_cooldown
 from app.database.models import TradeState
@@ -333,25 +332,9 @@ class Engine:
 
     async def _check_btc_volatility(self, symbol: str):
         """
-        Checks BTC-USDT 15m candles for sharp/sudden price movements.
-        Triggers a 2-hour trading block if thresholds are breached.
+        BTC Volatility shield is disabled by user request.
         """
-        try:
-            # Fetch the latest 15m candles directly from API instead of using 5m buffer
-            klines = await self.client.get_klines(symbol, interval="15m", limit=3)
-            if not klines or len(klines) < 2:
-                return
-
-            closed_candle = klines[-2]
-
-            if check_macro_shock(closed_candle, Config.BTC_VOL_CUMUL_BODY_PCT / 100.0):
-                direction = "UP" if float(closed_candle.get("close", 0)) > float(closed_candle.get("open", 0)) else "DOWN"
-                reason = f"BTC Volatility Macro Shock Detected > {Config.BTC_VOL_CUMUL_BODY_PCT}% on 15m candle"
-                await self._trigger_btc_block(reason, direction=direction)
-                return
-
-        except Exception as e:
-            logger.error(f"[BTC BLOCK] Error checking BTC volatility: {e}")
+        pass
 
     async def _trigger_btc_block(self, reason: str, direction: str = None):
         """Activates a 2-hour trading block, persists it, and closes counter-trend positions."""
@@ -461,11 +444,9 @@ class Engine:
                     return
 
                 # === Dual Strategy Pipeline ===
-                sweep_result = await evaluate_bustos_pullback(self.client, symbol)
+                sweep_result = await evaluate_v10_pro(self.client, symbol)
                 if sweep_result["signal"] == "NONE":
-                    sweep_result = await evaluate_v10_pro(self.client, symbol)
-                if sweep_result["signal"] == "NONE":
-                    sweep_result = await evaluate_divergence(self.client, symbol)
+                    sweep_result = await evaluate_supertrend_pullback(self.client, symbol)
                 
                 if sweep_result["signal"] == "NONE":
                     return
@@ -516,16 +497,23 @@ class Engine:
                         logger.warning(f"[{symbol}] Calculated size = 0. Skipping.")
                         return
 
-                    logger.info(
-                        f"[SIGNAL] {symbol} {sweep_result['signal']} | Score={score} | "
-                        f"Entry={entry_price:.4f} | SL={sl_price:.4f}"
-                    )
-
-                    order_id = await self.executor.place_entry(
-                        symbol, sweep_result["signal"], size, entry_price, sweep_result.get("strategy", "UNKNOWN")
-                    )
-                    if not order_id:
-                        return
+                    is_limit = sweep_result.get("is_limit", False)
+                    order_id = "PENDING_LIMIT"
+                    
+                    if not is_limit:
+                        logger.info(
+                            f"[SIGNAL] {symbol} {sweep_result['signal']} | Score={score} | "
+                            f"Entry={entry_price:.4f} | SL={sl_price:.4f}"
+                        )
+                        order_id = await self.executor.place_entry(
+                            symbol, sweep_result["signal"], size, entry_price, sweep_result.get("strategy", "UNKNOWN")
+                        )
+                        if not order_id:
+                            return
+                    else:
+                        logger.info(
+                            f"[PENDING LIMIT] {symbol} {sweep_result['signal']} | Limit Price={entry_price:.4f} | SL={sl_price:.4f}"
+                        )
 
                     # Persist pending trade
                     risk_dist = abs(entry_price - sl_price)
@@ -554,7 +542,8 @@ class Engine:
                         "score": score,
                         "strategy": sweep_result.get("strategy", "UNKNOWN"),
                         "cooldown_until": 0,
-                        "timestamp": int(time.time())
+                        "timestamp": int(time.time()),
+                        "is_pending_limit": is_limit
                     }
                 await self._save_state()
 
@@ -782,16 +771,18 @@ class Engine:
                     tp_cancelled = False
 
             if tp_cancelled:
-                # 1.0x ATR dynamic trailing distance (very tight, secures profit quickly)
-                trailing_distance = 1.0 * atr
+                # Retain 65% of max profit achieved
+                max_profit_dist = abs(mark_price - entry_price)
+                retained_profit = max_profit_dist * 0.65
+                
                 if side == "LONG":
                     # Floor is the Breakeven lock-in level
                     floor_sl = entry_price + Config.BREAKEVEN_LOCK_PCT * target_dist
-                    trailing_sl = mark_price - trailing_distance
+                    trailing_sl = entry_price + retained_profit
                     target_sl = max(floor_sl, trailing_sl)
                 else:
                     floor_sl = entry_price - Config.BREAKEVEN_LOCK_PCT * target_dist
-                    trailing_sl = mark_price + trailing_distance
+                    trailing_sl = entry_price - retained_profit
                     target_sl = min(floor_sl, trailing_sl)
 
                 new_sl_id = await self.executor.update_sl(symbol, side, trade.get("sl_order_id"), target_sl, pos_amt)
@@ -800,16 +791,19 @@ class Engine:
                     trade["highest_price"] = mark_price
                     trade["sl_order_id"] = new_sl_id
                     trade["sl_price"] = target_sl
-                    logger.info(f"[TRAILING ACTIVATE] Trailing active. SL updated to {target_sl:.6f}.")
+                    logger.info(f"[TRAILING ACTIVATE] Trailing active. SL updated to {target_sl:.6f} retaining 65% of max profit.")
         
         elif trade.get("trailing_active"):
             highest_price = trade.get("highest_price", mark_price)
-            trailing_distance = 1.0 * atr
             if side == "LONG":
                 if mark_price > highest_price:
                     trade["highest_price"] = mark_price
                     highest_price = mark_price
-                trailing_sl = highest_price - trailing_distance
+                
+                max_profit_dist = abs(highest_price - entry_price)
+                retained_profit = max_profit_dist * 0.65
+                trailing_sl = entry_price + retained_profit
+                
                 floor_sl = entry_price + Config.BREAKEVEN_LOCK_PCT * target_dist
                 target_sl = max(trailing_sl, floor_sl)
                 
@@ -823,7 +817,11 @@ class Engine:
                 if mark_price < highest_price:
                     trade["highest_price"] = mark_price
                     highest_price = mark_price
-                trailing_sl = highest_price + trailing_distance
+                
+                max_profit_dist = abs(highest_price - entry_price)
+                retained_profit = max_profit_dist * 0.65
+                trailing_sl = entry_price - retained_profit
+                
                 floor_sl = entry_price - Config.BREAKEVEN_LOCK_PCT * target_dist
                 target_sl = min(trailing_sl, floor_sl)
                 
@@ -853,14 +851,37 @@ class Engine:
         await asyncio.sleep(5)
         while self.running:
             try:
-                active_trades = [(sym, t) for sym, t in self.trade_state.items() if t.get("filled")]
+                active_trades = [(sym, t) for sym, t in self.trade_state.items() if t.get("filled") or t.get("is_pending_limit")]
                 for symbol, trade in active_trades:
                     ticker = await self.client.get_ticker(symbol)
                     if ticker:
                         mark_price = float(ticker.get("lastPrice") or 0.0)
                         if mark_price > 0:
-                            pos_amt = trade.get("remaining_size", trade.get("total_size", 0))
-                            await self._evaluate_trailing_and_breakeven(symbol, trade, mark_price, pos_amt)
+                            if trade.get("is_pending_limit"):
+                                side = trade.get("side")
+                                limit_price = trade.get("entry_price")
+                                sl_price = trade.get("sl_price")
+                                
+                                # Invalidation check
+                                if (side == "LONG" and mark_price <= sl_price) or (side == "SHORT" and mark_price >= sl_price):
+                                    logger.warning(f"[LIMIT INVALIDATED] {symbol} touched SL ({sl_price}) before reaching limit entry ({limit_price}). Cancelling setup.")
+                                    await self._close_trade(symbol, reason="LIMIT_INVALIDATED")
+                                    continue
+                                
+                                # Trigger check
+                                if (side == "LONG" and mark_price <= limit_price) or (side == "SHORT" and mark_price >= limit_price):
+                                    logger.info(f"[LIMIT TRIGGERED] {symbol} reached {limit_price}! Executing market order...")
+                                    order_id = await self.executor.place_entry(
+                                        symbol, side, trade["total_size"], mark_price, trade.get("strategy", "UNKNOWN")
+                                    )
+                                    if order_id:
+                                        trade["is_pending_limit"] = False
+                                        trade["entry_order_id"] = order_id
+                                        # Will be picked up by reconciliation / ws fill
+                                        await self._save_state()
+                            elif trade.get("filled"):
+                                pos_amt = trade.get("remaining_size", trade.get("total_size", 0))
+                                await self._evaluate_trailing_and_breakeven(symbol, trade, mark_price, pos_amt)
                 await asyncio.sleep(3)
             except Exception as e:
                 logger.error(f"[FAST TRAILING] Error: {e}")
@@ -889,12 +910,15 @@ class Engine:
         if trade:
             await self._log_closed_trade(symbol, trade, reason)
             await delete_trade(symbol)
-            cooldown_mins = Config.COOLDOWN_MINUTES
-            logger.info(f"[TRADE CLOSED] {symbol} reason={reason}. Cooldown {cooldown_mins}min aplicado.")
+            if reason != "TP_HIT":
+                cooldown_mins = Config.COOLDOWN_MINUTES
+                logger.info(f"[TRADE CLOSED] {symbol} reason={reason}. Cooldown {cooldown_mins}min aplicado.")
+                await set_cooldown(symbol, cooldown_mins)
+            else:
+                logger.info(f"[TRADE CLOSED] {symbol} reason={reason}. No cooldown applied for Take Profit.")
         else:
             cooldown_mins = Config.COOLDOWN_MINUTES
-            
-        await set_cooldown(symbol, cooldown_mins)
+            await set_cooldown(symbol, cooldown_mins)
 
     async def _log_closed_trade(self, symbol: str, trade: dict, reason: str):
         """Append closed trade to trades log."""

@@ -74,3 +74,55 @@ def calculate_adx(highs: list[float], lows: list[float], closes: list[float], pe
     adx = dx.ewm(alpha=1/period, adjust=False).mean()
     
     return adx.fillna(0.0).tolist()
+
+def calculate_supertrend(highs: list[float], lows: list[float], closes: list[float], period: int = 10, multiplier: float = 3.0) -> list[dict]:
+    if len(closes) <= period:
+        return [{"value": 0.0, "dir": 1} for _ in closes]
+        
+    df = pd.DataFrame({'high': highs, 'low': lows, 'close': closes})
+    
+    # Calculate ATR
+    df['prev_close'] = df['close'].shift(1)
+    df['tr1'] = df['high'] - df['low']
+    df['tr2'] = (df['high'] - df['prev_close']).abs()
+    df['tr3'] = (df['low'] - df['prev_close']).abs()
+    df['tr'] = df[['tr1', 'tr2', 'tr3']].max(axis=1)
+    df['atr'] = df['tr'].rolling(window=period).mean()
+    
+    hl2 = (df['high'] + df['low']) / 2
+    
+    df['basic_ub'] = hl2 + (multiplier * df['atr'])
+    df['basic_lb'] = hl2 - (multiplier * df['atr'])
+    
+    df['final_ub'] = 0.00
+    df['final_lb'] = 0.00
+    
+    for i in range(period, len(df)):
+        df.loc[i, 'final_ub'] = df.loc[i, 'basic_ub'] if df.loc[i, 'basic_ub'] < df.loc[i - 1, 'final_ub'] or df.loc[i - 1, 'close'] > df.loc[i - 1, 'final_ub'] else df.loc[i - 1, 'final_ub']
+        df.loc[i, 'final_lb'] = df.loc[i, 'basic_lb'] if df.loc[i, 'basic_lb'] > df.loc[i - 1, 'final_lb'] or df.loc[i - 1, 'close'] < df.loc[i - 1, 'final_lb'] else df.loc[i - 1, 'final_lb']
+        
+    df['st'] = 0.00
+    df['dir'] = 1
+    
+    for i in range(period, len(df)):
+        if df.loc[i - 1, 'st'] == df.loc[i - 1, 'final_ub'] and df.loc[i, 'close'] <= df.loc[i, 'final_ub']:
+            df.loc[i, 'st'] = df.loc[i, 'final_ub']
+        elif df.loc[i - 1, 'st'] == df.loc[i - 1, 'final_ub'] and df.loc[i, 'close'] > df.loc[i, 'final_ub']:
+            df.loc[i, 'st'] = df.loc[i, 'final_lb']
+        elif df.loc[i - 1, 'st'] == df.loc[i - 1, 'final_lb'] and df.loc[i, 'close'] >= df.loc[i, 'final_lb']:
+            df.loc[i, 'st'] = df.loc[i, 'final_lb']
+        elif df.loc[i - 1, 'st'] == df.loc[i - 1, 'final_lb'] and df.loc[i, 'close'] < df.loc[i, 'final_lb']:
+            df.loc[i, 'st'] = df.loc[i, 'final_ub']
+            
+        if df.loc[i, 'close'] > df.loc[i, 'st']:
+            df.loc[i, 'dir'] = 1
+        else:
+            df.loc[i, 'dir'] = -1
+            
+    result = []
+    for i in range(len(df)):
+        result.append({
+            "value": float(df.loc[i, 'st']),
+            "dir": int(df.loc[i, 'dir'])
+        })
+    return result
