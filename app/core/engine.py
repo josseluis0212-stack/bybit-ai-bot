@@ -780,9 +780,23 @@ class Engine:
                             await self._close_trade(symbol, reason="EARLY_EXIT_REJECTION")
                             return
 
-        # --- Trailing Stop (Activation: 75%) ---
-        if progress >= Config.TRAILING_ACTIVATION_PCT and not trade.get("trailing_active"):
-            logger.info(f"[TRAILING ACTIVATE] {symbol} progress reached {progress:.2%} (>= {Config.TRAILING_ACTIVATION_PCT*100}%). Cancelling TP and activating trailing stop.")
+        # --- Strategy Profiles ---
+        strategy = trade.get("strategy", "")
+        if "SUPERTREND" in strategy:
+            be_activation = 0.40
+            be_lock = 0.15
+            trail_activation = 0.90
+            trail_dist = 0.15
+        else:
+            # SMC / QUANTUM profile
+            be_activation = 0.40
+            be_lock = 0.15
+            trail_activation = 0.80
+            trail_dist = 0.15
+
+        # --- Trailing Stop ---
+        if progress >= trail_activation and not trade.get("trailing_active"):
+            logger.info(f"[TRAILING ACTIVATE] {symbol} progress reached {progress:.2%} (>= {trail_activation*100}%). Cancelling TP and activating trailing stop.")
             tp_id = trade.get("tp1_order_id")
             tp_cancelled = True
             if tp_id:
@@ -798,17 +812,18 @@ class Engine:
                     tp_cancelled = False
 
             if tp_cancelled:
-                # Retain 65% of max profit achieved
+                # Retain mathematically based on fixed trailing distance
                 max_profit_dist = abs(mark_price - entry_price)
-                retained_profit = max_profit_dist * 0.65
+                trail_dist_price = trail_dist * target_dist
+                retained_profit = max_profit_dist - trail_dist_price
                 
                 if side == "LONG":
                     # Floor is the Breakeven lock-in level
-                    floor_sl = entry_price + Config.BREAKEVEN_LOCK_PCT * target_dist
+                    floor_sl = entry_price + be_lock * target_dist
                     trailing_sl = entry_price + retained_profit
                     target_sl = max(floor_sl, trailing_sl)
                 else:
-                    floor_sl = entry_price - Config.BREAKEVEN_LOCK_PCT * target_dist
+                    floor_sl = entry_price - be_lock * target_dist
                     trailing_sl = entry_price - retained_profit
                     target_sl = min(floor_sl, trailing_sl)
 
@@ -818,7 +833,7 @@ class Engine:
                     trade["highest_price"] = mark_price
                     trade["sl_order_id"] = new_sl_id
                     trade["sl_price"] = target_sl
-                    logger.info(f"[TRAILING ACTIVATE] Trailing active. SL updated to {target_sl:.6f} retaining 65% of max profit.")
+                    logger.info(f"[TRAILING ACTIVATE] Trailing active. SL updated to {target_sl:.6f}.")
         
         elif trade.get("trailing_active"):
             highest_price = trade.get("highest_price", mark_price)
@@ -828,10 +843,11 @@ class Engine:
                     highest_price = mark_price
                 
                 max_profit_dist = abs(highest_price - entry_price)
-                retained_profit = max_profit_dist * 0.65
+                trail_dist_price = trail_dist * target_dist
+                retained_profit = max_profit_dist - trail_dist_price
                 trailing_sl = entry_price + retained_profit
                 
-                floor_sl = entry_price + Config.BREAKEVEN_LOCK_PCT * target_dist
+                floor_sl = entry_price + be_lock * target_dist
                 target_sl = max(trailing_sl, floor_sl)
                 
                 current_sl = trade.get("sl_price", 0.0)
@@ -846,10 +862,11 @@ class Engine:
                     highest_price = mark_price
                 
                 max_profit_dist = abs(highest_price - entry_price)
-                retained_profit = max_profit_dist * 0.65
+                trail_dist_price = trail_dist * target_dist
+                retained_profit = max_profit_dist - trail_dist_price
                 trailing_sl = entry_price - retained_profit
                 
-                floor_sl = entry_price - Config.BREAKEVEN_LOCK_PCT * target_dist
+                floor_sl = entry_price - be_lock * target_dist
                 target_sl = min(trailing_sl, floor_sl)
                 
                 current_sl = trade.get("sl_price", float('inf'))
@@ -859,11 +876,11 @@ class Engine:
                         trade["sl_order_id"] = new_sl_id
                         trade["sl_price"] = target_sl
 
-        # --- Breakeven (Activation: 35%) ---
-        elif progress >= Config.BREAKEVEN_ACTIVATION_PCT and not trade.get("breakeven_hit"):
-            lock_in_profit = Config.BREAKEVEN_LOCK_PCT * target_dist
+        # --- Breakeven ---
+        elif progress >= be_activation and not trade.get("breakeven_hit"):
+            lock_in_profit = be_lock * target_dist
             new_sl = entry_price + lock_in_profit if side == "LONG" else entry_price - lock_in_profit
-            logger.info(f"[BREAKEVEN] {symbol} progress reached {progress:.2%} (>= {Config.BREAKEVEN_ACTIVATION_PCT*100}%). Moving SL to {new_sl:.6f} (+{Config.BREAKEVEN_LOCK_PCT*100}% of TP).")
+            logger.info(f"[BREAKEVEN] {symbol} progress reached {progress:.2%} (>= {be_activation*100}%). Moving SL to {new_sl:.6f} (+{be_lock*100}% of TP).")
             new_sl_id = await self.executor.update_sl(symbol, side, trade.get("sl_order_id"), new_sl, pos_amt)
             if new_sl_id:
                 trade["sl_order_id"] = new_sl_id
