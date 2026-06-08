@@ -152,28 +152,41 @@ function updateStats(stats) {
                 timeStr = `<span style="font-size:0.6rem;color:#555">${d.toLocaleTimeString()}</span>`;
             }
 
-            const strategyName = t.strategy || 'UNKNOWN';
-            const strategyBadge = strategyName === 'QUANTUM_V10_PRO' 
-                                  ? `<span class="badge" style="background:rgba(59,130,246,0.1);color:#3b82f6;border:1px solid #3b82f6;font-size:0.5rem;padding:0.1rem 0.3rem;">V10 PRO</span>`
-                                  : strategyName === 'QUANTUM_DIVERGENCE'
-                                  ? `<span class="badge" style="background:rgba(168,85,247,0.1);color:#a855f7;border:1px solid #a855f7;font-size:0.5rem;padding:0.1rem 0.3rem;">DIVERGENCE</span>`
-                                  : strategyName === 'BUSTOS_PULLBACK'
-                                  ? `<span class="badge" style="background:rgba(234,179,8,0.1);color:#eab308;border:1px solid #eab308;font-size:0.5rem;padding:0.1rem 0.3rem;">BUSTOS EMA 21</span>`
-                                  : (strategyName !== 'UNKNOWN' ? `<span class="badge" style="font-size:0.5rem;padding:0.1rem 0.3rem;">${strategyName}</span>` : '');
+            // Initials for avatar
+            const initials = t.symbol.replace('USDT','').replace('-','').substring(0,2).toUpperCase();
+            
+            // Format strategy name
+            let strategyNameText = t.strategy ? t.strategy.replace(/_/g, ' ') : 'UNKNOWN STRATEGY';
+            if (strategyNameText === 'UNKNOWN STRATEGY' && t.symbol === 'BTCUSDT') strategyNameText = 'QUANTUM V10 PRO'; // Example fallback
 
             hHTML += `
-                <div class="hist-item" style="border-left: 3px solid ${isWin ? '#22c55e' : '#ef4444'}">
-                    <div>
-                        <span class="hist-symbol">${t.symbol}</span>
-                        <span class="hist-side">${t.side}</span>
-                        ${strategyBadge}
+                <div class="hist-item" style="border-left: 3px solid ${isWin ? '#22c55e' : '#ef4444'}; display: grid; grid-template-columns: 40px 1.5fr 2fr auto; gap: 1rem; align-items: center; padding: 0.8rem 1rem;">
+                    
+                    <!-- Avatar -->
+                    <div style="width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,0.05); display:flex; align-items:center; justify-content:center; font-size:0.7rem; font-weight:800; color:${isWin ? '#22c55e' : '#ef4444'}; border: 1px solid ${isWin ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}">
+                        ${initials}
+                    </div>
+
+                    <!-- Symbol & Side -->
+                    <div style="display:flex; flex-direction:column; gap:0.2rem;">
+                        <div>
+                            <span class="hist-symbol" style="font-size:0.85rem;">${t.symbol}</span>
+                            <span class="hist-side" style="color:white; font-weight:bold; font-size:0.75rem;">${t.side}</span>
+                        </div>
                         ${timeStr}
                     </div>
-                    <div style="display:flex;gap:0.4rem;align-items:center">
-                        <span class="hist-reason">${t.reason || 'CERRADO'}</span>
-                        ${flags}
+
+                    <!-- Strategy & Reason -->
+                    <div style="display:flex; flex-direction:column; gap:0.2rem; align-items: flex-start;">
+                        <span style="font-size:0.65rem; color:#60a5fa; font-weight:bold; letter-spacing:0.5px;">${strategyNameText}</span>
+                        <div style="display:flex; gap:0.4rem; align-items:center;">
+                            <span style="font-size:0.6rem; color:#aaa;">CAUSA: <span style="color:white; font-weight:bold;">${t.reason ? t.reason.toUpperCase() : 'CERRADO'}</span></span>
+                            ${flags}
+                        </div>
                     </div>
-                    <div class="hist-pnl ${pnlClass}">${formatCurrency(t.pnl)}</div>
+
+                    <!-- PNL -->
+                    <div class="hist-pnl ${pnlClass}" style="text-align:right; font-size:0.9rem;">${formatCurrency(t.pnl)}</div>
                 </div>
             `;
         });
