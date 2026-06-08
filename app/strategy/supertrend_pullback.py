@@ -1,4 +1,4 @@
-from app.utils.indicators import calculate_ema, calculate_rsi, calculate_adx, calculate_supertrend
+from app.utils.indicators import calculate_ema, calculate_rsi, calculate_adx, calculate_supertrend, calculate_atr
 
 async def evaluate_supertrend_pullback(client, symbol: str) -> dict:
     """
@@ -35,6 +35,8 @@ async def evaluate_supertrend_pullback(client, symbol: str) -> dict:
     st_val = supertrend[-1]["value"]
     st_dir = supertrend[-1]["dir"]  # 1 = LONG (Verde), -1 = SHORT (Rojo)
     
+    atr14 = calculate_atr(highs, lows, closes, 14)[-1]
+    
     c = klines_5m[-1]  # Última vela cerrada
     
     signal = "NONE"
@@ -49,7 +51,7 @@ async def evaluate_supertrend_pullback(client, symbol: str) -> dict:
                 if c["low"] <= ema9 and c["close"] > ema21:
                     signal = "LONG"
                     entry_price = c["close"]
-                    sl_price = st_val * 0.999  # Respiro 0.1% debajo del Supertrend
+                    sl_price = entry_price - (1.5 * atr14)
                 else:
                     logger.info(f"[{symbol} ST-LONG] Failed Pullback: low={c['low']:.2f} > ema9={ema9:.2f} or close={c['close']:.2f} < ema21={ema21:.2f}")
             else:
@@ -63,7 +65,7 @@ async def evaluate_supertrend_pullback(client, symbol: str) -> dict:
                 if c["high"] >= ema9 and c["close"] < ema21:
                     signal = "SHORT"
                     entry_price = c["close"]
-                    sl_price = st_val * 1.001  # Respiro 0.1% encima del Supertrend
+                    sl_price = entry_price + (1.5 * atr14)
                 else:
                     logger.info(f"[{symbol} ST-SHORT] Failed Pullback: high={c['high']:.2f} < ema9={ema9:.2f} or close={c['close']:.2f} > ema21={ema21:.2f}")
             else:

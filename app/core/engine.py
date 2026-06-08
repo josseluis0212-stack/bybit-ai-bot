@@ -332,12 +332,38 @@ class Engine:
 
     async def _check_btc_volatility(self, symbol: str):
         """
-        BTC Volatility shield is disabled by user request.
+        BTC Volatility shield: Checks real-time 15m candle for >2% moves.
         """
-        pass
+        if symbol != "BTC-USDT":
+            return
+            
+        try:
+            # Pide la vela actual de 15m
+            klines = await self.client.get_klines(symbol, interval="15m", limit=2)
+            if not klines:
+                return
+                
+            current_candle = klines[-1]
+            open_p = current_candle["open"]
+            close_p = current_candle["close"] # Precio en tiempo real
+            
+            if open_p == 0:
+                return
+                
+            move_pct = (close_p - open_p) / open_p
+            
+            if move_pct >= 0.02:
+                # Upward shock > 2% de golpe
+                await self._trigger_btc_block(reason=f"BTC PUMP {move_pct*100:.2f}% en vela actual 15m", direction="UP")
+            elif move_pct <= -0.02:
+                # Downward shock > 2% de golpe
+                await self._trigger_btc_block(reason=f"BTC DUMP {abs(move_pct)*100:.2f}% en vela actual 15m", direction="DOWN")
+                
+        except Exception as e:
+            logger.error(f"[BTC VOLATILITY] Error checking BTC shock: {e}")
 
     async def _trigger_btc_block(self, reason: str, direction: str = None):
-        """Activates a 2-hour trading block, persists it, and closes counter-trend positions."""
+        """Activates a 3-hour trading block, persists it, and closes counter-trend positions."""
         now = time.time()
         new_blocked_until = now + Config.BTC_VOLATILITY_BLOCK_DURATION
         if new_blocked_until > self.btc_blocked_until + 10:  # 10s grace
@@ -346,7 +372,7 @@ class Engine:
             
             from datetime import datetime
             expire_str = datetime.fromtimestamp(self.btc_blocked_until).strftime('%Y-%m-%d %H:%M:%S')
-            logger.warning(f"[BTC BLOCK] !!! VOLATILITY SPARK DETECTED! Blocking all new entries for 2 hours (until {expire_str}). Reason: {reason}")
+            logger.warning(f"[BTC BLOCK] !!! VOLATILITY SPARK DETECTED! Blocking all new entries for 3 hours (until {expire_str}). Reason: {reason}")
             
             if direction:
                 logger.warning(f"[BTC EMERGENCY] Shock direction is {direction}. Closing all counter-trend positions immediately.")
@@ -688,6 +714,7 @@ class Engine:
 
                         # Smartly verify and restore protections to ensure positions are never left unprotected
                         await self.executor.verify_and_restore_protection(symbol, trade)
+                        await asyncio.sleep(0.5)  # Anti-spam delay to avoid BingX rate limits
 
                     elif trade.get("entry_order_id") and not trade.get("filled"):
                         # REST-based fill detection: WS may have missed the fill event

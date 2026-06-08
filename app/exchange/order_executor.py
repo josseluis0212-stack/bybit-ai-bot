@@ -120,7 +120,7 @@ class OrderExecutor:
         logger.info(f"[TP/SL] Confirmed position {symbol} {side} size={real_size:.6f}")
         
         # Enviar notificación a Telegram sin bloquear
-        asyncio.create_task(notifier.notify_open(symbol, side, entry_price, real_size, strategy))
+        asyncio.create_task(notifier.notify_open(symbol, side, entry_price, real_size, "UNKNOWN"))
 
         pos_side = "LONG" if side == "LONG" else "SHORT"
         close_side = "SELL" if side == "LONG" else "BUY"

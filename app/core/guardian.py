@@ -38,6 +38,7 @@ class PositionGuardian:
                             logger.error(f"⚠️ [GUARDIAN AGENT] ¡ALERTA! {symbol} no tiene Stop Loss registrado. Forzando reconciliación inmediata.")
                             # The Guardian forces a smart restoration of protections
                             await self.engine.executor.verify_and_restore_protection(symbol, trade)
+                            await asyncio.sleep(0.5)  # Anti-spam delay
                             continue
                             
                         # If TP1 was hit, SL should be at entry price (Breakeven) or better

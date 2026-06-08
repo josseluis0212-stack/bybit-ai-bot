@@ -19,7 +19,7 @@ class Config:
     USE_TELEGRAM = os.getenv("USE_TELEGRAM", "false").lower() == "true"
     TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "")
     TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
-    PNL_START_TIME = 1780621725454 # Timestamp to zero-out past PNL
+    PNL_START_TIME = 1780919431843 # Timestamp to zero-out past PNL
     
     # BTC Volatility Block Parameters
     BTC_VOLATILITY_BLOCK_DURATION = int(os.getenv("BTC_VOLATILITY_BLOCK_DURATION", "10800"))  # 3 hours in seconds
