@@ -74,9 +74,9 @@ async def evaluate_divergence(client, symbol: str) -> dict:
         c3 = klines_5m[i]
         
         # Apply Smart Money Order Flow (Volume Filter) on the displacement candle (c2)
-        # Displacement candle volume must be >= 90% of SMA-10 volume
+        # Displacement candle volume must be >= 80% of SMA-10 volume
         idx_c2 = len(volumes_5m) + i - 1  # Get absolute index of c2
-        if c2["volume"] < 0.9 * sma_vol_10[idx_c2]:
+        if c2["volume"] < 0.80 * sma_vol_10[idx_c2]:
             continue
             
         range_c3 = c3["high"] - c3["low"]

@@ -783,13 +783,13 @@ class Engine:
         # --- Strategy Profiles ---
         strategy = trade.get("strategy", "")
         if "SUPERTREND" in strategy:
-            be_activation = 0.40
+            be_activation = 0.382
             be_lock = 0.15
-            trail_activation = 0.90
+            trail_activation = 0.80
             trail_dist = 0.15
         else:
             # SMC / QUANTUM profile
-            be_activation = 0.40
+            be_activation = 0.382
             be_lock = 0.15
             trail_activation = 0.80
             trail_dist = 0.15
