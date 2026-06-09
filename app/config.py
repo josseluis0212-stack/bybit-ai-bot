@@ -22,7 +22,7 @@ class Config:
     PNL_START_TIME = 1780919431843 # Timestamp to zero-out past PNL
     
     # BTC Volatility Block Parameters
-    BTC_VOLATILITY_BLOCK_DURATION = int(os.getenv("BTC_VOLATILITY_BLOCK_DURATION", "10800"))  # 3 hours in seconds
+    BTC_VOLATILITY_BLOCK_DURATION = int(os.getenv("BTC_VOLATILITY_BLOCK_DURATION", "7200"))  # 2 hours in seconds
     BTC_VOL_CUMUL_BODY_PCT = float(os.getenv("BTC_VOL_CUMUL_BODY_PCT", "1.5"))
     BTC_VOL_CUMUL_RANGE_PCT = float(os.getenv("BTC_VOL_CUMUL_RANGE_PCT", "1.5"))
     
