@@ -219,10 +219,10 @@ class Engine:
         logger.info("Engine stopped.")
 
     async def _symbol_updater_loop(self):
-        """Updates the top 50 volume symbols every 4 hours."""
+        """Updates the top 40 volume symbols every 4 hours."""
         while self.running:
             try:
-                symbols = await self.client.get_top_volume_symbols(50)
+                symbols = await self.client.get_top_volume_symbols(40)
                 if symbols:
                     if "BTC-USDT" not in symbols:
                         symbols.append("BTC-USDT")
