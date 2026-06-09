@@ -10,32 +10,32 @@ async def evaluate_v10_pro(client, symbol: str) -> dict:
     - SL a 2.0x ATR.
     """
     # Descargar 100 velas para tener data de sobra para historial (Sweep) y SMA
-    klines_5m = await client.get_klines(symbol, "5m", 100)
-    if not klines_5m or len(klines_5m) < 40: 
+    klines_15m = await client.get_klines(symbol, "15m", 100)
+    if not klines_15m or len(klines_15m) < 40: 
         return {"signal": "NONE"}
         
     # Descartar la última vela (está incompleta/abierta y arruina los cálculos de volumen)
-    klines_5m = klines_5m[:-1]
+    klines_15m = klines_15m[:-1]
     
     from app.logger import logger
     
     # Extraer arrays para cálculos
-    highs = [c["high"] for c in klines_5m]
-    lows = [c["low"] for c in klines_5m]
-    closes = [c["close"] for c in klines_5m]
-    volumes = [c["volume"] for c in klines_5m]
+    highs = [c["high"] for c in klines_15m]
+    lows = [c["low"] for c in klines_15m]
+    closes = [c["close"] for c in klines_15m]
+    volumes = [c["volume"] for c in klines_15m]
     
     atr = calculate_atr(highs, lows, closes, 14)[-1]
     sma_vol_15 = calculate_sma(volumes, 15)
     
     # Analizamos la estructura de 3 velas más reciente:
-    # Vela 1 = klines_5m[-3]
-    # Vela 2 = klines_5m[-2]
-    # Vela 3 = klines_5m[-1]  (La vela que acaba de cerrar)
+    # Vela 1 = klines_15m[-3]
+    # Vela 2 = klines_15m[-2]
+    # Vela 3 = klines_15m[-1]  (La vela que acaba de cerrar)
     
-    c1 = klines_5m[-3]
-    c2 = klines_5m[-2]
-    c3 = klines_5m[-1]
+    c1 = klines_15m[-3]
+    c2 = klines_15m[-2]
+    c3 = klines_15m[-1]
     
     # Volumen de la Vela 3 (Desplazamiento) vs SMA 15
     # SMA de volumen correspondiente a la vela 3
@@ -50,7 +50,7 @@ async def evaluate_v10_pro(client, symbol: str) -> dict:
     if c3["volume"] > 1.15 * vol_sma3:
         # 2. Liquidity Sweep: Mínimo de c1 o c3 rompió el mínimo de las 15 velas anteriores a c1
         # Obtenemos las 15 velas antes de c1 (índices -18 a -4)
-        history_15_low = min([k["low"] for k in klines_5m[-18:-3]])
+        history_15_low = min([k["low"] for k in klines_15m[-18:-3]])
         
         sweep_valid_long = (c1["low"] < history_15_low) or (c3["low"] < history_15_low)
         
@@ -60,7 +60,7 @@ async def evaluate_v10_pro(client, symbol: str) -> dict:
                 signal = "LONG"
                 # Limit Order mitigation at 50% FVG
                 entry_price = (c2["low"] + c1["high"]) / 2.0
-                sl_price = entry_price - (2.0 * atr)
+                sl_price = entry_price - (1.5 * atr)
             else:
                 logger.info(f"[{symbol} SMC-LONG] Failed FVG: c2_low={c2['low']:.2f} <= c1_high={c1['high']:.2f} or not green")
         else:
@@ -72,7 +72,7 @@ async def evaluate_v10_pro(client, symbol: str) -> dict:
     if signal == "NONE":
         if c3["volume"] > 1.15 * vol_sma3:
             # 2. Liquidity Sweep: Máximo de c1 o c3 rompió el máximo de las 15 velas anteriores a c1
-            history_15_high = max([k["high"] for k in klines_5m[-18:-3]])
+            history_15_high = max([k["high"] for k in klines_15m[-18:-3]])
             
             sweep_valid_short = (c1["high"] > history_15_high) or (c3["high"] > history_15_high)
             
@@ -81,7 +81,7 @@ async def evaluate_v10_pro(client, symbol: str) -> dict:
                 if c2["high"] < c1["low"] and c3["close"] < c3["open"]:
                     signal = "SHORT"
                     entry_price = (c2["high"] + c1["low"]) / 2.0
-                    sl_price = entry_price + (2.0 * atr)
+                    sl_price = entry_price + (1.5 * atr)
                 else:
                     logger.info(f"[{symbol} SMC-SHORT] Failed FVG: c2_high={c2['high']:.2f} >= c1_low={c1['low']:.2f} or not red")
             else:

@@ -759,27 +759,6 @@ class Engine:
             await self._close_trade(symbol, reason="HARD_SL_ASFIXIA")
             return
 
-        # --- Early Exit (-40% of Risk) ---
-        if progress <= -Config.EARLY_CUT_LOSS_PCT and not trade.get("trailing_active") and not trade.get("breakeven_hit"):
-            trade_age = time.time() - trade.get("timestamp", time.time())
-            if trade_age <= Config.EARLY_CUT_TIME_MINS * 60:
-                if symbol in self.buffers:
-                    recent = self.buffers[symbol].get_recent(2)
-                    if len(recent) >= 2:
-                        latest_candle = recent[-1]
-                        # Bounce failure check
-                        bounce_failed = False
-                        if side == "LONG" and latest_candle["close"] < latest_candle["open"]:
-                            bounce_failed = True
-                        elif side == "SHORT" and latest_candle["close"] > latest_candle["open"]:
-                            bounce_failed = True
-                            
-                        if bounce_failed:
-                            logger.info(f"[EARLY EXIT] {symbol} Price rejecting. PnL reached -{Config.EARLY_CUT_LOSS_PCT*100}% of TP and bounce failed. Cutting losses.")
-                            await self.executor.close_position_market(symbol, side)
-                            await self._close_trade(symbol, reason="EARLY_EXIT_REJECTION")
-                            return
-
         # --- Strategy Profiles ---
         strategy = trade.get("strategy", "")
         if "SUPERTREND" in strategy:

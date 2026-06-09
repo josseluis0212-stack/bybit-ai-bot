@@ -7,7 +7,7 @@ class Config:
     API_KEY = os.getenv("BINGX_API_KEY", "")
     SECRET_KEY = os.getenv("BINGX_SECRET_KEY", "")
     DEMO_MODE = os.getenv("DEMO_MODE", "true").lower() == "true"
-    TIMEFRAME = os.getenv("TIMEFRAME", "5m")
+    TIMEFRAME = os.getenv("TIMEFRAME", "15m")
     RISK_PER_TRADE = float(os.getenv("RISK_PER_TRADE", "8.0"))
     MAX_OPEN_TRADES = int(os.getenv("MAX_OPEN_TRADES", "10"))
     LEVERAGE = int(os.getenv("LEVERAGE", "10"))

@@ -10,18 +10,18 @@ async def evaluate_supertrend_pullback(client, symbol: str) -> dict:
     - Gatillo: Mecha perfora EMA 21 pero cierra a favor.
     - Entrada por Market Order.
     """
-    klines_5m = await client.get_klines(symbol, "5m", 100)
-    if not klines_5m or len(klines_5m) < 60: 
+    klines_15m = await client.get_klines(symbol, "15m", 100)
+    if not klines_15m or len(klines_15m) < 60: 
         return {"signal": "NONE"}
         
     # Descartar la última vela (está incompleta/abierta y arruina los cálculos de volumen/indicadores)
-    klines_5m = klines_5m[:-1]
+    klines_15m = klines_15m[:-1]
     
     from app.logger import logger
     
-    closes = [c["close"] for c in klines_5m]
-    highs = [c["high"] for c in klines_5m]
-    lows = [c["low"] for c in klines_5m]
+    closes = [c["close"] for c in klines_15m]
+    highs = [c["high"] for c in klines_15m]
+    lows = [c["low"] for c in klines_15m]
     
     # 1. Indicadores
     ema9 = calculate_ema(closes, 9)[-1]
@@ -37,7 +37,7 @@ async def evaluate_supertrend_pullback(client, symbol: str) -> dict:
     
     atr14 = calculate_atr(highs, lows, closes, 14)[-1]
     
-    c = klines_5m[-1]  # Última vela cerrada
+    c = klines_15m[-1]  # Última vela cerrada
     
     signal = "NONE"
     entry_price = 0.0
@@ -51,7 +51,7 @@ async def evaluate_supertrend_pullback(client, symbol: str) -> dict:
                 if c["low"] <= ema9 and c["close"] > ema21:
                     signal = "LONG"
                     entry_price = c["close"]
-                    sl_price = entry_price - (1.5 * atr14)
+                    sl_price = entry_price - (1.0 * atr14)
                 else:
                     logger.info(f"[{symbol} ST-LONG] Failed Pullback: low={c['low']:.2f} > ema9={ema9:.2f} or close={c['close']:.2f} < ema21={ema21:.2f}")
             else:
@@ -65,7 +65,7 @@ async def evaluate_supertrend_pullback(client, symbol: str) -> dict:
                 if c["high"] >= ema9 and c["close"] < ema21:
                     signal = "SHORT"
                     entry_price = c["close"]
-                    sl_price = entry_price + (1.5 * atr14)
+                    sl_price = entry_price + (1.0 * atr14)
                 else:
                     logger.info(f"[{symbol} ST-SHORT] Failed Pullback: high={c['high']:.2f} < ema9={ema9:.2f} or close={c['close']:.2f} > ema21={ema21:.2f}")
             else:
@@ -78,11 +78,11 @@ async def evaluate_supertrend_pullback(client, symbol: str) -> dict:
     if signal != "NONE":
         return {
             "signal": signal,
-            "entry_price": entry_price, # Market entry
+            "entry_price": entry_price, # Limit order precisely at the close price
             "sl_price": sl_price,
-            "atr": abs(entry_price - sl_price) / 2.5, # Dummy ATR calculation, engine parses target_dist
+            "atr": atr14,
             "strategy": "SUPERTREND_PULLBACK_V3",
-            "is_limit": False
+            "is_limit": True
         }
         
     return {"signal": "NONE"}

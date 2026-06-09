@@ -48,19 +48,19 @@ async def evaluate_divergence(client, symbol: str) -> dict:
     if bias == "NONE":
         return {"signal": "NONE"}
         
-    # 2. Sniper Gatillo (5M FVG)
-    klines_5m = await client.get_klines(symbol, "5m", 20)
-    if not klines_5m or len(klines_5m) < 5: return {"signal": "NONE"}
+    # 2. Sniper Gatillo (15M FVG)
+    klines_trigger = await client.get_klines(symbol, "15m", 20)
+    if not klines_trigger or len(klines_trigger) < 5: return {"signal": "NONE"}
     
-    # Calculate ATR for SL/TP
-    highs_5m = [c["high"] for c in klines_5m]
-    lows_5m = [c["low"] for c in klines_5m]
-    closes_5m = [c["close"] for c in klines_5m]
-    volumes_5m = [c["volume"] for c in klines_5m]
-    atr = calculate_atr(highs_5m, lows_5m, closes_5m, 14)[-1]
+    # Extraer datos de 15M (Trigger)
+    highs_tr = [c["high"] for c in klines_trigger]
+    lows_tr = [c["low"] for c in klines_trigger]
+    closes_tr = [c["close"] for c in klines_trigger]
+    volumes_tr = [c["volume"] for c in klines_trigger]
+    atr = calculate_atr(highs_tr, lows_tr, closes_tr, 14)[-1]
     
-    # Calculate 10-period SMA of Volume
-    sma_vol_10 = calculate_sma(volumes_5m, 10)
+    # Calcular SMA 10 de Volumen
+    sma_vol_10 = calculate_sma(volumes_tr, 10)
     
     fvg_found = False
     entry_price = 0.0
@@ -68,19 +68,19 @@ async def evaluate_divergence(client, symbol: str) -> dict:
     
     # Look for FVG in the last 5 candles
     for i in range(-1, -6, -1):
-        if len(klines_5m) < abs(i) + 2: continue
-        c1 = klines_5m[i-2]
-        c2 = klines_5m[i-1]
-        c3 = klines_5m[i]
+        if len(klines_trigger) < abs(i) + 2: continue
+        c1 = klines_trigger[i-2]
+        c2 = klines_trigger[i-1]
+        c3 = klines_trigger[i]
         
         # Apply Smart Money Order Flow (Volume Filter) on the displacement candle (c2)
         # Displacement candle volume must be >= 80% of SMA-10 volume
-        idx_c2 = len(volumes_5m) + i - 1  # Get absolute index of c2
+        idx_c2 = len(volumes_tr) + i - 1  # Get absolute index of c2
         if c2["volume"] < 0.80 * sma_vol_10[idx_c2]:
             continue
             
         range_c3 = c3["high"] - c3["low"]
-        latest_c = klines_5m[-1]
+        latest_c = klines_trigger[-1]
         
         if bias == "LONG":
             # Bullish FVG with strong rejection
