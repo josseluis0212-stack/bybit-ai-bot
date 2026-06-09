@@ -24,6 +24,12 @@ bingx_client = AsyncBingXClient()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup and shutdown lifecycle manager."""
+    logger.warning("=====================================================================")
+    logger.warning("🚨 [SYSTEM ALERT] BOT RESTARTED / RECOVERED FROM RENDER SHUTDOWN")
+    logger.warning("Si no fuiste tú quien reinició el bot, el servidor en la nube (Render)")
+    logger.warning("mató el proceso y el bot acaba de revivir automáticamente.")
+    logger.warning("=====================================================================")
+    
     logger.info("Checking Hedge Mode...")
     await bingx_client.ensure_hedge_mode()
 
