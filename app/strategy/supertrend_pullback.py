@@ -10,18 +10,18 @@ async def evaluate_supertrend_pullback(client, symbol: str) -> dict:
     - Gatillo: Mecha perfora EMA 21 pero cierra a favor.
     - Entrada por Market Order.
     """
-    klines_15m = await client.get_klines(symbol, "15m", 100)
-    if not klines_15m or len(klines_15m) < 60: 
+    klines_5m = await client.get_klines(symbol, "5m", 100)
+    if not klines_5m or len(klines_5m) < 60: 
         return {"signal": "NONE"}
         
     # Descartar la última vela (está incompleta/abierta y arruina los cálculos de volumen/indicadores)
-    klines_15m = klines_15m[:-1]
+    klines_5m = klines_5m[:-1]
     
     from app.logger import logger
     
-    closes = [c["close"] for c in klines_15m]
-    highs = [c["high"] for c in klines_15m]
-    lows = [c["low"] for c in klines_15m]
+    closes = [c["close"] for c in klines_5m]
+    highs = [c["high"] for c in klines_5m]
+    lows = [c["low"] for c in klines_5m]
     
     # 1. Indicadores
     ema9 = calculate_ema(closes, 9)[-1]
@@ -37,7 +37,7 @@ async def evaluate_supertrend_pullback(client, symbol: str) -> dict:
     
     atr14 = calculate_atr(highs, lows, closes, 14)[-1]
     
-    c = klines_15m[-1]  # Última vela cerrada
+    c = klines_5m[-1]  # Última vela cerrada
     
     signal = "NONE"
     entry_price = 0.0

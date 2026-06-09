@@ -48,11 +48,11 @@ async def evaluate_divergence(client, symbol: str) -> dict:
     if bias == "NONE":
         return {"signal": "NONE"}
         
-    # 2. Sniper Gatillo (15M FVG)
-    klines_trigger = await client.get_klines(symbol, "15m", 20)
+    # 2. Sniper Gatillo (5M FVG)
+    klines_trigger = await client.get_klines(symbol, "5m", 20)
     if not klines_trigger or len(klines_trigger) < 5: return {"signal": "NONE"}
     
-    # Extraer datos de 15M (Trigger)
+    # Extraer datos de 5M (Trigger)
     highs_tr = [c["high"] for c in klines_trigger]
     lows_tr = [c["low"] for c in klines_trigger]
     closes_tr = [c["close"] for c in klines_trigger]
@@ -62,12 +62,13 @@ async def evaluate_divergence(client, symbol: str) -> dict:
     # Calcular SMA 10 de Volumen
     sma_vol_10 = calculate_sma(volumes_tr, 10)
     
-    fvg_found = False
+    signal = "NONE"
     entry_price = 0.0
     sl_price = 0.0
+    fvg_top = 0.0
+    fvg_bottom = 0.0
     
-    # Look for FVG in the last 5 candles
-    for i in range(-1, -6, -1):
+    for i in range(-1, -4, -1):
         if len(klines_trigger) < abs(i) + 2: continue
         c1 = klines_trigger[i-2]
         c2 = klines_trigger[i-1]
