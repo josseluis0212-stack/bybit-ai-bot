@@ -575,7 +575,10 @@ class Engine:
 
     async def _place_tp_sl_for_symbol(self, symbol: str, trade: dict):
         """Places SL + TP after confirmed position fill."""
-        order_ids = await self.executor.place_sl_and_tps(
+        from app.notifications.telegram import notifier
+        import asyncio
+        
+        order_ids, tps = await self.executor.place_sl_and_tps(
             symbol=symbol,
             side=trade["side"],
             entry_price=trade["entry_price"],
@@ -585,6 +588,18 @@ class Engine:
         if order_ids:
             trade["sl_order_id"] = order_ids.get("sl")
             trade["tp1_order_id"] = order_ids.get("tp1")
+            trade["tp2_order_id"] = order_ids.get("tp2")
+            trade["tps"] = tps
+            
+            # Send the telegram notification now that we have all the data
+            asyncio.create_task(notifier.notify_open(
+                symbol=symbol,
+                side=trade["side"],
+                entry_price=trade["entry_price"],
+                qty=trade["total_size"],
+                strategy=trade.get("strategy", "UNKNOWN"),
+                trade=trade
+            ))
 
     # ──────────────────────────────────────────────────────────────
     # RECONCILIATION LOOP (every 30 seconds)

@@ -29,26 +29,52 @@ class TelegramNotifier:
         except Exception as e:
             logger.error(f"[Telegram] Error enviando mensaje: {e}")
 
-    async def notify_open(self, symbol: str, side: str, entry_price: float, qty: float, strategy: str = ""):
+    async def notify_open(self, symbol: str, side: str, entry_price: float, qty: float, strategy: str = "", trade: dict = None):
         icon = "🟢" if side.lower() == "long" else "🔴"
-        strat_str = f"🤖 Estrategia: <code>{strategy}</code>\n" if strategy else ""
+        strat_str = f"🧠 <b>Estrategia:</b> <code>{strategy}</code>\n" if strategy else ""
+        
+        sl_str = ""
+        tp_str = ""
+        if trade:
+            sl = trade.get("sl_price")
+            if sl: sl_str = f"🛡️ <b>Stop Loss:</b> <code>{sl:.6f}</code>\n"
+            
+            tps = trade.get("tps", [])
+            if tps and len(tps) > 0:
+                tp_str = f"🎯 <b>TP1 (50%):</b> <code>{tps[0].get('price', 0):.6f}</code>\n"
+                if len(tps) > 1:
+                    tp_str += f"🚀 <b>TP2 (50%):</b> <code>{tps[1].get('price', 0):.6f}</code>\n"
+                
         text = (
             f"{icon} <b>NUEVA OPERACIÓN {side.upper()}</b>\n"
-            f"📌 <b>{symbol}</b> (BingX)\n"
-            f"💰 Entrada: <code>{entry_price:.4f}</code>\n"
-            f"📦 Tamaño: <code>{qty}</code>\n"
-            f"{strat_str}"
+            f"─────────────────\n"
+            f"🪙 <b>Par:</b> #{symbol.replace('-', '')}\n"
+            f"💰 <b>Entrada:</b> <code>{entry_price:.6f}</code>\n"
+            f"⚖️ <b>Tamaño:</b> <code>{qty}</code>\n"
+            f"{sl_str}{tp_str}{strat_str}"
+            f"─────────────────\n"
+            f"🤖 <i>SMC PRO V1 - BingX</i>"
         )
         await self.send_message(text)
 
     async def notify_close(self, symbol: str, side: str, pnl: float = 0.0, reason: str = "Cierre"):
-        icon = "✅" if pnl >= 0 else "❌"
-        sign = "+" if pnl > 0 else ""
+        is_profit = pnl > 0
+        icon = "✅" if is_profit else ("📉" if pnl < 0 else "⚖️")
+        sign = "+" if is_profit else ""
+        
+        reason_icon = "🏁"
+        if "TP" in reason: reason_icon = "🎯"
+        elif "SL" in reason: reason_icon = "🛑"
+        elif "BREAKEVEN" in reason: reason_icon = "🛡️"
+        elif "TRAILING" in reason: reason_icon = "🏄‍♂️"
+        
         text = (
             f"{icon} <b>CIERRE {side.upper()}</b>\n"
-            f"📌 <b>{symbol}</b> (BingX)\n"
-            f"📋 Razón: {reason}\n"
-            f"💵 PnL: <b>{sign}{pnl:.2f} USDT</b>"
+            f"─────────────────\n"
+            f"🪙 <b>Par:</b> #{symbol.replace('-', '')}\n"
+            f"{reason_icon} <b>Razón:</b> <code>{reason}</code>\n"
+            f"💵 <b>PNL Neto:</b> <b>{sign}{pnl:.4f} USDT</b>\n"
+            f"─────────────────"
         )
         await self.send_message(text)
 

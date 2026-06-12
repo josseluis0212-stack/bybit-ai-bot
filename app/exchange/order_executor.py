@@ -119,9 +119,6 @@ class OrderExecutor:
         real_size = abs(float(pos.get("positionAmt", total_size)))
         logger.info(f"[TP/SL] Confirmed position {symbol} {side} size={real_size:.6f}")
         
-        # Enviar notificación a Telegram sin bloquear
-        asyncio.create_task(notifier.notify_open(symbol, side, entry_price, real_size, "UNKNOWN"))
-
         pos_side = "LONG" if side == "LONG" else "SHORT"
         close_side = "SELL" if side == "LONG" else "BUY"
 
@@ -188,7 +185,7 @@ class OrderExecutor:
             else:
                 logger.error(f"[TP LEVEL {i+1}] FAILED: {tp_res.get('msg')}")
 
-        return order_ids
+        return order_ids, tps
 
     async def update_sl(self, symbol: str, side: str, old_sl_id: str,
                         new_sl_price: float, remaining_size: float) -> Optional[str]:
