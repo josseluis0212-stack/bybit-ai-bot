@@ -114,17 +114,9 @@ function updateStats(stats) {
     };
 
     updatePnl('pnl-today', stats.pnl_today);
-    updatePnl('pnl-week',  stats.pnl_week);
-    updatePnl('pnl-month', stats.pnl_month);
-    updatePnl('pnl-total', stats.pnl_total);
 
     document.getElementById('win-today').innerText    = stats.win_today;
     document.getElementById('loss-today').innerText   = stats.loss_today;
-    document.getElementById('win-week').innerText     = stats.win_week;
-    document.getElementById('loss-week').innerText    = stats.loss_week;
-    document.getElementById('win-month').innerText    = stats.win_month;
-    document.getElementById('loss-month').innerText   = stats.loss_month;
-    document.getElementById('trades-total').innerText = stats.total_trades;
 
     document.getElementById('winrate-pct').innerText          = `${stats.win_rate.toFixed(1)}%`;
     document.getElementById('winrate-bar').style.width        = `${Math.min(stats.win_rate, 100)}%`;
@@ -186,7 +178,7 @@ function updateStats(stats) {
                     </div>
 
                     <!-- PNL -->
-                    <div class="hist-pnl ${pnlClass}" style="text-align:right; font-size:0.9rem;">${formatCurrency(t.pnl)}</div>
+                    <div class="hist-pnl ${pnlClass}" style="text-align:right; font-size:1.0rem; font-weight:800; text-shadow: 0 0 5px ${isWin ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'};">${formatCurrency(t.pnl)}</div>
                 </div>
             `;
         });

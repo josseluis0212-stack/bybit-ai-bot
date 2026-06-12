@@ -215,55 +215,43 @@ async def api_stats():
             except Exception as e:
                 logger.error(f"Error loading pnl_start_time.txt: {e}")
 
-        # For simplicity, sum it up for today/week/month based on timestamps
         now_ms = int(time.time() * 1000)
-        day_ms = 24 * 60 * 60 * 1000
-        week_ms = 7 * day_ms
-        month_ms = 30 * day_ms
         
+        # Calculate last 11:00 PM UTC-5 (which is 04:00 UTC)
+        # Epoch 0 is 00:00 UTC. We get the start of today in UTC, add 4 hours.
+        current_day_utc_start = (now_ms // 86400000) * 86400000
+        reset_ms = current_day_utc_start + (4 * 3600 * 1000)
+        if now_ms < reset_ms:
+            reset_ms -= 86400000  # Reset was yesterday
+            
         p_today = 0.0
-        p_week = 0.0
-        p_month = 0.0
-        p_total = 0.0
+        w_today = 0
+        l_today = 0
         
-        w_today, l_today = 0, 0
-        w_week, l_week = 0, 0
-        w_month, l_month = 0, 0
-        
-        for item in income_data:
-            ts = int(item.get("time", 0))
-            if ts < pnl_start_time:
-                continue
+        # Initialize vars for removed stats (to not break the return dict)
+        p_week, p_month, p_total = 0.0, 0.0, 0.0
+        w_week, w_month, l_week, l_month = 0, 0, 0, 0
 
-            # only count actual Realized PNL and Commissions
-            if str(item.get("incomeType")) in ["2", "4", "REALIZED_PNL", "TRADING_FEE", "FUNDING_FEE"]:
-                amt = float(item.get("income", 0.0))
-                ts = int(item.get("time", 0))
-                
-                p_total += amt
-                if now_ms - ts <= day_ms: 
-                    p_today += amt
-                    if str(item.get("incomeType")) in ["2", "REALIZED_PNL"]:
-                        if amt > 0: w_today += 1
-                        elif amt < 0: l_today += 1
-                if now_ms - ts <= week_ms: 
-                    p_week += amt
-                    if str(item.get("incomeType")) in ["2", "REALIZED_PNL"]:
-                        if amt > 0: w_week += 1
-                        elif amt < 0: l_week += 1
-                if now_ms - ts <= month_ms: 
-                    p_month += amt
-                    if str(item.get("incomeType")) in ["2", "REALIZED_PNL"]:
-                        if amt > 0: w_month += 1
-                        elif amt < 0: l_month += 1
+        if income_data:
+            for item in income_data:
+                if str(item.get("incomeType")) in ["2", "4", "REALIZED_PNL", "TRADING_FEE", "FUNDING_FEE"]:
+                    amt = float(item.get("income", 0.0))
+                    ts = int(item.get("time", 0))
+                    
+                    p_total += amt
+                    if ts >= reset_ms: 
+                        p_today += amt
+                        if str(item.get("incomeType")) in ["2", "REALIZED_PNL"]:
+                            if amt > 0: w_today += 1
+                            elif amt < 0: l_today += 1
 
             # Build history from REALIZED_PNL only
+        for item in income_data:
             if str(item.get("incomeType")) in ["2", "REALIZED_PNL"]:
                 amt = float(item.get("income", 0.0))
                 sym = item.get("symbol", "")
                 info = item.get("info", "")
                 ts = int(item.get("time", 0))
-                
                 side = "LONG" if "Sell" in info else ("SHORT" if "Buy" in info else "TRADE")
                 
                 # Try to enrich with local trade data
