@@ -66,7 +66,8 @@ class Engine:
         self.tp_manager = TakeProfitManager()
         self.ws = BingXWebSocket(
             message_callback=self._noop_ws_message,  # Klines via REST; WS only for fills
-            fill_callback=self.on_fill_event
+            fill_callback=self.on_fill_event,
+            mark_price_callback=self._handle_ws_mark_price
         )
         self.buffers: dict[str, CandleBuffer] = defaultdict(CandleBuffer)
         self.trade_state: dict = {}  # symbol -> trade info
@@ -202,6 +203,10 @@ class Engine:
 
         # Start WebSocket (blocking – only handles private fills now)
         await self.ws.connect()
+        
+        # Subscribe to mark prices for restored trades
+        for sym in self.trade_state.keys():
+            await self.ws.subscribe_mark_price(sym)
 
     async def stop(self):
         self.running = False
@@ -233,6 +238,39 @@ class Engine:
                 logger.error(f"[SYSTEM] Error updating top symbols: {e}")
             await asyncio.sleep(4 * 3600)  # 4 hours
 
+    async def _handle_ws_mark_price(self, data):
+        """Triggered instantly by WebSocket when Mark Price updates."""
+        try:
+            ws_data = data.get("data", {})
+            symbol = ws_data.get("symbol")
+            mark_price = ws_data.get("markPrice")
+            
+            if not symbol or not mark_price:
+                return
+                
+            mark_price = float(mark_price)
+            
+            async with self.global_trade_lock:
+                trade = self.trade_state.get(symbol)
+                if trade and trade.get("filled"):
+                    pos_amt = trade.get("remaining_size", 0)
+                    if pos_amt > 0:
+                        # Re-evaluate trailing and breakeven instantly!
+                        await self._evaluate_trailing_and_breakeven(symbol, trade, mark_price, pos_amt)
+                        
+                        # Update highest price state
+                        side = trade.get("side")
+                        highest = trade.get("highest_price", 0.0)
+                        if highest == 0.0:
+                            trade["highest_price"] = mark_price
+                        elif side == "LONG" and mark_price > highest:
+                            trade["highest_price"] = mark_price
+                        elif side == "SHORT" and mark_price < highest:
+                            trade["highest_price"] = mark_price
+                            
+        except Exception as e:
+            logger.error(f"[WS MARK PRICE] Error handling tick: {e}")
+
     # ──────────────────────────────────────────────────────────────
     # KLINE POLLING LOOP  (replaces WebSocket kline handling)
     # ──────────────────────────────────────────────────────────────
@@ -242,7 +280,7 @@ class Engine:
         20 klines per symbol.  Feeds closed candles into buffers and triggers
         strategy evaluation whenever a new closed candle is detected.
         """
-        logger.info(f"[POLL] Kline polling loop started. Interval={KLINE_POLL_INTERVAL}s, TF={Config.TIMEFRAME}")
+        logger.info(f"[POLL] Kline polling loop started. Interval=15m synced, TF={Config.TIMEFRAME}")
 
         # Brief initial delay so the WS connection can establish first
         await asyncio.sleep(5)
@@ -261,7 +299,19 @@ class Engine:
                 # Small delay to avoid API rate limits when fetching 80 pairs
                 await asyncio.sleep(0.1)
 
-            await asyncio.sleep(KLINE_POLL_INTERVAL)
+            # Sync with the atomic clock for the next 15-minute boundary
+            now = time.time()
+            # 15 minutes = 900 seconds. Modulo gives seconds passed since last boundary.
+            seconds_to_sleep = 900 - (now % 900)
+            # Add a small 2-second buffer to ensure the exchange has closed the candle
+            seconds_to_sleep += 2.0
+            
+            # Since the wait can be up to 15 minutes, we sleep in small chunks so we can shut down cleanly
+            logger.info(f"[POLL] Synced to atomic clock. Sleeping for {seconds_to_sleep/60:.1f} minutes until next 15m boundary.")
+            slept = 0
+            while slept < seconds_to_sleep and self.running:
+                await asyncio.sleep(1)
+                slept += 1
 
     async def _poll_klines_for_symbol(self, symbol: str):
         """Fetches klines via REST, updates candle buffer, and triggers strategy."""
@@ -596,6 +646,9 @@ class Engine:
             trade["tp2_order_id"] = order_ids.get("tp2")
             trade["tps"] = tps
             
+            # Subscribe to Mark Price for real-time trailing
+            await self.ws.subscribe_mark_price(symbol)
+            
             # Send the telegram notification now that we have all the data
             asyncio.create_task(notifier.notify_open(
                 symbol=symbol,
@@ -723,6 +776,9 @@ class Engine:
                             trade["breakeven_hit"] = False
                         if "trailing_active" not in trade:
                             trade["trailing_active"] = False
+                            
+                        # Subscribe newly adopted orphan to real-time mark price
+                        await self.ws.subscribe_mark_price(sym)
                         if "highest_price" not in trade or trade["highest_price"] == 0.0:
                             trade["highest_price"] = mark_price
 
@@ -916,10 +972,10 @@ class Engine:
                             elif trade.get("filled"):
                                 pos_amt = trade.get("remaining_size", trade.get("total_size", 0))
                                 await self._evaluate_trailing_and_breakeven(symbol, trade, mark_price, pos_amt)
-                await asyncio.sleep(1.5)
+                await asyncio.sleep(15)
             except Exception as e:
                 logger.error(f"[FAST TRAILING] Error: {e}")
-                await asyncio.sleep(1.5)
+                await asyncio.sleep(15)
 
     def _timeframe_seconds(self) -> int:
         tf = Config.TIMEFRAME
@@ -937,6 +993,8 @@ class Engine:
         try:
             logger.info(f"[CLOSE TRADE] Cancelling all remaining orders for {symbol} on trade close (Reason: {reason})...")
             await self.client.cancel_all_orders(symbol)
+            # Unsubscribe from Mark Price Stream
+            await self.ws.unsubscribe_mark_price(symbol)
         except Exception as e:
             logger.error(f"[CLOSE TRADE] Error cancelling remaining orders for {symbol}: {e}")
 

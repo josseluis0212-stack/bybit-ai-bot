@@ -11,7 +11,7 @@ class Config:
     RISK_PER_TRADE = float(os.getenv("RISK_PER_TRADE", "8.0"))
     MAX_OPEN_TRADES = int(os.getenv("MAX_OPEN_TRADES", "10"))
     LEVERAGE = int(os.getenv("LEVERAGE", "10"))
-    ENTRY_ORDER_MAX_AGE = int(os.getenv("ENTRY_ORDER_MAX_AGE", "600"))
+    ENTRY_ORDER_MAX_AGE = int(os.getenv("ENTRY_ORDER_MAX_AGE", "1800"))
     MIN_VOLUME_24H = float(os.getenv("MIN_VOLUME_24H", "500000"))
     EARLY_EXIT_VOL_MULT = float(os.getenv("EARLY_EXIT_VOL_MULT", "1.8"))
     EARLY_EXIT_LOOKBACK_MINUTES = int(os.getenv("EARLY_EXIT_LOOKBACK_MINUTES", "20"))

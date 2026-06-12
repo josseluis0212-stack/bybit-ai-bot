@@ -16,10 +16,11 @@ class BingXWebSocket:
     Handles market data (klines) and private order fills.
     Features: auto-reconnect, exponential backoff, ping/pong, gzip decompression.
     """
-    def __init__(self, message_callback, fill_callback=None):
+    def __init__(self, message_callback, fill_callback=None, mark_price_callback=None):
         self.ws_url = Config.WS_URL
         self.message_callback = message_callback
         self.fill_callback = fill_callback
+        self.mark_price_callback = mark_price_callback
         self.client = AsyncBingXClient()
         self.ws = None
         self._ping_task = None
@@ -35,6 +36,26 @@ class BingXWebSocket:
         except Exception as e:
             logger.error(f"Failed to get listen key: {e}")
         return None
+
+    async def subscribe_mark_price(self, symbol: str):
+        if self.ws and not self.ws.closed:
+            sub_msg = {
+                "id": f"sub_mark_{symbol}",
+                "reqType": "sub",
+                "dataType": f"{symbol}@markPrice"
+            }
+            await self.ws.send(json.dumps(sub_msg))
+            logger.info(f"Subscribed to Mark Price stream for {symbol}")
+
+    async def unsubscribe_mark_price(self, symbol: str):
+        if self.ws and not self.ws.closed:
+            unsub_msg = {
+                "id": f"unsub_mark_{symbol}",
+                "reqType": "unsub",
+                "dataType": f"{symbol}@markPrice"
+            }
+            await self.ws.send(json.dumps(unsub_msg))
+            logger.info(f"Unsubscribed from Mark Price stream for {symbol}")
 
     async def _subscribe_market_data(self, ws):
         tf_key = TF_MAP.get(Config.TIMEFRAME, "kline_5m")
@@ -120,6 +141,11 @@ class BingXWebSocket:
             # Detect order fill events (private channel)
             if data.get("e") in ("ORDER_TRADE_UPDATE", "executionReport") and self.fill_callback:
                 await self.fill_callback(data)
+                return
+
+            # Route Mark Price updates
+            if "markPrice" in data.get("dataType", "") and self.mark_price_callback:
+                await self.mark_price_callback(data)
                 return
 
             # Route to market data callback
