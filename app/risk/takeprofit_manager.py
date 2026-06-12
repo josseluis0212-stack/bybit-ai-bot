@@ -11,11 +11,11 @@ class TakeProfitManager:
         risk = abs(entry_price - sl_price)
 
         if side == "LONG":
-            tp1_price = entry_price + (risk * 2.5)
-            tp2_price = entry_price + (risk * 5.0)
+            tp1_price = entry_price + (risk * 1.0)
+            tp2_price = entry_price + (risk * 2.0)
         else:  # SHORT
-            tp1_price = entry_price - (risk * 2.5)
-            tp2_price = entry_price - (risk * 5.0)
+            tp1_price = entry_price - (risk * 1.0)
+            tp2_price = entry_price - (risk * 2.0)
 
         qty1 = round(total_size * 0.5, 4)
         qty2 = total_size - qty1  # Ensure exact total

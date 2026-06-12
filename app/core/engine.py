@@ -545,7 +545,7 @@ class Engine:
 
                     # Persist pending trade
                     risk_dist = abs(entry_price - sl_price)
-                    # TP at 5.0x ATR, SL at 2.5x ATR => TP distance = 2.0 * SL distance
+                    # TP at 2.0x Risk => TP distance = 2.0 * SL distance
                     tp_price = entry_price + (risk_dist * 2.0) if sweep_result["signal"] == "LONG" else entry_price - (risk_dist * 2.0)
                     target_dist = abs(entry_price - tp_price)
 

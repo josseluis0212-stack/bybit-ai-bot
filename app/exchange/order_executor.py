@@ -302,7 +302,7 @@ class OrderExecutor:
         tp_price = trade.get("tp_price")
         if not tp_price:
             risk_dist = abs(entry_price - sl_price)
-            tp_price = entry_price + (risk_dist * 5.0) if side == "LONG" else entry_price - (risk_dist * 5.0)
+            tp_price = entry_price + (risk_dist * 2.0) if side == "LONG" else entry_price - (risk_dist * 2.0)
 
         target_distance = abs(entry_price - tp_price)
         
