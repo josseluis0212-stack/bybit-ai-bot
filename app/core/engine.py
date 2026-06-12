@@ -430,10 +430,15 @@ class Engine:
                     trade["filled"] = True
                     await self._place_tp_sl_for_symbol(symbol, trade)
 
-                # If TP1 (single TP) filled → trade complete
+                # If TP1 filled -> log partial take profit
                 elif order_id == trade.get("tp1_order_id") and not trade.get("tp1_hit"):
                     trade["tp1_hit"] = True
-                    logger.info(f"[TP HIT] {symbol}. Full position closed. 🎉")
+                    logger.info(f"[TP1 HIT] {symbol} hit first target! Secured 50% partial profits. 🎯")
+                
+                # If TP2 filled -> trade complete
+                elif order_id == trade.get("tp2_order_id") and not trade.get("tp2_hit"):
+                    trade["tp2_hit"] = True
+                    logger.info(f"[TP2 HIT] {symbol}. Final target reached. Full position closed. 🚀")
                     await self._close_trade(symbol, reason="TP_HIT")
 
                 await self._save_state()
