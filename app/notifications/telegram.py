@@ -35,26 +35,38 @@ class TelegramNotifier:
         
         sl_str = ""
         tp_str = ""
+        risk_str = ""
+        
         if trade:
             sl = trade.get("sl_price")
-            if sl: sl_str = f"🛡️ <b>Stop Loss:</b> <code>{sl:.6f}</code>\n"
+            if sl:
+                risk_usdt = abs(entry_price - sl) * qty
+                risk_str = f"⚠️ <b>Riesgo (Stop Loss):</b> <code>-${risk_usdt:.2f} USDT</code>\n"
+                sl_str = f"🛡️ <b>Stop Loss:</b> <code>{sl:.6f}</code>\n"
             
             tps = trade.get("tps", [])
             if tps and len(tps) > 0:
-                tp_str = f"🎯 <b>TP1 (50%):</b> <code>{tps[0].get('price', 0):.6f}</code>\n"
+                tp1_price = tps[0].get('price', 0)
+                tp1_profit = abs(tp1_price - entry_price) * (qty * 0.5)
+                tp_str = f"🎯 <b>TP1 (50%):</b> <code>{tp1_price:.6f}</code> <i>(+${tp1_profit:.2f})</i>\n"
+                
                 if len(tps) > 1:
-                    tp_str += f"🚀 <b>TP2 (50%):</b> <code>{tps[1].get('price', 0):.6f}</code>\n"
+                    tp2_price = tps[1].get('price', 0)
+                    tp2_profit = abs(tp2_price - entry_price) * (qty * 0.5)
+                    tp_str += f"🚀 <b>TP2 (50%):</b> <code>{tp2_price:.6f}</code> <i>(+${tp2_profit:.2f})</i>\n"
                 
         text = (
             f"{icon} <b>NUEVA OPERACIÓN {side.upper()}</b>\n"
-            f"─────────────────\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
             f"🪙 <b>Par:</b> #{symbol.replace('-', '')}\n"
             f"💰 <b>Entrada:</b> <code>{entry_price:.6f}</code>\n"
-            f"⚖️ <b>Tamaño:</b> <code>{qty}</code>\n"
-            f"{sl_str}{tp_str}{strat_str}"
-            f"─────────────────\n"
-            f"🤖 <i>SMC PRO V1 - BingX</i>"
+            f"⚖️ <b>Tamaño (Monedas):</b> <code>{qty}</code>\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"{sl_str}{tp_str}{risk_str}{strat_str}"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"🤖 <i>Terminal Institucional SMC - BingX</i>"
         )
+        
         await self.send_message(text)
 
     async def notify_close(self, symbol: str, side: str, pnl: float = 0.0, reason: str = "Cierre"):
