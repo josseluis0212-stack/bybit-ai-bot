@@ -24,7 +24,15 @@ async def main():
         total_pnl = 0.0
         total_fees = 0.0
         
+        import time
+        cutoff_ms = (time.time() - (args.days * 86400)) * 1000
+        
         for item in incomes:
+            # BingX timestamps are usually in milliseconds
+            item_time = int(item.get("time", item.get("timestamp", 0)))
+            if item_time > 0 and item_time < cutoff_ms:
+                continue # Skip old history
+                
             income_type = item.get("incomeType")
             amount = float(item.get("income", 0))
             
