@@ -1,5 +1,5 @@
 from app.exchange.bingx_client import AsyncBingXClient
-from app.strategy.indicators import calculate_ema, calculate_atr
+from app.utils.indicators import calculate_ema, calculate_atr
 from app.logger import logger
 
 async def analyze(client: AsyncBingXClient, symbol: str) -> dict:
