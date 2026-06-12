@@ -114,7 +114,7 @@ class OrderExecutor:
         pos = await self.verify_position_exists(symbol, side)
         if not pos:
             logger.error(f"[TP/SL] Position not found on exchange for {symbol} {side}. Aborting TP/SL placement.")
-            return {}
+            return {}, []
 
         real_size = abs(float(pos.get("positionAmt", total_size)))
         logger.info(f"[TP/SL] Confirmed position {symbol} {side} size={real_size:.6f}")
@@ -277,6 +277,8 @@ class OrderExecutor:
                 o_type = order.get("type", order.get("orderType", ""))
                 if o_type == "STOP_MARKET":
                     has_sl = True
+                    # FIX: Save the found orderId to prevent infinite Guardian loops
+                    trade["sl_order_id"] = str(order.get("orderId", ""))
                 elif o_type == "TAKE_PROFIT_MARKET":
                     has_tp = True
 
