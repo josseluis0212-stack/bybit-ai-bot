@@ -787,7 +787,7 @@ class Engine:
         # --- Trailing Stop ---
         if progress >= trail_activation and not trade.get("trailing_active"):
             logger.info(f"[TRAILING ACTIVATE] {symbol} progress reached {progress:.2%} (>= {trail_activation*100}%). Cancelling TP and activating trailing stop.")
-            tp_id = trade.get("tp1_order_id")
+            tp_id = trade.get("tp2_order_id")
             tp_cancelled = True
             if tp_id:
                 cancel_res = await self.client._request(
