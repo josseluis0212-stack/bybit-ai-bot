@@ -221,7 +221,7 @@ class Engine:
         """Updates the top 50 volume symbols every 4 hours."""
         while self.running:
             try:
-                symbols = await self.client.get_top_volume_symbols(50)
+                symbols = await self.client.get_top_volume_symbols(40)
                 if symbols:
                     if "BTC-USDT" not in symbols:
                         symbols.append("BTC-USDT")
@@ -779,9 +779,9 @@ class Engine:
         # --- Strategy Profiles ---
         strategy = trade.get("strategy", "")
         # SMC PRO profile (Unified)
-        be_activation = 0.30
-        be_lock = 0.10
-        trail_activation = 0.70
+        be_activation = Config.BREAKEVEN_ACTIVATION_PCT
+        be_lock = Config.BREAKEVEN_LOCK_PCT
+        trail_activation = Config.TRAILING_ACTIVATION_PCT
         trail_dist = 0.15
 
         # --- Trailing Stop ---
@@ -916,10 +916,10 @@ class Engine:
                             elif trade.get("filled"):
                                 pos_amt = trade.get("remaining_size", trade.get("total_size", 0))
                                 await self._evaluate_trailing_and_breakeven(symbol, trade, mark_price, pos_amt)
-                await asyncio.sleep(3)
+                await asyncio.sleep(1.5)
             except Exception as e:
                 logger.error(f"[FAST TRAILING] Error: {e}")
-                await asyncio.sleep(3)
+                await asyncio.sleep(1.5)
 
     def _timeframe_seconds(self) -> int:
         tf = Config.TIMEFRAME
