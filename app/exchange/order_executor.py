@@ -169,23 +169,24 @@ class OrderExecutor:
 
         # === Calculate TP levels ===
         tps = self.tp_manager.calculate_tps(entry_price, sl_price, real_size, side)
-        tp = tps[0]
-
-        # === Place TP (100%) ===
-        tp_res = await self.client.place_order(
-            symbol=symbol,
-            side=close_side,
-            position_side=pos_side,
-            order_type="TAKE_PROFIT_MARKET",
-            quantity=tp["qty"],
-            stop_price=tp["price"]
-        )
-        if tp_res.get("success") and tp_res.get("data"):
-            d = tp_res["data"].get("order", tp_res["data"])
-            order_ids["tp1"] = str(d.get("orderId", ""))
-            logger.info(f"[TP 2:1 R:R] Placed @ {tp['price']:.6f}. ID={order_ids['tp1']}")
-        else:
-            logger.error(f"[TP] FAILED: {tp_res.get('msg')}")
+        
+        # === Place TPs ===
+        for i, tp in enumerate(tps):
+            tp_res = await self.client.place_order(
+                symbol=symbol,
+                side=close_side,
+                position_side=pos_side,
+                order_type="TAKE_PROFIT_MARKET",
+                quantity=tp["qty"],
+                stop_price=tp["price"]
+            )
+            if tp_res.get("success") and tp_res.get("data"):
+                d = tp_res["data"].get("order", tp_res["data"])
+                tp_key = f"tp{i+1}"
+                order_ids[tp_key] = str(d.get("orderId", ""))
+                logger.info(f"[TP LEVEL {i+1}] Placed @ {tp['price']:.6f} for qty {tp['qty']}. ID={order_ids[tp_key]}")
+            else:
+                logger.error(f"[TP LEVEL {i+1}] FAILED: {tp_res.get('msg')}")
 
         return order_ids
 

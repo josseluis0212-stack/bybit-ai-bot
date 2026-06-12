@@ -20,7 +20,7 @@ class PositionGuardian:
         backoff_time = 2
         max_backoff = 60
         while self.running:
-            await asyncio.sleep(15)  # Patrol every 15 seconds
+            await asyncio.sleep(5)  # Patrol every 5 seconds
             try:
                 active_trades = [t for s, t in self.engine.trade_state.items() if t.get("entry_order_id")]
                 if not active_trades:

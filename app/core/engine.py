@@ -10,8 +10,7 @@ from app.exchange.bingx_client import AsyncBingXClient
 from app.exchange.order_executor import OrderExecutor
 from app.exchange.position_manager import PositionManager
 from app.data.candle_buffer import CandleBuffer
-from app.strategy.quantum_v10_pro import evaluate_v10_pro
-from app.strategy.supertrend_pullback import evaluate_supertrend_pullback
+from app.strategy.smc_pro_v1 import analyze as evaluate_smc_pro
 from app.strategy.volatility_filter import check_macro_shock
 from app.database.crud import init_db, get_all_active_trades, save_trade, delete_trade, add_history, is_on_cooldown, set_cooldown
 from app.database.models import TradeState
@@ -219,10 +218,10 @@ class Engine:
         logger.info("Engine stopped.")
 
     async def _symbol_updater_loop(self):
-        """Updates the top 40 volume symbols every 4 hours."""
+        """Updates the top 50 volume symbols every 4 hours."""
         while self.running:
             try:
-                symbols = await self.client.get_top_volume_symbols(40)
+                symbols = await self.client.get_top_volume_symbols(50)
                 if symbols:
                     if "BTC-USDT" not in symbols:
                         symbols.append("BTC-USDT")
@@ -469,10 +468,8 @@ class Engine:
                     logger.debug(f"[{symbol}] Active trade exists. Skipping new signal.")
                     return
 
-                # === Dual Strategy Pipeline ===
-                sweep_result = await evaluate_v10_pro(self.client, symbol)
-                if sweep_result["signal"] == "NONE":
-                    sweep_result = await evaluate_supertrend_pullback(self.client, symbol)
+                # === SMC PRO Pipeline ===
+                sweep_result = await evaluate_smc_pro(self.client, symbol)
                 
                 if sweep_result["signal"] == "NONE":
                     return
@@ -761,17 +758,11 @@ class Engine:
 
         # --- Strategy Profiles ---
         strategy = trade.get("strategy", "")
-        if "SUPERTREND" in strategy:
-            be_activation = 0.382
-            be_lock = 0.15
-            trail_activation = 0.80
-            trail_dist = 0.15
-        else:
-            # SMC / QUANTUM profile
-            be_activation = 0.382
-            be_lock = 0.15
-            trail_activation = 0.80
-            trail_dist = 0.15
+        # SMC PRO profile (Unified)
+        be_activation = 0.382
+        be_lock = 0.15
+        trail_activation = 0.70
+        trail_dist = 0.30
 
         # --- Trailing Stop ---
         if progress >= trail_activation and not trade.get("trailing_active"):
