@@ -759,10 +759,10 @@ class Engine:
         # --- Strategy Profiles ---
         strategy = trade.get("strategy", "")
         # SMC PRO profile (Unified)
-        be_activation = 0.382
-        be_lock = 0.15
+        be_activation = 0.30
+        be_lock = 0.10
         trail_activation = 0.70
-        trail_dist = 0.30
+        trail_dist = 0.15
 
         # --- Trailing Stop ---
         if progress >= trail_activation and not trade.get("trailing_active"):

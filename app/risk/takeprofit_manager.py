@@ -5,16 +5,16 @@ class TakeProfitManager:
     def calculate_tps(entry_price: float, sl_price: float, total_size: float, side: str) -> list:
         """
         Calculates Tiered Take Profits.
-        TP1 = 50% size at 1.5x Risk
-        TP2 = 50% size at 5.0x Risk
+        TP1 = 50% size at 2.5x Risk (Half target)
+        TP2 = 50% size at 5.0x Risk (Final target)
         """
         risk = abs(entry_price - sl_price)
 
         if side == "LONG":
-            tp1_price = entry_price + (risk * 1.5)
+            tp1_price = entry_price + (risk * 2.5)
             tp2_price = entry_price + (risk * 5.0)
         else:  # SHORT
-            tp1_price = entry_price - (risk * 1.5)
+            tp1_price = entry_price - (risk * 2.5)
             tp2_price = entry_price - (risk * 5.0)
 
         qty1 = round(total_size * 0.5, 4)
