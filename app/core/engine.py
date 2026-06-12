@@ -280,7 +280,7 @@ class Engine:
         20 klines per symbol.  Feeds closed candles into buffers and triggers
         strategy evaluation whenever a new closed candle is detected.
         """
-        logger.info(f"[POLL] Kline polling loop started. Interval=15m synced, TF={Config.TIMEFRAME}")
+        logger.info(f"[POLL] Kline polling loop started. Interval=2m synced, TF={Config.TIMEFRAME}")
 
         # Brief initial delay so the WS connection can establish first
         await asyncio.sleep(5)
@@ -299,15 +299,15 @@ class Engine:
                 # Small delay to avoid API rate limits when fetching 80 pairs
                 await asyncio.sleep(0.1)
 
-            # Sync with the atomic clock for the next 15-minute boundary
+            # Sync with the atomic clock for the next 2-minute boundary
             now = time.time()
-            # 15 minutes = 900 seconds. Modulo gives seconds passed since last boundary.
-            seconds_to_sleep = 900 - (now % 900)
+            # 2 minutes = 120 seconds. Modulo gives seconds passed since last boundary.
+            seconds_to_sleep = 120 - (now % 120)
             # Add a small 2-second buffer to ensure the exchange has closed the candle
             seconds_to_sleep += 2.0
             
-            # Since the wait can be up to 15 minutes, we sleep in small chunks so we can shut down cleanly
-            logger.info(f"[POLL] Synced to atomic clock. Sleeping for {seconds_to_sleep/60:.1f} minutes until next 15m boundary.")
+            # Since the wait can be up to 2 minutes, we sleep in small chunks so we can shut down cleanly
+            logger.info(f"[POLL] Synced to atomic clock. Sleeping for {seconds_to_sleep/60:.1f} minutes until next 2m boundary.")
             slept = 0
             while slept < seconds_to_sleep and self.running:
                 await asyncio.sleep(1)
