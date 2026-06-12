@@ -302,7 +302,7 @@ class OrderExecutor:
         tp_price = trade.get("tp_price")
         if not tp_price:
             risk_dist = abs(entry_price - sl_price)
-            tp_price = entry_price + (risk_dist * 2.0) if side == "LONG" else entry_price - (risk_dist * 2.0)
+            tp_price = entry_price + (risk_dist * 5.0) if side == "LONG" else entry_price - (risk_dist * 5.0)
 
         target_distance = abs(entry_price - tp_price)
         
@@ -311,8 +311,9 @@ class OrderExecutor:
             # If trailing is active, use the trailed stop price stored in state
             target_sl_price = trade.get("sl_price", sl_price)
         elif trade.get("breakeven_hit"):
-            # If breakeven is hit, target is 15% of target distance (matches engine.py lock_in_profit)
-            target_sl_price = entry_price + (0.15 * target_distance) if side == "LONG" else entry_price - (0.15 * target_distance)
+            # If breakeven is hit, target is based on config (matches engine.py lock_in_profit)
+            from app.config import Config
+            target_sl_price = entry_price + (Config.BREAKEVEN_LOCK_PCT * target_distance) if side == "LONG" else entry_price - (Config.BREAKEVEN_LOCK_PCT * target_distance)
         else:
             target_sl_price = sl_price
 
