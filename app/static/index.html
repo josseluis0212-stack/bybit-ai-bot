@@ -6,14 +6,19 @@
     <title>LRMC PRO | Bybit Terminal</title>
     <link rel="stylesheet" href="/static/style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <!-- Top Navigation Bar -->
     <header class="topbar">
         <div class="logo-section">
-            <div class="logo-icon"><i class="fa-solid fa-bolt"></i></div>
+            <div class="logo-icon-glow"><i class="fa-solid fa-rocket"></i></div>
             <div class="logo-text">
-                <h1>BYBIT AI <span class="badge version">LRMC PRO</span> <span class="badge demo">DEMO MODE</span> <span class="badge" style="background-color: #f5a623; color: white; border: 1px solid #f5a623;"><i class="fa-solid fa-building-columns"></i> BYBIT EXCHANGE</span></h1>
+                <h1 class="main-title">BYBIT AI <span class="gradient-text">LRMC PRO</span></h1>
+                <div class="title-badges">
+                    <span class="badge demo">DEMO MODE</span> 
+                    <span class="badge bybit-badge"><i class="fa-solid fa-building-columns"></i> BYBIT EXCHANGE</span>
+                </div>
             </div>
         </div>
         <div class="actions-section">
@@ -47,7 +52,7 @@
         </section>
 
         <section class="card strategy-card">
-            <h2>ESTRATEGIA LRMC PRO (BYBIT)</h2>
+            <h2 class="strategy-title"><i class="fa-solid fa-chess-knight"></i> ESTRATEGIA LRMC PRO</h2>
             <ul class="strat-params">
                 <li><span>APALANCAMIENTO</span> <span class="param-val" id="param-leverage">--</span></li>
                 <li><span>RIESGO FIJO</span> <span class="param-val" id="param-risk">-- USDT</span></li>
