@@ -99,7 +99,7 @@ async def api_dashboard():
         balance = await bybit_client.get_balance()
         positions = await bybit_client.get_positions()
     except Exception as e:
-        logger.error(f"Error fetching dashboard data from BingX: {e}")
+        logger.error(f"Error fetching dashboard data from Bybit: {e}")
         balance = 0.0
         positions = []
 
