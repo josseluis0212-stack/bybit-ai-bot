@@ -15,7 +15,7 @@ TF_MAP = {"5m": "5", "15m": "15", "1m": "1"}
 class BybitWebSocket:
     def __init__(self, message_callback, fill_callback=None, mark_price_callback=None):
         self.ws_public_url = Config.WS_URL
-        self.ws_private_url = "wss://stream-demo.bybit.com/v5/private" if Config.DEMO_MODE else "wss://stream.bybit.com/v5/private"
+        self.ws_private_url = "wss://stream.bybit.com/v5/private"
         self.message_callback = message_callback
         self.fill_callback = fill_callback
         self.mark_price_callback = mark_price_callback

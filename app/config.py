@@ -39,7 +39,7 @@ class Config:
     
     # Base URLs
     REST_URL = "https://api-demo.bybit.com" if DEMO_MODE else "https://api.bybit.com"
-    WS_URL = "wss://stream-demo.bybit.com/v5/public/linear" if DEMO_MODE else "wss://stream.bybit.com/v5/public/linear"
+    WS_URL = "wss://stream.bybit.com/v5/public/linear"
     
     # Paths
     STORAGE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "storage")
