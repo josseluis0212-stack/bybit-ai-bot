@@ -111,11 +111,9 @@ class AsyncBybitClient:
         return {"success": False, "data": None, "msg": "Max retries exceeded"}
 
     async def get_klines(self, symbol: str, interval: str = "5m", limit: int = 100) -> list:
+        bybit_interval = interval.replace("m", "")
         # Map 5m to 5 for Bybit
-        interval_map = {"1m": "1", "3m": "3", "5m": "5", "15m": "15", "30m": "30", "1h": "60", "4h": "240", "D": "D"}
-        bybit_interval = interval_map.get(interval, "5")
-        
-        params = {"category": "linear", "symbol": symbol.upper(), "interval": bybit_interval, "limit": limit}
+        params = {"category": "linear", "symbol": symbol.replace("-", "").upper(), "interval": bybit_interval, "limit": limit}
         res = await self._request("GET", "/v5/market/kline", params=params, signed=False)
         raw = res.get("data", {}).get("list", [])
         if not raw:
@@ -142,7 +140,7 @@ class AsyncBybitClient:
     async def get_positions(self, symbol: str = None):
         params = {"category": "linear", "settleCoin": "USDT"}
         if symbol:
-            params["symbol"] = symbol.upper()
+            params["symbol"] = symbol.replace("-", "").upper()
         res = await self._request("GET", "/v5/position/list", params=params, signed=True)
         if not res or not res.get("success"):
             logger.error(f"Failed to get positions: {res}")
@@ -164,7 +162,7 @@ class AsyncBybitClient:
         return bingx_pos
 
     async def get_ticker(self, symbol: str) -> dict:
-        params = {"category": "linear", "symbol": symbol.upper()}
+        params = {"category": "linear", "symbol": symbol.replace("-", "").upper()}
         res = await self._request("GET", "/v5/market/tickers", params=params, signed=False)
         list_data = res.get("data", {}).get("list", [])
         if list_data:
@@ -180,7 +178,7 @@ class AsyncBybitClient:
         # Bybit sets leverage for both sides at once if in Hedge Mode
         params = {
             "category": "linear",
-            "symbol": symbol.upper(),
+            "symbol": symbol.replace("-", "").upper(),
             "buyLeverage": str(int(leverage)),
             "sellLeverage": str(int(leverage))
         }
@@ -194,7 +192,7 @@ class AsyncBybitClient:
         tradeMode = 1 if margin_type.upper() == "ISOLATED" else 0
         params = {
             "category": "linear",
-            "symbol": symbol.upper(),
+            "symbol": symbol.replace("-", "").upper(),
             "tradeMode": tradeMode,
             "buyLeverage": "10",
             "sellLeverage": "10"
@@ -224,7 +222,7 @@ class AsyncBybitClient:
 
     async def place_order(self, symbol: str, side: str, position_side: str, order_type: str, quantity: float, price: float = None, stop_price: float = None, post_only: bool = False, reduce_only: bool = False):
         await self.get_contract_precisions()
-        prec = self._contract_precisions.get(symbol.upper(), {"qty": 3, "price": 4})
+        prec = self._contract_precisions.get(symbol.replace("-", "").upper(), {"qty": 3, "price": 4})
 
         formatted_qty = self._format_number(float(quantity), precision=prec["qty"])
         if not formatted_qty or float(formatted_qty) <= 0:
@@ -238,7 +236,7 @@ class AsyncBybitClient:
 
         params = {
             "category": "linear",
-            "symbol": symbol.upper(),
+            "symbol": symbol.replace("-", "").upper(),
             "side": bybit_side,
             "orderType": b_type,
             "qty": formatted_qty,
@@ -264,7 +262,7 @@ class AsyncBybitClient:
         return res
 
     async def cancel_all_orders(self, symbol: str):
-        params = {"category": "linear", "symbol": symbol.upper()}
+        params = {"category": "linear", "symbol": symbol.replace("-", "").upper()}
         res = await self._request("POST", "/v5/order/cancel-all", params=params, signed=True)
         return res.get("success", False)
 
@@ -289,7 +287,7 @@ class AsyncBybitClient:
         return False
 
     async def get_open_orders(self, symbol: str) -> list:
-        params = {"category": "linear", "symbol": symbol.upper()}
+        params = {"category": "linear", "symbol": symbol.replace("-", "").upper()}
         res = await self._request("GET", "/v5/order/realtime", params=params, signed=True)
         if not res or not res.get("success"):
             return []
