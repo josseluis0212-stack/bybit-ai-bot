@@ -5,7 +5,7 @@ import os
 from collections import defaultdict
 from app.logger import logger
 from app.config import Config
-from app.exchange.websocket_client import BingXWebSocket
+from app.exchange.websocket_client import BybitWebSocket
 from app.exchange.bybit_client import AsyncBybitClient
 from app.exchange.order_executor import OrderExecutor
 from app.exchange.position_manager import PositionManager
@@ -64,7 +64,7 @@ class Engine:
         self.risk = RiskManager()
         self.pos_manager = PositionManager()
         self.tp_manager = TakeProfitManager()
-        self.ws = BingXWebSocket(
+        self.ws = BybitWebSocket(
             message_callback=self._noop_ws_message,  # Klines via REST; WS only for fills
             fill_callback=self.on_fill_event,
             mark_price_callback=self._handle_ws_mark_price
