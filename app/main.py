@@ -332,6 +332,10 @@ async def api_logs():
 async def get_status():
     return JSONResponse({"status": "running"})
 
+@app.get("/health")
+async def get_health():
+    return JSONResponse({"status": "healthy", "timestamp": int(time.time())})
+
 @app.get("/ping")
 async def ping():
     return {"pong": True}
