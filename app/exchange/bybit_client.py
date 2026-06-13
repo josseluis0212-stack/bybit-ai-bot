@@ -157,6 +157,7 @@ class AsyncBybitClient:
                 "positionSide": pos_side,
                 "positionAmt": float(p.get("size", 0)),
                 "entryPrice": float(p.get("avgPrice", 0)),
+                "markPrice": float(p.get("markPrice", 0)),
                 "unrealizedProfit": float(p.get("unrealisedPnl", 0))
             })
         return bingx_pos
