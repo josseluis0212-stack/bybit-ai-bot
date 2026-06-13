@@ -38,8 +38,8 @@ class Config:
     TRAILING_ACTIVATION_PCT = float(os.getenv("TRAILING_ACTIVATION_PCT", "0.70"))
     
     # Base URLs
-    REST_URL = "https://api-testnet.bybit.com" if DEMO_MODE else "https://api.bybit.com"
-    WS_URL = "wss://stream-testnet.bybit.com/v5/public/linear" if DEMO_MODE else "wss://stream.bybit.com/v5/public/linear"
+    REST_URL = "https://api-demo.bybit.com" if DEMO_MODE else "https://api.bybit.com"
+    WS_URL = "wss://stream-demo.bybit.com/v5/public/linear" if DEMO_MODE else "wss://stream.bybit.com/v5/public/linear"
     
     # Paths
     STORAGE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "storage")
