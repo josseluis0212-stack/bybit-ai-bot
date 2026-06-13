@@ -33,7 +33,7 @@ async def lifespan(app: FastAPI):
     logger.info("Checking Hedge Mode...")
     await bybit_client.ensure_hedge_mode()
 
-    logger.info("Starting QUANTUM BINGX Bot...")
+    logger.info("Starting QUANTUM BYBIT Bot...")
     engine_task = asyncio.create_task(engine.start())
     watchdog_task = asyncio.create_task(watchdog.start())
     guardian_task = asyncio.create_task(guardian.start())
@@ -49,8 +49,8 @@ async def lifespan(app: FastAPI):
     guardian_task.cancel()
 
 app = FastAPI(
-    title="QUANTUM BINGX Bot",
-    description="SMC Strategy on BingX Demo",
+    title="QUANTUM BYBIT Bot",
+    description="SMC Strategy on Bybit Demo",
     version="10.0.0",
     lifespan=lifespan
 )

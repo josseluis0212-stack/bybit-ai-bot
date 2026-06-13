@@ -2,7 +2,7 @@ import logging
 import sys
 from .constants import BOT_LOG_FILE, ERRORS_LOG_FILE
 
-def setup_logger(name="QUANTUM BINGX"):
+def setup_logger(name="QUANTUM BYBIT"):
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
     if not logger.handlers:
