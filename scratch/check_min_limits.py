@@ -4,11 +4,11 @@ import sys
 # Adjust path to import from app
 sys.path.append(".")
 
-from app.exchange.bingx_client import AsyncBingXClient
+from app.exchange.bybit_client import AsyncBybitClient
 from app.logger import logger
 
 async def check_limits():
-    client = AsyncBingXClient()
+    client = AsyncBybitClient()
     
     # 1. Fetch top 50 volume symbols
     top_symbols = await client.get_top_volume_symbols(50)

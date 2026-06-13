@@ -6,7 +6,7 @@ from collections import defaultdict
 from app.logger import logger
 from app.config import Config
 from app.exchange.websocket_client import BingXWebSocket
-from app.exchange.bingx_client import AsyncBingXClient
+from app.exchange.bybit_client import AsyncBybitClient
 from app.exchange.order_executor import OrderExecutor
 from app.exchange.position_manager import PositionManager
 from app.data.candle_buffer import CandleBuffer
@@ -59,7 +59,7 @@ class Engine:
     """
 
     def __init__(self):
-        self.client = AsyncBingXClient()
+        self.client = AsyncBybitClient()
         self.executor = OrderExecutor()
         self.risk = RiskManager()
         self.pos_manager = PositionManager()
@@ -753,6 +753,22 @@ class Engine:
 
                         pos_data = real_open[symbol]
                         pos_amt = abs(float(pos_data.get("positionAmt", 0)))
+                        
+                        # --- TP1 SYNC LOGIC ---
+                        if trade.get("total_size") and pos_amt > 0:
+                            # If current size is ~50% of the total size, TP1 was hit!
+                            if abs(pos_amt - (trade["total_size"] * 0.5)) < (trade["total_size"] * 0.05) and not trade.get("tp1_hit"):
+                                trade["tp1_hit"] = True
+                                logger.info(f"[RECONCILE] Detected {symbol} size dropped by 50%. TP1 is definitely hit! Securing partial profits.")
+                                trade["remaining_size"] = pos_amt
+                                # Auto-activate Breakeven
+                                lock_in_profit = Config.BREAKEVEN_LOCK_PCT * trade.get("target_distance", 0)
+                                new_sl = trade["entry_price"] + lock_in_profit if trade["side"] == "LONG" else trade["entry_price"] - lock_in_profit
+                                # update sl in background
+                                asyncio.create_task(self.executor.update_sl(symbol, trade["side"], trade.get("sl_order_id"), new_sl, pos_amt))
+                                trade["sl_price"] = new_sl
+                                trade["breakeven_hit"] = True
+
                         entry_price = trade["entry_price"]
                         sl_price = trade["sl_price"]
                         
@@ -1021,15 +1037,31 @@ class Engine:
         total_size = trade.get("total_size", 0.0)
         side = trade.get("side", "LONG")
         
-        if reason == "TP_HIT" or trade.get("tp1_hit"):
-            exit_price = trade.get("tp_price", entry_price)
-        elif reason == "EXTERNAL_CLOSE":
-            exit_price = trade.get("sl_price", entry_price)
+        # Attempt to get exact Closed PNL from Exchange
+        exact_pnl = None
+        try:
+            income_records = await self.client.get_income(limit=20)
+            for inc in income_records:
+                if inc.get("symbol") == symbol:
+                    exact_pnl = float(inc.get("closedPnl", 0.0))
+                    break
+        except Exception as e:
+            logger.warning(f"Could not fetch exact Closed PNL from Bybit: {e}")
+
+        if exact_pnl is not None:
+            pnl = exact_pnl
+            logger.info(f"[EXCHANGE PNL] Synced exact realized PNL for {symbol}: {pnl} USDT")
         else:
-            exit_price = entry_price
-            
-        pnl = total_size * (exit_price - entry_price) if side == "LONG" else total_size * (entry_price - exit_price)
-        pnl = round(pnl, 4)
+            if reason == "TP_HIT" or trade.get("tp1_hit"):
+                exit_price = trade.get("tp_price", entry_price)
+            elif reason == "EXTERNAL_CLOSE":
+                exit_price = trade.get("sl_price", entry_price)
+            else:
+                exit_price = entry_price
+                
+            pnl = total_size * (exit_price - entry_price) if side == "LONG" else total_size * (entry_price - exit_price)
+            pnl = round(pnl, 4)
+            logger.info(f"[LOCAL PNL] Estimated PNL for {symbol}: {pnl} USDT")
             
         trade_log.append({
             "symbol": symbol,

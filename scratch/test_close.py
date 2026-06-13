@@ -1,9 +1,9 @@
 import asyncio
-from app.exchange.bingx_client import AsyncBingXClient
+from app.exchange.bybit_client import AsyncBybitClient
 from app.exchange.order_executor import OrderExecutor
 
 async def main():
-    client = AsyncBingXClient()
+    client = AsyncBybitClient()
     executor = OrderExecutor()
     positions = await client.get_positions()
     print("Found positions:", len(positions))

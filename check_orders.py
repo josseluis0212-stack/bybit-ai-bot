@@ -1,9 +1,9 @@
 import asyncio, sys, json
 sys.path.insert(0, '.')
-from app.exchange.bingx_client import AsyncBingXClient
+from app.exchange.bybit_client import AsyncBybitClient
 
 async def check_account():
-    client = AsyncBingXClient()
+    client = AsyncBybitClient()
     positions = await client.get_positions()
     print('--- OPEN POSITIONS ---')
     for p in positions:

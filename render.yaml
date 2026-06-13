@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: quantum-bot-bingx
+    name: quantum-bot-bybit
     env: docker
     region: fra # Frankfurt (EU) para evitar bloqueos de IP de USA en BingX
     plan: free

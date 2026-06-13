@@ -2,7 +2,7 @@ import asyncio
 import json
 import time
 from typing import Optional
-from app.exchange.bingx_client import AsyncBingXClient
+from app.exchange.bybit_client import AsyncBybitClient
 from app.risk.takeprofit_manager import TakeProfitManager
 from app.logger import logger
 from app.constants import POSITIONS_FILE, TRADES_FILE
@@ -21,7 +21,7 @@ class OrderExecutor:
     """
 
     def __init__(self):
-        self.client = AsyncBingXClient()
+        self.client = AsyncBybitClient()
         self.tp_manager = TakeProfitManager()
 
     async def setup_leverage(self, symbol: str, side: str):
@@ -210,7 +210,7 @@ class OrderExecutor:
                 return None
 
         # Place new SL
-        # Removing the hardcoded rounding; let bingx_client _format_number handle precision.
+        # Removing the hardcoded rounding; let bybit_client _format_number handle precision.
         sl_res = await self.client.place_order(
             symbol=symbol,
             side=close_side,
@@ -275,11 +275,12 @@ class OrderExecutor:
                 if order.get("symbol", "").upper().replace("-", "") != symbol.upper().replace("-", ""):
                     continue
                 o_type = order.get("type", order.get("orderType", ""))
-                if o_type == "STOP_MARKET":
+                stop_type = order.get("stopOrderType", "")
+                if o_type == "STOP_MARKET" or stop_type == "StopLoss":
                     has_sl = True
                     # FIX: Save the found orderId to prevent infinite Guardian loops
                     trade["sl_order_id"] = str(order.get("orderId", ""))
-                elif o_type == "TAKE_PROFIT_MARKET":
+                elif o_type == "TAKE_PROFIT_MARKET" or stop_type == "TakeProfit":
                     has_tp = True
 
         # Verify position exists

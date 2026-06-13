@@ -1,10 +1,10 @@
 import asyncio
 import json
-from app.exchange.bingx_client import AsyncBingXClient
+from app.exchange.bybit_client import AsyncBybitClient
 
 async def main():
-    print("Initializing AsyncBingXClient...")
-    client = AsyncBingXClient()
+    print("Initializing AsyncBybitClient...")
+    client = AsyncBybitClient()
     
     print("\n--- 1. Fetching VST Balance ---")
     # Try v2 balance

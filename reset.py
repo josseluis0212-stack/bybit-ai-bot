@@ -5,7 +5,7 @@ import logging
 
 sys.path.append('.')
 import config
-from exchange.bingx_client import BingXClient
+from exchange.bybit_client import BingXClient
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ResetScript")

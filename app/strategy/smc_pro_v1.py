@@ -1,9 +1,9 @@
-from app.exchange.bingx_client import AsyncBingXClient
+from app.exchange.bybit_client import AsyncBybitClient
 from app.utils.indicators import calculate_ema, calculate_atr, calculate_adx
 from app.logger import logger
 from app.config import Config
 
-async def analyze(client: AsyncBingXClient, symbol: str) -> dict:
+async def analyze(client: AsyncBybitClient, symbol: str) -> dict:
     """
     SMC PRO V1 (15m Timeframe with 1H Trend)
     Based on Advanced SMC Concepts:

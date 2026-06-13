@@ -1,11 +1,11 @@
 import asyncio
 import sys
 sys.path.insert(0, '.')
-from app.exchange.bingx_client import AsyncBingXClient
+from app.exchange.bybit_client import AsyncBybitClient
 from app.risk.takeprofit_manager import TakeProfitManager
 
 async def rescue():
-    client = AsyncBingXClient()
+    client = AsyncBybitClient()
     tp_manager = TakeProfitManager()
     
     symbol = "1000PEPE-USDT"

@@ -1,13 +1,13 @@
 import asyncio
 import argparse
-from app.exchange.bingx_client import AsyncBingXClient
+from app.exchange.bybit_client import AsyncBybitClient
 
 async def main():
     parser = argparse.ArgumentParser(description="Fetch BingX PnL history")
     parser.add_argument("--days", type=int, default=2, help="Number of days to look back")
     args = parser.parse_args()
     
-    client = AsyncBingXClient()
+    client = AsyncBybitClient()
     
     print(f"Fetching income history for the last {args.days} days...")
     

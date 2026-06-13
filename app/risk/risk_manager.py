@@ -1,10 +1,10 @@
-from app.exchange.bingx_client import AsyncBingXClient
+from app.exchange.bybit_client import AsyncBybitClient
 from app.config import Config
 from app.logger import logger
 
 class RiskManager:
     def __init__(self):
-        self.client = AsyncBingXClient()
+        self.client = AsyncBybitClient()
         self.risk_per_trade = Config.RISK_PER_TRADE
         self.max_open_trades = Config.MAX_OPEN_TRADES
         self.leverage = Config.LEVERAGE

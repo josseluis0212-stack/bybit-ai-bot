@@ -1,7 +1,7 @@
 import asyncio
 import time
 from app.logger import logger
-from app.exchange.bingx_client import AsyncBingXClient
+from app.exchange.bybit_client import AsyncBybitClient
 from app.notifications.telegram import notifier
 from app.state_manager import StateManager
 from app.constants import RUNTIME_STATE_FILE
@@ -14,7 +14,7 @@ async def send_batch_report():
     logger.info("[REPORTS] Generating batch report for the last 10 trades...")
     
     try:
-        client = AsyncBingXClient()
+        client = AsyncBybitClient()
         incomes = await client.get_income(limit=500)
         
         # We will calculate metrics from the internal trades.json to get Win Rate

@@ -12,14 +12,14 @@ from app.core.engine import Engine
 from app.core.watchdog import Watchdog
 from app.core.guardian import PositionGuardian
 from app.logger import logger
-from app.exchange.bingx_client import AsyncBingXClient
+from app.exchange.bybit_client import AsyncBybitClient
 from app.config import Config
 from app.constants import BOT_LOG_FILE, TRADES_FILE
 
 engine = Engine()
 watchdog = Watchdog(engine)
 guardian = PositionGuardian(engine)
-bingx_client = AsyncBingXClient()
+bybit_client = AsyncBybitClient()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -31,7 +31,7 @@ async def lifespan(app: FastAPI):
     logger.warning("=====================================================================")
     
     logger.info("Checking Hedge Mode...")
-    await bingx_client.ensure_hedge_mode()
+    await bybit_client.ensure_hedge_mode()
 
     logger.info("Starting QUANTUM BINGX Bot...")
     engine_task = asyncio.create_task(engine.start())
@@ -96,8 +96,8 @@ async def reset_bot():
 async def api_dashboard():
     """Returns live balance, open positions, and strategy config."""
     try:
-        balance = await bingx_client.get_balance()
-        positions = await bingx_client.get_positions()
+        balance = await bybit_client.get_balance()
+        positions = await bybit_client.get_positions()
     except Exception as e:
         logger.error(f"Error fetching dashboard data from BingX: {e}")
         balance = 0.0
@@ -191,19 +191,12 @@ async def api_stats():
     try:
         real_trades = []
         
-        # Fetch Realized PNL and Fees separately to bypass the 1000 general limit
-        # This extends the bot's memory back multiple weeks instead of 48 hours
+        # Fetch Realized PNL and Fees using Bybit client
         income_data = []
         try:
-            pnl_req = await bingx_client._request("GET", "/openApi/swap/v2/user/income", params={"limit": 1000, "incomeType": "REALIZED_PNL"}, signed=True)
-            if pnl_req and pnl_req.get("data"): income_data.extend(pnl_req["data"])
-            
-            fee_req = await bingx_client._request("GET", "/openApi/swap/v2/user/income", params={"limit": 1000, "incomeType": "TRADING_FEE"}, signed=True)
-            if fee_req and fee_req.get("data"): income_data.extend(fee_req["data"])
+            income_data = await bybit_client.get_income(limit=1000)
         except Exception as api_e:
             logger.error(f"Error fetching extended income: {api_e}")
-            # Fallback to standard
-            income_data = await bingx_client.get_income(limit=1000)
         
         # Load PNL_START_TIME from storage/pnl_start_time.txt if exists
         pnl_start_time = getattr(Config, "PNL_START_TIME", 0)

@@ -2,173 +2,143 @@ import asyncio
 import time
 import json
 import websockets
-import gzip
+import hmac
+import hashlib
 from app.config import Config
 from app.logger import logger
-from app.exchange.bingx_client import AsyncBingXClient
+from app.exchange.bybit_client import AsyncBybitClient
 
-SYMBOLS = ["BTC-USDT", "ETH-USDT", "SOL-USDT", "XRP-USDT", "BNB-USDT", "DOGE-USDT", "ADA-USDT", "LINK-USDT"]
-TF_MAP = {"5m": "kline_5m", "15m": "kline_15m", "1m": "kline_1m"}
+# Replace hyphens for Bybit: BTC-USDT -> BTCUSDT
+SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT", "BNBUSDT", "DOGEUSDT", "ADAUSDT", "LINKUSDT"]
+TF_MAP = {"5m": "5", "15m": "15", "1m": "1"}
 
-class BingXWebSocket:
-    """
-    Production-grade WebSocket client for BingX.
-    Handles market data (klines) and private order fills.
-    Features: auto-reconnect, exponential backoff, ping/pong, gzip decompression.
-    """
+class BybitWebSocket:
     def __init__(self, message_callback, fill_callback=None, mark_price_callback=None):
-        self.ws_url = Config.WS_URL
+        self.ws_public_url = Config.WS_URL
+        self.ws_private_url = "wss://stream-testnet.bybit.com/v5/private" if Config.DEMO_MODE else "wss://stream.bybit.com/v5/private"
         self.message_callback = message_callback
         self.fill_callback = fill_callback
         self.mark_price_callback = mark_price_callback
-        self.client = AsyncBingXClient()
-        self.ws = None
-        self._ping_task = None
+        self.ws_public = None
+        self.ws_private = None
         self.running = False
         self._reconnect_delay = 2
-        self._subscribed = False
-
-    async def _get_listen_key(self):
-        try:
-            res = await self.client._request("POST", "/openApi/user/auth/userDataStream", signed=True)
-            if res.get("success") and res.get("data"):
-                return res["data"].get("listenKey")
-        except Exception as e:
-            logger.error(f"Failed to get listen key: {e}")
-        return None
 
     async def subscribe_mark_price(self, symbol: str):
-        if self.ws and not self.ws.closed:
-            sub_msg = {
-                "id": f"sub_mark_{symbol}",
-                "reqType": "sub",
-                "dataType": f"{symbol}@markPrice"
-            }
-            await self.ws.send(json.dumps(sub_msg))
-            logger.info(f"Subscribed to Mark Price stream for {symbol}")
+        if self.ws_public and not self.ws_public.closed:
+            symbol = symbol.replace("-", "")
+            sub_msg = {"op": "subscribe", "args": [f"tickers.{symbol}"]}
+            await self.ws_public.send(json.dumps(sub_msg))
 
     async def unsubscribe_mark_price(self, symbol: str):
-        if self.ws and not self.ws.closed:
-            unsub_msg = {
-                "id": f"unsub_mark_{symbol}",
-                "reqType": "unsub",
-                "dataType": f"{symbol}@markPrice"
-            }
-            await self.ws.send(json.dumps(unsub_msg))
-            logger.info(f"Unsubscribed from Mark Price stream for {symbol}")
-
-    async def _subscribe_market_data(self, ws):
-        tf_key = TF_MAP.get(Config.TIMEFRAME, "kline_5m")
-        for i, symbol in enumerate(SYMBOLS):
-            sub_msg = {
-                "id": f"sub_kline_{i}",
-                "reqType": "sub",
-                "dataType": f"{symbol}@{tf_key}"
-            }
-            await ws.send(json.dumps(sub_msg))
-            await asyncio.sleep(0.1)
-        logger.info(f"Subscribed to {len(SYMBOLS)} symbols @ {Config.TIMEFRAME}")
-
-    async def _subscribe_private_orders(self, ws, listen_key):
-        if listen_key:
-            sub_msg = {
-                "id": "sub_orders",
-                "reqType": "sub",
-                "dataType": f"@listenKey"
-            }
-            await ws.send(json.dumps(sub_msg))
-            logger.info("Subscribed to private order fill channel.")
+        if self.ws_public and not self.ws_public.closed:
+            symbol = symbol.replace("-", "")
+            unsub_msg = {"op": "unsubscribe", "args": [f"tickers.{symbol}"]}
+            await self.ws_public.send(json.dumps(unsub_msg))
 
     async def connect(self):
         self.running = True
+        asyncio.create_task(self._connect_public())
+        asyncio.create_task(self._connect_private())
+
+    async def _connect_public(self):
         while self.running:
             try:
-                listen_key = await self._get_listen_key()
-                url = f"{self.ws_url}?listenKey={listen_key}" if listen_key else self.ws_url
-
-                async with websockets.connect(
-                    url,
-                    ping_interval=None,
-                    close_timeout=5,
-                    max_size=10 * 1024 * 1024
-                ) as ws:
-                    self.ws = ws
-                    self._reconnect_delay = 2  # Reset backoff on successful connect
-                    logger.info(f"WebSocket connected: {url[:50]}...")
-
-                    await self._subscribe_market_data(ws)
-                    if listen_key:
-                        await self._subscribe_private_orders(ws, listen_key)
-
-                    self._ping_task = asyncio.create_task(self._keep_alive(ws))
-
+                async with websockets.connect(self.ws_public_url) as ws:
+                    self.ws_public = ws
+                    logger.info(f"Public WS connected to {self.ws_public_url}")
+                    
+                    tf_key = TF_MAP.get(Config.TIMEFRAME, "5")
+                    args = [f"kline.{tf_key}.{sym}" for sym in SYMBOLS]
+                    await ws.send(json.dumps({"op": "subscribe", "args": args}))
+                    
                     async for message in ws:
-                        if not self.running:
-                            break
-                        await self._handle_raw_message(message)
-
-            except websockets.exceptions.ConnectionClosedOK:
-                logger.warning("WebSocket closed cleanly. Reconnecting...")
-            except websockets.exceptions.ConnectionClosedError as e:
-                logger.error(f"WebSocket connection error: {e}. Reconnecting in {self._reconnect_delay}s...")
+                        if not self.running: break
+                        await self._handle_public_message(message)
             except Exception as e:
-                logger.error(f"WebSocket unexpected error: {e}. Reconnecting in {self._reconnect_delay}s...")
-
+                logger.error(f"Public WS Error: {e}")
+            
             if self.running:
                 await asyncio.sleep(self._reconnect_delay)
-                self._reconnect_delay = min(self._reconnect_delay * 2, 60)  # Exponential backoff cap 60s
 
-    async def _handle_raw_message(self, message):
-        try:
-            if isinstance(message, bytes):
-                try:
-                    message = gzip.decompress(message).decode('utf-8')
-                except Exception:
-                    message = message.decode('utf-8')
-
-            if message in ("Ping", "ping"):
-                if self.ws and not self.ws.closed:
-                    await self.ws.send("Pong")
-                return
-
-            data = json.loads(message)
-
-            if data.get("ping"):
-                if self.ws and not self.ws.closed:
-                    await self.ws.send(json.dumps({"pong": data["ping"]}))
-                return
-
-            # Detect order fill events (private channel)
-            if data.get("e") in ("ORDER_TRADE_UPDATE", "executionReport") and self.fill_callback:
-                await self.fill_callback(data)
-                return
-
-            # Route Mark Price updates
-            if "markPrice" in data.get("dataType", "") and self.mark_price_callback:
-                await self.mark_price_callback(data)
-                return
-
-            # Route to market data callback
-            await self.message_callback(data)
-
-        except json.JSONDecodeError:
-            pass  # Ignore non-JSON messages
-        except Exception as e:
-            logger.error(f"Error handling WS message: {e}")
-
-    async def _keep_alive(self, ws):
+    async def _connect_private(self):
         while self.running:
             try:
-                if ws and not ws.closed:
-                    await ws.send(json.dumps({"ping": int(time.time() * 1000)}))
-                await asyncio.sleep(20)
-            except Exception:
-                break
+                async with websockets.connect(self.ws_private_url) as ws:
+                    self.ws_private = ws
+                    logger.info(f"Private WS connected to {self.ws_private_url}")
+                    
+                    # Auth
+                    expires = int((time.time() + 10) * 1000)
+                    sig = hmac.new(Config.SECRET_KEY.encode(), f"GET/realtime{expires}".encode(), hashlib.sha256).hexdigest()
+                    await ws.send(json.dumps({"op": "auth", "args": [Config.API_KEY, expires, sig]}))
+                    
+                    await asyncio.sleep(1)
+                    await ws.send(json.dumps({"op": "subscribe", "args": ["order", "execution"]}))
+                    
+                    async for message in ws:
+                        if not self.running: break
+                        await self._handle_private_message(message)
+            except Exception as e:
+                logger.error(f"Private WS Error: {e}")
+                
+            if self.running:
+                await asyncio.sleep(self._reconnect_delay)
+
+    async def _handle_public_message(self, message):
+        try:
+            data = json.loads(message)
+            if "topic" in data:
+                topic = data["topic"]
+                if topic.startswith("kline"):
+                    # Map back to BingX expected format
+                    symbol = topic.split(".")[-1]
+                    # Format as BTC-USDT
+                    bingx_sym = symbol.replace("USDT", "-USDT")
+                    # data["data"][0] has start, open, high, low, close, volume
+                    kline = data["data"][0]
+                    fake_bingx_data = {
+                        "dataType": f"{bingx_sym}@{TF_MAP.get(Config.TIMEFRAME, '5')}m",
+                        "data": [{
+                            "c": kline["close"],
+                            "T": int(kline["start"]),
+                            "v": kline["volume"]
+                        }]
+                    }
+                    await self.message_callback(fake_bingx_data)
+                elif topic.startswith("tickers") and self.mark_price_callback:
+                    # Map to mark price
+                    symbol = topic.split(".")[-1]
+                    bingx_sym = symbol.replace("USDT", "-USDT")
+                    fake_bingx_data = {
+                        "dataType": f"{bingx_sym}@markPrice",
+                        "data": {
+                            "p": data["data"].get("markPrice", data["data"].get("lastPrice", 0))
+                        }
+                    }
+                    await self.mark_price_callback(fake_bingx_data)
+        except Exception:
+            pass
+
+    async def _handle_private_message(self, message):
+        try:
+            data = json.loads(message)
+            if data.get("topic") == "execution" and self.fill_callback:
+                for exec_data in data.get("data", []):
+                    # Fake bingX fill format
+                    fake_fill = {
+                        "e": "ORDER_TRADE_UPDATE",
+                        "data": {
+                            "orderId": exec_data.get("orderId"),
+                            "s": exec_data.get("symbol").replace("USDT", "-USDT"),
+                            "X": "FILLED"
+                        }
+                    }
+                    await self.fill_callback(fake_fill)
+        except Exception:
+            pass
 
     async def stop(self):
         self.running = False
-        if self._ping_task:
-            self._ping_task.cancel()
-        if self.ws and not self.ws.closed:
-            await self.ws.close()
-        logger.info("WebSocket stopped.")
+        if self.ws_public: await self.ws_public.close()
+        if self.ws_private: await self.ws_private.close()

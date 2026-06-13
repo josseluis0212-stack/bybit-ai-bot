@@ -1,8 +1,8 @@
 import asyncio
-from app.exchange.bingx_client import AsyncBingXClient
+from app.exchange.bybit_client import AsyncBybitClient
 
 async def check():
-    client = AsyncBingXClient()
+    client = AsyncBybitClient()
     orders = await client.get_open_orders('INX-USDT')
     print('--- INX-USDT Open Orders ---')
     for o in orders:

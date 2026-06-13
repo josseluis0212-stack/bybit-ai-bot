@@ -3,10 +3,10 @@ import sys
 from datetime import datetime, timezone
 
 sys.path.insert(0, '.')
-from app.exchange.bingx_client import AsyncBingXClient
+from app.exchange.bybit_client import AsyncBybitClient
 
 async def main():
-    client = AsyncBingXClient()
+    client = AsyncBybitClient()
     
     print("Fetching complete user income history from BingX (limit=1000)...")
     # Fetch up to 1000 items

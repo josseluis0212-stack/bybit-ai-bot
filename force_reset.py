@@ -1,8 +1,8 @@
 import asyncio
-from app.exchange.bingx_client import AsyncBingXClient
+from app.exchange.bybit_client import AsyncBybitClient
 
 async def force_reset():
-    client = AsyncBingXClient()
+    client = AsyncBybitClient()
     print('Fetching positions...')
     pos = await client.get_positions()
     closed_count = 0

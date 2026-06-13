@@ -8,7 +8,7 @@ import urllib.error
 # Adjust path to import from app
 sys.path.append(".")
 
-from app.exchange.bingx_client import AsyncBingXClient
+from app.exchange.bybit_client import AsyncBybitClient
 from app.logger import logger
 from app.constants import POSITIONS_FILE, TRADES_FILE, PNL_OFFSET_FILE
 
@@ -16,7 +16,7 @@ async def run_global_reset():
     logger.info("=== STARTING GLOBAL EMERGENCY RESET ===")
     
     # 1. Close all active positions and orders on BingX (Demo Account)
-    client = AsyncBingXClient()
+    client = AsyncBybitClient()
     logger.info("Connecting to BingX Futures to close positions...")
     
     try:

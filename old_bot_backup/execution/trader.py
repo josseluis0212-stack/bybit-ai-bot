@@ -10,7 +10,7 @@ import numpy as np
 # Add root folder to path to import modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from exchange.bingx_client import BingXClient
+from exchange.bybit_client import BingXClient
 from strategy.scalping import (
     calculate_vwap,
     calculate_atr,

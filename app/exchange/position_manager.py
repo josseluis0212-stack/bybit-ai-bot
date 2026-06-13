@@ -1,5 +1,5 @@
 import asyncio
-from app.exchange.bingx_client import AsyncBingXClient
+from app.exchange.bybit_client import AsyncBybitClient
 
 class PositionManager:
     """
@@ -7,7 +7,7 @@ class PositionManager:
     Provides real-time position queries from the exchange.
     """
     def __init__(self):
-        self.client = AsyncBingXClient()
+        self.client = AsyncBybitClient()
         self.locks: dict = {}
 
     def get_lock(self, symbol: str) -> asyncio.Lock:

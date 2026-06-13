@@ -4,12 +4,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Config:
-    API_KEY = os.getenv("BINGX_API_KEY", "")
-    SECRET_KEY = os.getenv("BINGX_SECRET_KEY", "")
-    DEMO_MODE = os.getenv("DEMO_MODE", "true").lower() == "true"
+    API_KEY = os.getenv("BYBIT_API_KEY", "")
+    SECRET_KEY = os.getenv("BYBIT_API_SECRET", os.getenv("BYBIT_SECRET_KEY", ""))
+    DEMO_MODE = os.getenv("BYBIT_DEMO", os.getenv("DEMO_MODE", "true")).lower() == "true"
     TIMEFRAME = os.getenv("TIMEFRAME", "5m")
     RISK_PER_TRADE = float(os.getenv("RISK_PER_TRADE", "8.0"))
-    MAX_OPEN_TRADES = int(os.getenv("MAX_OPEN_TRADES", "10"))
+    MAX_OPEN_TRADES = int(os.getenv("MAX_CONCURRENT_TRADES", os.getenv("MAX_OPEN_TRADES", "10")))
     LEVERAGE = int(os.getenv("LEVERAGE", "10"))
     ENTRY_ORDER_MAX_AGE = int(os.getenv("ENTRY_ORDER_MAX_AGE", "1800"))
     MIN_VOLUME_24H = float(os.getenv("MIN_VOLUME_24H", "500000"))
@@ -38,8 +38,8 @@ class Config:
     TRAILING_ACTIVATION_PCT = float(os.getenv("TRAILING_ACTIVATION_PCT", "0.70"))
     
     # Base URLs
-    REST_URL = "https://open-api-vst.bingx.com" if DEMO_MODE else "https://open-api.bingx.com"
-    WS_URL = "wss://open-api-ws.bingx.com/market"
+    REST_URL = "https://api-testnet.bybit.com" if DEMO_MODE else "https://api.bybit.com"
+    WS_URL = "wss://stream-testnet.bybit.com/v5/public/linear" if DEMO_MODE else "wss://stream.bybit.com/v5/public/linear"
     
     # Paths
     STORAGE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "storage")

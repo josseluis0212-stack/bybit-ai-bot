@@ -1,9 +1,9 @@
 import asyncio
-from app.exchange.bingx_client import AsyncBingXClient
+from app.exchange.bybit_client import AsyncBybitClient
 from app.utils.indicators import calculate_ema, calculate_rsi, calculate_adx, calculate_supertrend
 
 async def test():
-    client = AsyncBingXClient()
+    client = AsyncBybitClient()
     symbol = "BTC-USDT"
     
     klines_5m = await client.get_klines(symbol, "5m", 100)

@@ -1,8 +1,8 @@
 import asyncio
-from app.exchange.bingx_client import AsyncBingXClient
+from app.exchange.bybit_client import AsyncBybitClient
 
 async def test_reduce_only():
-    client = AsyncBingXClient()
+    client = AsyncBybitClient()
     
     # Check balance
     bal = await client.get_balance()

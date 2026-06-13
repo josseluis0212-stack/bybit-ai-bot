@@ -8,7 +8,7 @@ import json
 
 sys.path.insert(0, '.')
 
-from app.exchange.bingx_client import AsyncBingXClient
+from app.exchange.bybit_client import AsyncBybitClient
 from app.data.candle_buffer import CandleBuffer
 from app.strategy.liquidity_sweep import detect_sweep
 from app.strategy.signal_score import calculate_score
@@ -239,7 +239,7 @@ async def main():
     print("  REAL-TIME STRATEGY DEBUGGER — BingX Pipeline Full Run")
     print(SEP)
 
-    client = AsyncBingXClient()
+    client = AsyncBybitClient()
 
     # Step 1
     tradeable = await step1_scan(client)
