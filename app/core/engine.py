@@ -11,6 +11,7 @@ from app.exchange.order_executor import OrderExecutor
 from app.exchange.position_manager import PositionManager
 from app.data.candle_buffer import CandleBuffer
 from app.strategy.smc_pro_v1 import analyze as evaluate_smc_pro
+from app.strategy.bustos_pullback import evaluate_bustos_pullback
 from app.strategy.volatility_filter import check_macro_shock
 from app.database.crud import init_db, get_all_active_trades, save_trade, delete_trade, add_history, is_on_cooldown, set_cooldown
 from app.database.models import TradeState
@@ -523,14 +524,17 @@ class Engine:
                     logger.debug(f"[{symbol}] Active trade exists. Skipping new signal.")
                     return
 
-                # === SMC PRO Pipeline ===
+                # === Multi-Strategy Pipeline ===
                 sweep_result = await evaluate_smc_pro(self.client, symbol)
+                
+                if sweep_result["signal"] == "NONE":
+                    sweep_result = await evaluate_bustos_pullback(self.client, symbol)
                 
                 if sweep_result["signal"] == "NONE":
                     return
                 
                 score = 100
-                logger.info(f"[{symbol}] Strategy: {sweep_result['strategy']} triggered -> signal={sweep_result['signal']} | "
+                logger.info(f"[{symbol}] Strategy: {sweep_result.get('strategy', 'UNKNOWN')} triggered -> signal={sweep_result['signal']} | "
                             f"entry={sweep_result.get('entry_price', 'N/A')} | "
                             f"sl={sweep_result.get('sl_price', 'N/A')}")
 
@@ -595,8 +599,15 @@ class Engine:
 
                     # Persist pending trade
                     risk_dist = abs(entry_price - sl_price)
-                    # TP at 2.0x Risk => TP distance = 2.0 * SL distance
-                    tp_price = entry_price + (risk_dist * 2.0) if sweep_result["signal"] == "LONG" else entry_price - (risk_dist * 2.0)
+                    
+                    if "tp_price" in sweep_result and sweep_result["tp_price"] > 0:
+                        tp_price = sweep_result["tp_price"]
+                        logger.info(f"[{symbol}] Using Strategy TP Price: {tp_price:.6f}")
+                    else:
+                        # Fallback TP at 2.0x Risk
+                        tp_price = entry_price + (risk_dist * 2.0) if sweep_result["signal"] == "LONG" else entry_price - (risk_dist * 2.0)
+                        logger.info(f"[{symbol}] Using Default 2.0x TP Price: {tp_price:.6f}")
+                        
                     target_dist = abs(entry_price - tp_price)
 
                     self.trade_state[symbol] = {

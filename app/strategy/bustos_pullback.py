@@ -13,6 +13,7 @@ async def evaluate_bustos_pullback(client, symbol: str) -> dict:
     # 1. Macro Trend (1H)
     klines_1h = await client.get_klines(symbol, "1h", 100)
     if not klines_1h or len(klines_1h) < 100: return {"signal": "NONE"}
+    klines_1h = klines_1h[:-1] # Drop the currently open candle
     closes_1h = [c["close"] for c in klines_1h]
     ema100_1h = calculate_ema(closes_1h, 100)[-1]
     current_close_1h = closes_1h[-1]
@@ -22,6 +23,7 @@ async def evaluate_bustos_pullback(client, symbol: str) -> dict:
     # 2. Ejecución (15M)
     klines_15m = await client.get_klines(symbol, Config.TIMEFRAME, 60)
     if not klines_15m or len(klines_15m) < 55: return {"signal": "NONE"}
+    klines_15m = klines_15m[:-1] # Drop the currently open candle
     
     closes_15m = [c["close"] for c in klines_15m]
     highs_15m = [c["high"] for c in klines_15m]
