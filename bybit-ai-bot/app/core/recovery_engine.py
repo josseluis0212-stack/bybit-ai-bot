@@ -238,13 +238,26 @@ class RecoveryEngine:
                     entry = current_price
                     if entry <= 0: continue
                 
-                atr = entry * 0.015  # Estimación del 1.5% de volatilidad
-                tp1_price = entry + (1.5 * atr) if side == "LONG" else entry - (1.5 * atr)
-                tp2_price = entry + (3.0 * atr) if side == "LONG" else entry - (3.0 * atr)
-                profit_lock_price = (entry + 0.05 * atr) if side == "LONG" else (entry - 0.05 * atr)
+                # Inteligencia Deductiva para Adivinar Estrategia
+                open_orders = await self.client.get_open_orders(sym)
+                has_tp_orders = any("TAKEPROFIT" in o.get("stopOrderType", "").upper() or "TAKE_PROFIT" in o.get("orderType", "").upper() for o in (open_orders or []))
                 
-                # Inteligencia dinámica: Calcular el recorrido
-                be_threshold = atr * 1.665
+                guessed_strategy = "AntigravityV13" if has_tp_orders else "SuperTrendRegimeMTF"
+                display_strategy = "QUANTUM V13 PRO (Recuperado)" if has_tp_orders else "SUPERTREND (Recuperado)"
+                
+                atr = entry * 0.015  # Estimación del 1.5% de volatilidad
+                
+                if guessed_strategy == "AntigravityV13":
+                    tp1_price = entry + (1.5 * atr) if side == "LONG" else entry - (1.5 * atr)
+                    tp2_price = entry + (3.0 * atr) if side == "LONG" else entry - (3.0 * atr)
+                    profit_lock_price = (entry + 0.05 * atr) if side == "LONG" else (entry - 0.05 * atr)
+                    be_threshold = atr * 1.665
+                else:
+                    tp1_price = None
+                    tp2_price = None
+                    profit_lock_price = entry + (entry * (0.15 / 10)) if side == "LONG" else entry - (entry * (0.15 / 10))
+                    be_threshold = atr * 1.5
+                
                 sl_price = entry - (2.5 * atr) if side == "LONG" else entry + (2.5 * atr)
                 
                 be_active = False
@@ -252,31 +265,37 @@ class RecoveryEngine:
                 trailing_active = False
                 
                 if side == "LONG":
-                    if current_price >= tp1_price:
-                        logger.info(f"🚀 [ADOPCIÓN] {sym} LONG en ALTA GANANCIA. Asegurando con Trailing Stop.")
+                    if guessed_strategy == "AntigravityV13" and current_price >= tp1_price:
+                        logger.info(f"🚀 [RECUPERACIÓN] {sym} LONG (Antigravity) en ALTA GANANCIA. Asegurando con Trailing Stop.")
                         tp1_hit = True
                         be_active = True
                         trailing_active = True
                         sl_price = current_price - (1.2 * atr)
                     elif current_price >= entry + be_threshold:
-                        logger.info(f"🛡️ [ADOPCIÓN] {sym} LONG en GANANCIA MEDIA. Asegurando Breakeven.")
+                        logger.info(f"🛡️ [RECUPERACIÓN] {sym} LONG en GANANCIA MEDIA. Asegurando Breakeven.")
                         be_active = True
                         sl_price = profit_lock_price
+                        if guessed_strategy == "SuperTrendRegimeMTF" and current_price >= entry + (2.5 * atr):
+                            trailing_active = True
+                            sl_price = current_price - atr
                     else:
-                        logger.info(f"⚓ [ADOPCIÓN] {sym} LONG cerca de entrada o en pérdida. SL estándar.")
+                        logger.info(f"⚓ [RECUPERACIÓN] {sym} LONG cerca de entrada o en pérdida. SL estándar.")
                 else:
-                    if current_price <= tp1_price:
-                        logger.info(f"🚀 [ADOPCIÓN] {sym} SHORT en ALTA GANANCIA. Asegurando con Trailing Stop.")
+                    if guessed_strategy == "AntigravityV13" and current_price <= tp1_price:
+                        logger.info(f"🚀 [RECUPERACIÓN] {sym} SHORT (Antigravity) en ALTA GANANCIA. Asegurando con Trailing Stop.")
                         tp1_hit = True
                         be_active = True
                         trailing_active = True
                         sl_price = current_price + (1.2 * atr)
                     elif current_price <= entry - be_threshold:
-                        logger.info(f"🛡️ [ADOPCIÓN] {sym} SHORT en GANANCIA MEDIA. Asegurando Breakeven.")
+                        logger.info(f"🛡️ [RECUPERACIÓN] {sym} SHORT en GANANCIA MEDIA. Asegurando Breakeven.")
                         be_active = True
                         sl_price = profit_lock_price
+                        if guessed_strategy == "SuperTrendRegimeMTF" and current_price <= entry - (2.5 * atr):
+                            trailing_active = True
+                            sl_price = current_price + atr
                     else:
-                        logger.info(f"⚓ [ADOPCIÓN] {sym} SHORT cerca de entrada o en pérdida. SL estándar.")
+                        logger.info(f"⚓ [RECUPERACIÓN] {sym} SHORT cerca de entrada o en pérdida. SL estándar.")
                 
                 trade_db = await crud.create_trade(
                     symbol=sym,
@@ -284,7 +303,7 @@ class RecoveryEngine:
                     entry_price=entry,
                     stop_loss=sl_price,
                     qty=real_size,
-                    strategy="AntigravityV13_Adopted",
+                    strategy=guessed_strategy + "_Adopted",
                     trade_id=f"adopted_{int(time.time())}_{sym}",
                     position_size=real_size,
                     atr=atr,
@@ -301,7 +320,7 @@ class RecoveryEngine:
                 trade_mem = {
                     "trade_id":          trade_db.trade_id,
                     "side":              side,
-                    "strategy":          "QUANTUM V13 PRO (Adoptado)",
+                    "strategy":          display_strategy,
                     "entry_price":       entry,
                     "position_size":     real_size,
                     "remaining_size":    real_size,

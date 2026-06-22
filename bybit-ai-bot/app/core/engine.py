@@ -176,8 +176,8 @@ class Engine:
                         # Activa al 33.3% de ROE (3.33% de mov. de precio a 10x)
                         be_threshold = entry_price * (0.333 / Config.LEVERAGE)
                     else:
-                        # SuperTrend activa BE a los 2.0 ATR
-                        be_threshold = trade["atr"] * 2.0
+                        # SuperTrend activa BE a los 1.5 ATR
+                        be_threshold = trade["atr"] * 1.5
                         
                     if side == "LONG" and mark_price >= entry_price + be_threshold:
                         await self._activate_profit_lock(symbol, trade)
@@ -208,7 +208,7 @@ class Engine:
                     # Usamos el EMA21 calculado asíncronamente en el polling, o caemos al ATR
                     ema_21 = trade.get("ema_21", 0)
                     if ema_21 > 0:
-                        new_sl = ema_21 if side == "LONG" else ema_21
+                        new_sl = ema_21 - trade["atr"] if side == "LONG" else ema_21 + trade["atr"]
                         # Asegurar que NUNCA retroceda el SL
                         if side == "LONG" and new_sl < trade["sl_price"]: new_sl = trade["sl_price"]
                         if side == "SHORT" and new_sl > trade["sl_price"]: new_sl = trade["sl_price"]
@@ -369,8 +369,8 @@ class Engine:
             # Asegura el 15% de ROE moviendo el SL a +15% de ganancia de la operación
             profit_lock_price = entry_price + (entry_price * (0.15 / Config.LEVERAGE)) if side == "LONG" else entry_price - (entry_price * (0.15 / Config.LEVERAGE))
         else:
-            # SuperTrend asegura exactamente el precio de entrada (0.00 ATR)
-            profit_lock_price = entry_price
+            # SuperTrend asegura el 15% de ROE también
+            profit_lock_price = entry_price + (entry_price * (0.15 / Config.LEVERAGE)) if side == "LONG" else entry_price - (entry_price * (0.15 / Config.LEVERAGE))
         
         # Tamaño de posición fijo: $15 USDT margen * Apalancamiento
         total_volume_usdt = Config.MARGIN_USDT * Config.LEVERAGE
