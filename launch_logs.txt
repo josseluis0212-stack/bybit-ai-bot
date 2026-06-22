@@ -1,0 +1,10 @@
+2026-06-16 10:26:01,210 [ERROR] QUANTUM BYBIT - [ENTRY] Failed to place order: Formatted quantity is 0. (Code: 109400)
+2026-06-16 10:26:04,288 [ERROR] QUANTUM BYBIT - [ENTRY] Failed to place order: Formatted quantity is 0. (Code: 109400)
+2026-06-16 10:26:08,719 [ERROR] QUANTUM BYBIT - [ENTRY] Failed to place order: API key is invalid. (Code: 10003)
+2026-06-16 10:26:15,014 [ERROR] QUANTUM BYBIT - [ENTRY] Failed to place order: API key is invalid. (Code: 10003)
+2026-06-16 10:26:20,015 [ERROR] QUANTUM BYBIT - [ENTRY] Failed to place order: API key is invalid. (Code: 10003)
+2026-06-17 01:16:24,146 [ERROR] QUANTUM BYBIT - Failed to get positions: {'success': False, 'data': None, 'msg': 'Max retries exceeded'}
+2026-06-17 02:01:53,351 [ERROR] QUANTUM BYBIT - Failed to get positions: {'success': False, 'data': None, 'msg': 'Max retries exceeded'}
+2026-06-19 07:24:25,045 [ERROR] QUANTUM BYBIT - Failed to get positions: {'success': False, 'data': None, 'msg': 'Max retries exceeded'}
+2026-06-20 09:40:32,928 [INFO] QUANTUM BYBIT - 🚀 Launching SuperTrend Bot process from Uvicorn...
+2026-06-20 09:40:32,930 [ERROR] QUANTUM BYBIT - ❌ Failed to launch SuperTrend process: [Errno 13] Permission denied: '/app'

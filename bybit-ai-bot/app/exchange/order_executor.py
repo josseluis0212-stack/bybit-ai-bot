@@ -24,7 +24,7 @@ class OrderExecutor:
         ticker = await self.client.get_ticker(symbol)
         return float(ticker.get("lastPrice", 0.0))
 
-    async def place_entry(self, symbol: str, side: str, size: float, entry_price: float = None) -> Optional[str]:
+    async def place_entry(self, symbol: str, side: str, size: float, entry_price: float = None, attached_sl: float = None) -> Optional[str]:
         pos_side = "LONG" if side == "LONG" else "SHORT"
         order_side = "BUY" if side == "LONG" else "SELL"
         await self.setup_leverage(symbol, "LONG")
@@ -45,7 +45,8 @@ class OrderExecutor:
             quantity=size,
             price=entry_price,
             post_only=False,
-            reduce_only=False
+            reduce_only=False,
+            attached_sl=attached_sl
         )
 
         if res.get("success") and res.get("data"):

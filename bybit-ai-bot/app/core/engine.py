@@ -386,7 +386,7 @@ class Engine:
             logger.warning(f"[{symbol}] Omitiendo orden, se alcanzó el MAX_OPEN_TRADES.")
             return
 
-        order_id = await self.executor.place_entry(symbol, side, size, entry_price)
+        order_id = await self.executor.place_entry(symbol, side, size, entry_price, attached_sl=sl_price)
         if not order_id: return
 
         trade = {

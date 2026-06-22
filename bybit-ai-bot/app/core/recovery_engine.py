@@ -169,19 +169,44 @@ class RecoveryEngine:
             }
             self.engine.trade_state[sym] = trade_mem
 
-            # ── 7. Forzar SL correcto en el exchange ──────────────────────
+            # ── 7. Forzar SL y TPs correctos en el exchange ──────────────────────
             logger.info(f"🔄 [RECOVERY] {sym} {side} | BE:{be_active} | Trailing:{trailing_active} | SL reconstruido:{sl_reconstructed:.4f} | Empujando al exchange...")
             open_orders = await self.client.get_open_orders(sym)
-            has_sl = any(
-                float(o.get("stopPrice", o.get("triggerPrice", 0))) > 0 
-                for o in (open_orders or [])
-            )
+            has_sl = False
+            has_tp1 = False
+            has_tp2 = False
+            
+            for o in (open_orders or []):
+                stop_type = o.get("stopOrderType", "").upper()
+                o_type = o.get("orderType", "").upper()
+                px = float(o.get("stopPrice", o.get("triggerPrice", 0)))
+                
+                if "STOPLOSS" in stop_type or "STOP" in o_type:
+                    has_sl = True
+                elif "TAKEPROFIT" in stop_type or "TAKE_PROFIT" in o_type:
+                    if tp1 > 0 and abs(px - tp1) < (atr * 0.5): has_tp1 = True
+                    if tp2 > 0 and abs(px - tp2) < (atr * 0.5): has_tp2 = True
+
             if not has_sl:
                 logger.warning(f"🔄 [RECOVERY] {sym} sin SL en exchange. Colocando SL @ {sl_reconstructed:.4f}...")
                 new_sl_id = await self.executor.update_sl(sym, side, "", sl_reconstructed, real_size)
                 if new_sl_id:
                     trade_mem["sl_order_id"] = new_sl_id
                     logger.info(f"✅ [RECOVERY] SL colocado para {sym}.")
+                    
+            if not tp1_hit and tp1 > 0 and not has_tp1:
+                from app.risk.takeprofit_manager import TakeProfitManager
+                qty1, _ = TakeProfitManager.calculate_tp_quantities(trade_db.position_size or real_size)
+                logger.warning(f"🔄 [RECOVERY] {sym} sin TP1. Recreando TP1 @ {tp1:.4f} qty={qty1}")
+                tp1_id = await self.executor.place_single_tp(sym, side, tp1, qty1)
+                if tp1_id: trade_mem["tp1_order_id"] = tp1_id
+
+            if not tp2_hit and tp2 > 0 and not has_tp2:
+                from app.risk.takeprofit_manager import TakeProfitManager
+                _, qty2 = TakeProfitManager.calculate_tp_quantities(trade_db.position_size or real_size)
+                logger.warning(f"🔄 [RECOVERY] {sym} sin TP2. Recreando TP2 @ {tp2:.4f} qty={qty2}")
+                tp2_id = await self.executor.place_single_tp(sym, side, tp2, qty2)
+                if tp2_id: trade_mem["tp2_order_id"] = tp2_id
 
             # Suscribir al WebSocket de mark price para seguimiento en tiempo real
             await self.engine.ws.subscribe_mark_price(sym)
@@ -297,10 +322,19 @@ class RecoveryEngine:
                 }
                 self.engine.trade_state[sym] = trade_mem
                 
-                logger.warning(f"🛡️ [RECOVERY] Colocando SL protector para huérfano {sym} en {sl_price:.4f}")
-                new_sl_id = await self.executor.update_sl(sym, side, "", sl_price, real_size)
-                if new_sl_id:
-                    trade_mem["sl_order_id"] = new_sl_id
+                logger.warning(f"🛡️ [RECOVERY] Colocando protecciones para huérfano {sym}: SL={sl_price:.4f}, TP1={tp1_price:.4f}, TP2={tp2_price:.4f}")
+                
+                tp1_to_place = None if tp1_hit else tp1_price
+                tp2_to_place = None if (tp1_hit and tp2_hit) else tp2_price
+                
+                # First cancel any existing bad SL/TP for the orphan
+                await self.client.cancel_all_orders(sym)
+                
+                order_ids = await self.executor.place_sl_and_tps(sym, side, sl_price, tp1_to_place, tp2_to_place, real_size)
+                if order_ids:
+                    trade_mem["sl_order_id"] = order_ids.get("sl")
+                    trade_mem["tp1_order_id"] = order_ids.get("tp1")
+                    trade_mem["tp2_order_id"] = order_ids.get("tp2")
                 
                 await self.engine.ws.subscribe_mark_price(sym)
                 adopted += 1

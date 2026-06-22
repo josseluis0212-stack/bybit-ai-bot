@@ -221,7 +221,7 @@ class AsyncBybitClient:
                     }
         return self._contract_precisions
 
-    async def place_order(self, symbol: str, side: str, position_side: str, order_type: str, quantity: float, price: float = None, stop_price: float = None, post_only: bool = False, reduce_only: bool = False):
+    async def place_order(self, symbol: str, side: str, position_side: str, order_type: str, quantity: float, price: float = None, stop_price: float = None, post_only: bool = False, reduce_only: bool = False, attached_sl: float = None):
         await self.get_contract_precisions()
         prec = self._contract_precisions.get(symbol.replace("-", "").upper(), {"qty": 3, "price": 4})
 
@@ -246,6 +246,9 @@ class AsyncBybitClient:
             "reduceOnly": reduce_only
         }
         
+        if attached_sl is not None:
+            params["stopLoss"] = self._format_number(float(attached_sl), precision=prec["price"])
+            
         if price is not None:
             params["price"] = self._format_number(float(price), precision=prec["price"])
             
