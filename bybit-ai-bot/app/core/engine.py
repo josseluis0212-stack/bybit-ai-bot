@@ -300,7 +300,7 @@ class Engine:
         while self.running:
             logger.info("[POLL] Analizando el mercado en busca de oportunidades (V13 PRO) de forma concurrente...")
             try:
-                symbols = await self.client.get_top_volume_symbols(40)
+                symbols = await self.client.get_top_volume_symbols(25)
             except Exception as e:
                 logger.error(f"[POLL] Error obteniendo símbolos de volumen: {e}")
                 symbols = []
