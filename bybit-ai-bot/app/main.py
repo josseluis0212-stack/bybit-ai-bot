@@ -41,26 +41,7 @@ async def lifespan(app: FastAPI):
     retro_pm_task  = asyncio.create_task(retro_pm.start())
     logger.info("🔭 [RETRO-PM] Inteligencia Retroactiva por K-lines activada.")
 
-    # Lanzar el proceso supertrend independiente
-    try:
-        import subprocess
-        import sys
-        import os
-        logger.info("🚀 Launching SuperTrend Bot process from Uvicorn...")
-        os.makedirs("storage", exist_ok=True)
-        supertrend_log = open("storage/supertrend_raw.log", "a")
-        
-        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        supertrend_path = os.path.join(base_dir, "supertrend_ema_bot", "main.py")
-        
-        subprocess.Popen(
-            [sys.executable, "-u", supertrend_path],
-            stdout=supertrend_log,
-            stderr=subprocess.STDOUT
-        )
-        logger.info("✅ SuperTrend Bot process launched.")
-    except Exception as e:
-        logger.error(f"❌ Failed to launch SuperTrend process: {e}")
+    logger.info("🔭 [RETRO-PM] Inteligencia Retroactiva por K-lines activada.")
 
     yield
 

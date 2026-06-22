@@ -8,8 +8,9 @@ class Config:
     SECRET_KEY = os.getenv("BYBIT_API_SECRET", os.getenv("BYBIT_SECRET_KEY", "")).strip()
     DEMO_MODE = os.getenv("BYBIT_DEMO", os.getenv("DEMO_MODE", "true")).lower() == "true"
     TIMEFRAME = os.getenv("TIMEFRAME", "5m")
-    RISK_PER_TRADE = float(os.getenv("RISK_PER_TRADE", "8.0"))
-    MAX_OPEN_TRADES = int(os.getenv("MAX_CONCURRENT_TRADES", os.getenv("MAX_OPEN_TRADES", "20")))
+    RISK_PER_TRADE = float(os.getenv("RISK_PER_TRADE", "8.0")) # Deprecated, using MARGIN_USDT now
+    MARGIN_USDT = float(os.getenv("MARGIN_USDT", "15.0"))
+    MAX_OPEN_TRADES = int(os.getenv("MAX_CONCURRENT_TRADES", os.getenv("MAX_OPEN_TRADES", "10")))
     LEVERAGE = int(os.getenv("LEVERAGE", "10"))
     ENTRY_ORDER_MAX_AGE = int(os.getenv("ENTRY_ORDER_MAX_AGE", "1800"))
     MIN_VOLUME_24H = float(os.getenv("MIN_VOLUME_24H", "500000"))

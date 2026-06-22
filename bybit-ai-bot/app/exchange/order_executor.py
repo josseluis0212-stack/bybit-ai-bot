@@ -91,21 +91,23 @@ class OrderExecutor:
 
         tp1_qty, tp2_qty = TakeProfitManager.calculate_tp_quantities(real_size)
         
-        # Place TP1
-        tp1_res = await self.client.place_order(
-            symbol=symbol, side=close_side, position_side=pos_side,
-            order_type="TAKE_PROFIT_MARKET", quantity=tp1_qty, stop_price=tp1_price, reduce_only=True
-        )
-        if tp1_res.get("success") and tp1_res.get("data"):
-            order_ids["tp1"] = str(tp1_res["data"].get("order", tp1_res["data"]).get("orderId", ""))
-            
-        # Place TP2
-        tp2_res = await self.client.place_order(
-            symbol=symbol, side=close_side, position_side=pos_side,
-            order_type="TAKE_PROFIT_MARKET", quantity=tp2_qty, stop_price=tp2_price, reduce_only=True
-        )
-        if tp2_res.get("success") and tp2_res.get("data"):
-            order_ids["tp2"] = str(tp2_res["data"].get("order", tp2_res["data"]).get("orderId", ""))
+        if tp1_price is not None:
+            # Place TP1
+            tp1_res = await self.client.place_order(
+                symbol=symbol, side=close_side, position_side=pos_side,
+                order_type="TAKE_PROFIT_MARKET", quantity=tp1_qty, stop_price=tp1_price, reduce_only=True
+            )
+            if tp1_res.get("success") and tp1_res.get("data"):
+                order_ids["tp1"] = str(tp1_res["data"].get("order", tp1_res["data"]).get("orderId", ""))
+                
+        if tp2_price is not None:
+            # Place TP2
+            tp2_res = await self.client.place_order(
+                symbol=symbol, side=close_side, position_side=pos_side,
+                order_type="TAKE_PROFIT_MARKET", quantity=tp2_qty, stop_price=tp2_price, reduce_only=True
+            )
+            if tp2_res.get("success") and tp2_res.get("data"):
+                order_ids["tp2"] = str(tp2_res["data"].get("order", tp2_res["data"]).get("orderId", ""))
 
         return order_ids
 

@@ -8,8 +8,7 @@ COPY . .
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Make the startup script executable
-RUN chmod +x start_all.sh
+WORKDIR /app/bybit-ai-bot
 
-# Run the supervisor script
-CMD ["bash", "start_all.sh"]
+# Run the unified bot
+CMD ["python", "-m", "app.main"]

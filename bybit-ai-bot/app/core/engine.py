@@ -12,7 +12,9 @@ from app.core.recovery_engine import RecoveryEngine
 from app.risk.trailing_manager import TrailingManager
 from app.database import crud
 from app.strategy.antigravity_v13_pro import evaluate_antigravity_v13
-
+from app.strategy.supertrend_regime import evaluate_supertrend_regime
+import pandas as pd
+import pandas_ta as ta
 class Engine:
     def __init__(self):
         self.client = AsyncBybitClient()
@@ -168,9 +170,9 @@ class Engine:
                 entry_price = trade["entry_price"]
                 tp2_price = trade["tp2_price"]  # El 100% de la operación es el último TP
                 
-                # Breakeven: se activa cuando el precio avanza al 33.3% del objetivo total (1.665 ATR)
+                # Breakeven: se activa cuando el precio avanza 2.0 ATR
                 if not trade.get("profit_lock_active"):
-                    be_threshold = trade["atr"] * 1.665
+                    be_threshold = trade["atr"] * 2.0
                     if side == "LONG" and mark_price >= entry_price + be_threshold:
                         await self._activate_profit_lock(symbol, trade)
                     elif side == "SHORT" and mark_price <= entry_price - be_threshold:
@@ -182,10 +184,32 @@ class Engine:
                 elif side == "SHORT" and mark_price < highest:
                     trade["highest_price"] = mark_price
                     
-                if trade.get("trailing_active"):
-                    new_sl = TrailingManager.calculate_new_sl(
-                        mark_price, trade["highest_price"], trade["sl_price"], trade["atr"], side
-                    )
+                # Trailing Stop: Activar solo después de 2.5 ATR de ganancia
+                trail_threshold = trade["atr"] * 2.5
+                trail_ready = trade.get("trailing_active", False)
+                
+                if not trail_ready:
+                    if side == "LONG" and mark_price >= entry_price + trail_threshold:
+                        trade["trailing_active"] = True
+                        trail_ready = True
+                        logger.info(f"🚀 [TRAILING] Activado para {symbol} LONG al cruzar 2.5 ATR de ganancia.")
+                    elif side == "SHORT" and mark_price <= entry_price - trail_threshold:
+                        trade["trailing_active"] = True
+                        trail_ready = True
+                        logger.info(f"🚀 [TRAILING] Activado para {symbol} SHORT al cruzar 2.5 ATR de ganancia.")
+
+                if trail_ready:
+                    # Usamos el EMA21 calculado asíncronamente en el polling, o caemos al ATR
+                    ema_21 = trade.get("ema_21", 0)
+                    if ema_21 > 0:
+                        new_sl = ema_21 if side == "LONG" else ema_21
+                        # Asegurar que NUNCA retroceda el SL
+                        if side == "LONG" and new_sl < trade["sl_price"]: new_sl = trade["sl_price"]
+                        if side == "SHORT" and new_sl > trade["sl_price"]: new_sl = trade["sl_price"]
+                    else:
+                        new_sl = TrailingManager.calculate_new_sl(
+                            mark_price, trade["highest_price"], trade["sl_price"], trade["atr"], side
+                        )
                     
                     # Evitar actualizaciones microscópicas y Race Conditions
                     if abs(new_sl - trade["sl_price"]) > (trade["atr"] * 0.05):
@@ -233,13 +257,34 @@ class Engine:
         async def evaluate_and_execute(symbol):
             async with semaphore:
                 try:
+                    # Actualizar EMA21 de los trades activos para el trailing
+                    trade = self.trade_state.get(symbol)
+                    if trade and trade.get("trailing_active"):
+                        klines = await self.client.get_klines(symbol, interval="15", limit=30)
+                        if klines:
+                            df = pd.DataFrame(klines)
+                            ema21 = ta.ema(df['close'], length=21)
+                            if ema21 is not None and not ema21.empty:
+                                trade["ema_21"] = ema21.iloc[-1]
+
+                    # Si ya tiene trade, no abrimos otro, salimos
+                    if trade: return
+
                     # Timeout de 15 segundos máximo por moneda para evitar bloqueos
-                    sweep_result = await asyncio.wait_for(
-                        evaluate_antigravity_v13(self.client, symbol), 
-                        timeout=15.0
-                    )
-                    if sweep_result["signal"] != "NONE":
-                        await self._execute_signal(symbol, sweep_result)
+                    ag_task = asyncio.create_task(evaluate_antigravity_v13(self.client, symbol))
+                    st_task = asyncio.create_task(evaluate_supertrend_regime(self.client, symbol))
+                    
+                    done, pending = await asyncio.wait([ag_task, st_task], timeout=15.0)
+                    for p in pending: p.cancel()
+                    
+                    ag_res = ag_task.result() if ag_task in done and not ag_task.exception() else {"signal": "NONE"}
+                    st_res = st_task.result() if st_task in done and not st_task.exception() else {"signal": "NONE"}
+                    
+                    if st_res.get("signal") != "NONE":
+                        await self._execute_signal(symbol, st_res, "SuperTrendRegimeMTF")
+                    elif ag_res.get("signal") != "NONE":
+                        await self._execute_signal(symbol, ag_res, "AntigravityV13")
+                        
                 except asyncio.TimeoutError:
                     logger.error(f"[POLL] Timeout evaluando {symbol}. Saltando...")
                 except Exception as e:
@@ -259,8 +304,22 @@ class Engine:
                 
             # Filtramos símbolos que ya tienen una operación activa o están en descanso
             symbols_to_evaluate = []
+            
+            # Limite Global de Operaciones simultáneas
+            active_trades_count = len(self.trade_state)
+            if active_trades_count >= Config.MAX_OPEN_TRADES:
+                logger.warning(f"[POLL] Límite de posiciones abiertas alcanzado ({active_trades_count}/{Config.MAX_OPEN_TRADES}). Solo actualizando EMA21 para trailing.")
+                # Solo evaluamos los que ya están en self.trade_state para actualizar EMA21
+                tasks = [asyncio.create_task(evaluate_and_execute(sym)) for sym in self.trade_state.keys()]
+                if tasks: await asyncio.gather(*tasks)
+                await asyncio.sleep(60)
+                continue
+
             for sym in symbols:
-                if sym in self.trade_state: continue
+                if sym in self.trade_state: 
+                    # Lo incluimos para que se actualice su EMA21 en el polling loop
+                    symbols_to_evaluate.append(sym)
+                    continue
                 if sym in self.cooldowns:
                     if time.time() < self.cooldowns[sym]:
                         continue
@@ -276,9 +335,9 @@ class Engine:
             logger.info(f"[POLL] Escaneo multi-agente completado en {len(symbols_to_evaluate)} monedas. Esperando el siguiente ciclo...")
             await asyncio.sleep(60)
 
-    async def _execute_signal(self, symbol, signal_data):
+    async def _execute_signal(self, symbol, signal_data, strategy_name="Unknown"):
         side = signal_data["signal"]
-        logger.info(f"🚨 [SEÑAL] {symbol} {side}")
+        logger.info(f"🚨 [SEÑAL] {symbol} {side} by {strategy_name}")
         
         ticker = await self.client.get_ticker(symbol)
         if not ticker: return
@@ -287,22 +346,34 @@ class Engine:
         if entry_price <= 0: entry_price = float(ticker.get("lastPrice", 0))
 
         atr = signal_data.get("atr", entry_price * 0.01)
+        if atr <= 0: atr = entry_price * 0.01
         
         sl_price = entry_price - (2.5 * atr) if side == "LONG" else entry_price + (2.5 * atr)
-        tp1_price = entry_price + (1.5 * atr) if side == "LONG" else entry_price - (1.5 * atr)
-        tp2_price = entry_price + (3.0 * atr) if side == "LONG" else entry_price - (3.0 * atr)
-        # Breakeven SL: 1% de la operación (0.05 ATR)
-        profit_lock_price = (entry_price + 0.05 * atr) if side == "LONG" else (entry_price - 0.05 * atr)
         
-        # Riesgo máximo de 8 USDT
-        risk_usdt = 8.0
-        diff = abs(entry_price - sl_price)
-        if diff == 0:
-            logger.error(f"[{symbol}] Error: Entry Price y SL son idénticos. Imposible calcular size.")
+        # Strategy 1 uses 30/30/40. Strategy 2 (SuperTrend) disables fixed TPs.
+        if strategy_name == "SuperTrendRegimeMTF":
+            tp1_price = None
+            tp2_price = None
+        else:
+            tp1_price = entry_price + (1.5 * atr) if side == "LONG" else entry_price - (1.5 * atr)
+            tp2_price = entry_price + (3.0 * atr) if side == "LONG" else entry_price - (3.0 * atr)
+            
+        # Breakeven SL: exactamente en precio de entrada (0.00 ATR) para proteger el trade.
+        profit_lock_price = entry_price
+        
+        # Tamaño de posición fijo: $15 USDT margen * Apalancamiento
+        total_volume_usdt = Config.MARGIN_USDT * Config.LEVERAGE
+        if entry_price <= 0:
+            logger.error(f"[{symbol}] Error: Entry Price es 0.")
             return
             
-        size = risk_usdt / diff
+        size = total_volume_usdt / entry_price
         if size <= 0: return
+
+        # Aseguramos que solo hayan MAX_OPEN_TRADES activos antes de disparar
+        if len(self.trade_state) >= Config.MAX_OPEN_TRADES:
+            logger.warning(f"[{symbol}] Omitiendo orden, se alcanzó el MAX_OPEN_TRADES.")
+            return
 
         order_id = await self.executor.place_entry(symbol, side, size, entry_price)
         if not order_id: return
@@ -324,7 +395,8 @@ class Engine:
             "tp2_hit": False,
             "profit_lock_active": False,
             "trailing_active": False,
-            "lock": asyncio.Lock(),
+            "strategy": strategy_name,
+            "ema_21": 0.0,
             "order_time": time.time(),  # Para timeout de 15 min
             "entry_timeout": time.time() + 900,  # 15 minutos
         }
@@ -336,7 +408,7 @@ class Engine:
             entry_price=entry_price,
             stop_loss=sl_price,
             qty=size,
-            strategy="AntigravityV13",
+            strategy=strategy_name,
             trade_id=order_id,
             position_size=size,
             atr=atr,
