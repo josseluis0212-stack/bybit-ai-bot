@@ -271,6 +271,10 @@ async def api_stats():
         if now_ms < reset_ms:
             reset_ms -= 86400000  # Reset was yesterday
             
+        # Use pnl_start_time if it's more recent than the daily reset
+        if pnl_start_time > reset_ms:
+            reset_ms = pnl_start_time
+            
         p_today = 0.0
         w_today = 0
         l_today = 0
