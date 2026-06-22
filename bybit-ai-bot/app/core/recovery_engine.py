@@ -206,16 +206,52 @@ class RecoveryEngine:
                 
                 entry = float(pos.get("entryPrice", 0))
                 
+                ticker = await self.client.get_ticker(sym)
+                current_price = float(ticker.get("lastPrice", 0)) if ticker else 0.0
+                
                 if entry <= 0:
-                    ticker = await self.client.get_ticker(sym)
-                    entry = float(ticker.get("lastPrice", 0)) if ticker else 0.0
+                    entry = current_price
                     if entry <= 0: continue
                 
                 atr = entry * 0.015  # Estimación del 1.5% de volatilidad
-                sl_price = entry - (2.5 * atr) if side == "LONG" else entry + (2.5 * atr)
                 tp1_price = entry + (1.5 * atr) if side == "LONG" else entry - (1.5 * atr)
                 tp2_price = entry + (3.0 * atr) if side == "LONG" else entry - (3.0 * atr)
                 profit_lock_price = (entry + 0.05 * atr) if side == "LONG" else (entry - 0.05 * atr)
+                
+                # Inteligencia dinámica: Calcular el recorrido
+                be_threshold = atr * 1.665
+                sl_price = entry - (2.5 * atr) if side == "LONG" else entry + (2.5 * atr)
+                
+                be_active = False
+                tp1_hit = False
+                trailing_active = False
+                
+                if side == "LONG":
+                    if current_price >= tp1_price:
+                        logger.info(f"🚀 [ADOPCIÓN] {sym} LONG en ALTA GANANCIA. Asegurando con Trailing Stop.")
+                        tp1_hit = True
+                        be_active = True
+                        trailing_active = True
+                        sl_price = current_price - (1.2 * atr)
+                    elif current_price >= entry + be_threshold:
+                        logger.info(f"🛡️ [ADOPCIÓN] {sym} LONG en GANANCIA MEDIA. Asegurando Breakeven.")
+                        be_active = True
+                        sl_price = profit_lock_price
+                    else:
+                        logger.info(f"⚓ [ADOPCIÓN] {sym} LONG cerca de entrada o en pérdida. SL estándar.")
+                else:
+                    if current_price <= tp1_price:
+                        logger.info(f"🚀 [ADOPCIÓN] {sym} SHORT en ALTA GANANCIA. Asegurando con Trailing Stop.")
+                        tp1_hit = True
+                        be_active = True
+                        trailing_active = True
+                        sl_price = current_price + (1.2 * atr)
+                    elif current_price <= entry - be_threshold:
+                        logger.info(f"🛡️ [ADOPCIÓN] {sym} SHORT en GANANCIA MEDIA. Asegurando Breakeven.")
+                        be_active = True
+                        sl_price = profit_lock_price
+                    else:
+                        logger.info(f"⚓ [ADOPCIÓN] {sym} SHORT cerca de entrada o en pérdida. SL estándar.")
                 
                 trade_db = await crud.create_trade(
                     symbol=sym,
@@ -232,6 +268,11 @@ class RecoveryEngine:
                     profit_lock_price=profit_lock_price
                 )
                 
+                trade_db.tp1_filled = tp1_hit
+                trade_db.profit_lock_active = be_active
+                trade_db.trailing_active = trailing_active
+                await crud.save_trade(trade_db)
+                
                 trade_mem = {
                     "trade_id":          trade_db.trade_id,
                     "side":              side,
@@ -244,12 +285,12 @@ class RecoveryEngine:
                     "tp1_price":         tp1_price,
                     "tp2_price":         tp2_price,
                     "profit_lock_price": profit_lock_price,
-                    "highest_price":     entry,
+                    "highest_price":     max(entry, current_price) if side == "LONG" else min(entry, current_price),
                     "filled":            True,
-                    "tp1_hit":           False,
+                    "tp1_hit":           tp1_hit,
                     "tp2_hit":           False,
-                    "profit_lock_active": False,
-                    "trailing_active":   False,
+                    "profit_lock_active": be_active,
+                    "trailing_active":   trailing_active,
                     "order_time":        time.time(),
                     "entry_timeout":     0,
                     "lock":              asyncio.Lock()
