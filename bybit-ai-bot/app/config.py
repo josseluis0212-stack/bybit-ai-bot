@@ -10,12 +10,12 @@ class Config:
     TIMEFRAME = os.getenv("TIMEFRAME", "5m")
     RISK_PER_TRADE = float(os.getenv("RISK_PER_TRADE", "8.0")) # Deprecated, using MARGIN_USDT now
     MARGIN_USDT = 15.0  # Forzado a 15 dólares de margen real por operación
-    MAX_OPEN_TRADES = int(os.getenv("MAX_CONCURRENT_TRADES", os.getenv("MAX_OPEN_TRADES", "5")))
+    MAX_OPEN_TRADES = int(os.getenv("MAX_OPEN_TRADES", "5"))
     LEVERAGE = int(os.getenv("LEVERAGE", "10"))
     ENTRY_ORDER_MAX_AGE = int(os.getenv("ENTRY_ORDER_MAX_AGE", "1800"))
     MIN_VOLUME_24H = float(os.getenv("MIN_VOLUME_24H", "500000"))
     EARLY_EXIT_VOL_MULT = float(os.getenv("EARLY_EXIT_VOL_MULT", "1.8"))
-    EARLY_EXIT_LOOKBACK_MINUTES = int(os.getenv("EARLY_EXIT_LOOKBACK_MINUTES", "20"))
+    EARLY_EXIT_LOOKBACK_MINUTES = int(os.EQUIVALENT_LOOKBACK_MINUTES", "20"))
     MAX_CONCURRENT_TRADES = int(os.getenv("MAX_CONCURRENT_TRADES", "5"))
     SAME_SYMBOL_ONLY = os.getenv("SAME_SYMBOL_ONLY", "false").lower() == "true"
     SCAN_INTERVAL_SECONDS = int(os.getenv("SCAN_INTERVAL_SECONDS", "15"))
