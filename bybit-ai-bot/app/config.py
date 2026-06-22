@@ -9,7 +9,7 @@ class Config:
     DEMO_MODE = os.getenv("BYBIT_DEMO", os.getenv("DEMO_MODE", "true")).lower() == "true"
     TIMEFRAME = os.getenv("TIMEFRAME", "5m")
     RISK_PER_TRADE = float(os.getenv("RISK_PER_TRADE", "8.0")) # Deprecated, using MARGIN_USDT now
-    MARGIN_USDT = float(os.getenv("MARGIN_USDT", "15.0"))
+    MARGIN_USDT = 15.0  # Forzado a 15 dólares de margen real por operación
     MAX_OPEN_TRADES = int(os.getenv("MAX_CONCURRENT_TRADES", os.getenv("MAX_OPEN_TRADES", "5")))
     LEVERAGE = int(os.getenv("LEVERAGE", "10"))
     ENTRY_ORDER_MAX_AGE = int(os.getenv("ENTRY_ORDER_MAX_AGE", "1800"))
