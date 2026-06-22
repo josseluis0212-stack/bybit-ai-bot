@@ -7,9 +7,9 @@ services:
     autoDeploy: true
     healthCheckPath: /api/health
     envVars:
-      - key: BINGX_API_KEY
+      - key: BYBIT_API_KEY
         sync: false
-      - key: BINGX_SECRET_KEY
+      - key: BYBIT_API_SECRET
         sync: false
       - key: TELEGRAM_TOKEN
         sync: false
