@@ -382,6 +382,7 @@ async def get_status():
     return JSONResponse({"status": "running"})
 
 @app.get("/health")
+@app.get("/api/health")
 async def get_health():
     return JSONResponse({"status": "healthy", "timestamp": int(time.time())})
 
