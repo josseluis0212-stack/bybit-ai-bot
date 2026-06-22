@@ -118,11 +118,12 @@ class ExchangeSynchronizer:
                         for order in open_orders:
                             oid = str(order.get("orderId", ""))
                             stop_px = float(order.get("stopPrice", order.get("triggerPrice", 0)))
-                            order_type = order.get("orderType", "")
+                            order_type = order.get("orderType", "").upper()
+                            stop_order_type = order.get("stopOrderType", "").upper()
                             
-                            if "STOP_MARKET" in order_type or "STOP" in order_type:
+                            if "STOP" in order_type or "STOPLOSS" in stop_order_type:
                                 sl_orders.append((oid, stop_px))
-                            elif "TAKE_PROFIT" in order_type:
+                            elif "TAKE_PROFIT" in order_type or "TAKEPROFIT" in stop_order_type:
                                 # Inferir si es TP1 o TP2 por cercanía al precio original
                                 if trade.get("tp1_price") and abs(stop_px - trade["tp1_price"]) < (trade["atr"] * 0.5):
                                     tp1_orders.append((oid, stop_px))
