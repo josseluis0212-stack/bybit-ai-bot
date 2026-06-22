@@ -148,7 +148,7 @@ class RecoveryEngine:
             trade_mem = {
                 "trade_id":          trade_db.trade_id,
                 "side":              side,
-                "strategy":          trade_db.strategy,
+                "strategy":          getattr(trade_db, "strategy", "Unknown") or "Unknown",
                 "entry_price":       entry,
                 "position_size":     trade_db.position_size,
                 "remaining_size":    real_size,

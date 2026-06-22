@@ -40,6 +40,7 @@ async def create_trade(symbol: str, signal: str, entry_price: float, stop_loss: 
         new_trade = TradeState(
             symbol=symbol,
             side=signal,
+            strategy=strategy,
             entry_price=entry_price,
             stop_loss=stop_loss,
             trade_id=trade_id,

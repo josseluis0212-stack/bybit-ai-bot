@@ -9,6 +9,7 @@ class TradeState(Base):
     trade_id = Column(String, primary_key=True)
     symbol = Column(String, index=True)
     side = Column(String)
+    strategy = Column(String, nullable=True, default="Unknown")
     entry_price = Column(Float)
     position_size = Column(Float)
     atr = Column(Float)
