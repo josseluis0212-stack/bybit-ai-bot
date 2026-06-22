@@ -27,6 +27,7 @@ class Engine:
             mark_price_callback=self._handle_ws_mark_price
         )
         self.trade_state = {}
+        self.trade_lock = asyncio.Lock()
         self.cooldowns = {}
         self.tracked_symbols = []
         self.running = False
@@ -381,13 +382,18 @@ class Engine:
         size = total_volume_usdt / entry_price
         if size <= 0: return
 
-        # Aseguramos que solo hayan MAX_OPEN_TRADES activos antes de disparar
-        if len(self.trade_state) >= Config.MAX_OPEN_TRADES:
-            logger.warning(f"[{symbol}] Omitiendo orden, se alcanzó el MAX_OPEN_TRADES.")
-            return
+        async with self.trade_lock:
+            if len(self.trade_state) >= Config.MAX_OPEN_TRADES:
+                logger.warning(f"[{symbol}] Omitiendo orden, se alcanzó el MAX_OPEN_TRADES.")
+                return
+            # Placeholder temporal para evitar Race Conditions con otras operaciones concurrentes
+            self.trade_state[symbol] = {"status": "pending_entry"}
 
         order_id = await self.executor.place_entry(symbol, side, size, entry_price, attached_sl=sl_price)
-        if not order_id: return
+        if not order_id: 
+            async with self.trade_lock:
+                self.trade_state.pop(symbol, None)
+            return
 
         trade = {
             "trade_id": order_id,
