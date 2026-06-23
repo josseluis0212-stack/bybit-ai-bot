@@ -101,8 +101,10 @@ async def stop_bot():
 @app.post("/api/bot/reset")
 async def reset_bot():
     logger.info("[USER] Manual RESET clicked. Clearing all states and closing positions...")
+    from app.database import crud
     global _stats_cache, _stats_last_fetch
     await engine.reset_state()
+    await crud.clear_all_data()
     globals()["_stats_cache"] = None
     globals()["_stats_last_fetch"] = 0
     
