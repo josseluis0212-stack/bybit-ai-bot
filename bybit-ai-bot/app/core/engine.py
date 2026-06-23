@@ -305,8 +305,10 @@ class Engine:
                     st_res = st_task.result() if st_task in done and not st_task.exception() else {"signal": "NONE"}
                     
                     if st_res.get("signal") != "NONE":
+                        if len(self.trade_state) >= Config.MAX_OPEN_TRADES: return
                         await self._execute_signal(symbol, st_res, "SuperTrendRegimeMTF")
                     elif ag_res.get("signal") != "NONE":
+                        if len(self.trade_state) >= Config.MAX_OPEN_TRADES: return
                         await self._execute_signal(symbol, ag_res, "AntigravityV13")
                         
                 except asyncio.TimeoutError:
