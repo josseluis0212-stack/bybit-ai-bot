@@ -102,13 +102,45 @@ async def stop_bot():
 async def reset_bot():
     logger.info("[USER] Manual RESET clicked. Clearing all states and closing positions...")
     from app.database import crud
+    from app.constants import POSITIONS_FILE, PNL_OFFSET_FILE
     global _stats_cache, _stats_last_fetch
+    
+    # 1. Reset engine memory and close active exchange positions
     await engine.reset_state()
+    
+    # 2. Clear SQL database
     await crud.clear_all_data()
+    
+    # 3. Remove local cache JSON files
+    if os.path.exists(POSITIONS_FILE):
+        try: os.remove(POSITIONS_FILE)
+        except Exception: pass
+    if os.path.exists(TRADES_FILE):
+        try: os.remove(TRADES_FILE)
+        except Exception: pass
+        
+    # 4. Set PNL start time to now
+    pnl_start_time_file = os.path.join(Config.STORAGE_DIR, "pnl_start_time.txt")
+    now_ms = int(time.time() * 1000)
+    try:
+        with open(pnl_start_time_file, "w") as f:
+            f.write(str(now_ms))
+    except Exception as e:
+        logger.error(f"Error saving pnl_start_time: {e}")
+        
+    # 5. Set PNL offset to zero
+    offset = {"pnl_today": 0.0, "pnl_week": 0.0, "pnl_month": 0.0, "pnl_total": 0.0}
+    try:
+        with open(PNL_OFFSET_FILE, "w") as f:
+            json.dump(offset, f)
+    except Exception as e:
+        logger.error(f"Error saving PNL offset file: {e}")
+        
+    # 6. Clear stats cache in memory
     globals()["_stats_cache"] = None
     globals()["_stats_last_fetch"] = 0
     
-    # Sincronizar (limpiar) el terminal visual vaciando el log
+    # 7. Sincronizar (limpiar) el terminal visual vaciando el log
     if os.path.exists(BOT_LOG_FILE):
         try:
             with open(BOT_LOG_FILE, "w", encoding="utf-8") as f:
