@@ -43,18 +43,27 @@ class ExchangeSynchronizer:
                     # CHECK 0: TIMEOUT DE 15 MINUTOS PARA ÓRDENES SIN LLENAR
                     # ─────────────────────────────────────────────────────
                     if not trade.get("filled"):
-                        timeout = trade.get("entry_timeout", 0)
-                        if timeout > 0 and time.time() > timeout:
-                            logger.warning(f"⏰ [TIMEOUT] {symbol} no llenó en 15 min. Cancelando orden límite...")
-                            await self.client.cancel_all_orders(symbol)
-                            self.engine.trade_state.pop(symbol, None)
-                            logger.info(f"🚫 [TIMEOUT] {symbol} eliminada. Cooldown 1h aplicado.")
-                            self.engine.cooldowns[symbol] = time.time() + 3600
-                            continue
+                        # Parche Anti-Ghost: Verificar si ByBit ya la llenó pero el WS no avisó
+                        pos = await self.executor.verify_position_exists(symbol, trade["side"])
+                        if pos:
+                            logger.info(f"✅ [SUPER SUPERVISOR] ¡Ghost Fill detectado! {symbol} se llenó en ByBit (WS lag). Activando protecciones...")
+                            trade["filled"] = True
+                            trade["remaining_size"] = abs(float(pos.get("positionAmt", 0)))
+                            await self.engine._place_protections(symbol, trade)
+                            # Continuamos con el resto de verificaciones para protegerla
                         else:
-                            remaining = max(0, (timeout - time.time()) / 60)
-                            logger.info(f"⏳ [PENDING] {symbol} esperando llenado. Timeout en {remaining:.1f} min.")
-                            continue
+                            timeout = trade.get("entry_timeout", 0)
+                            if timeout > 0 and time.time() > timeout:
+                                logger.warning(f"⏰ [TIMEOUT] {symbol} no llenó en 15 min. Cancelando orden límite...")
+                                await self.client.cancel_all_orders(symbol)
+                                self.engine.trade_state.pop(symbol, None)
+                                logger.info(f"🚫 [TIMEOUT] {symbol} eliminada. Cooldown 1h aplicado.")
+                                self.engine.cooldowns[symbol] = time.time() + 3600
+                                continue
+                            else:
+                                remaining = max(0, (timeout - time.time()) / 60)
+                                logger.info(f"⏳ [PENDING] {symbol} esperando llenado. Timeout en {remaining:.1f} min.")
+                                continue
 
                     # ─────────────────────────────────────────────────────
                     # CHECK 1: ¿LA POSICIÓN SIGUE EXISTIENDO EN BYBIT?
