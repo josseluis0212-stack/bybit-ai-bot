@@ -171,8 +171,10 @@ async def api_dashboard():
         enriched["sl_price"]         = trade_state.get("sl_price", None)
         enriched["tp_price"]         = trade_state.get("tp_price", None)
         enriched["score"]            = trade_state.get("score", None)
-        # Si la estrategia es N/A significa que la abrió el otro bot paralelo
-        enriched["strategy"]         = trade_state.get("strategy") if trade_state.get("strategy") else "MANUAL / EXTERNAL"
+        
+        # El usuario NUNCA abre operaciones a mano. Si strategy es None, significa que 
+        # el bot está en pleno proceso de recuperación (RecoveryEngine) o sufriendo lag de WS.
+        enriched["strategy"]         = trade_state.get("strategy", "SINCRONIZANDO (Recuperación)")
         enriched_positions.append(enriched)
 
     return JSONResponse({
