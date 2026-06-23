@@ -56,13 +56,13 @@ async def evaluate_supertrend_regime(client, symbol: str):
 
         latest_1h = df_1h.iloc[-1]
         
-        # Look from index -161 to -2 (160 candles backwards)
-        lookback_df = df_15m.iloc[-161:-1]
+        # Look from index -41 to -2 (40 candles backwards, approx 10 horas)
+        lookback_df = df_15m.iloc[-41:-1]
         
         long_armed = False
         short_armed = False
 
-        # Vectorized check for previous armed state (Caducidad 160 velas)
+        # Vectorized check for previous armed state (Caducidad 40 velas)
         # En pandas_ta: direction == 1 es Alcista (Verde), direction == -1 es Bajista (Rojo)
         # superRed: direction == -1
         bearish_prior = (
