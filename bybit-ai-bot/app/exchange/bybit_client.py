@@ -290,10 +290,13 @@ class AsyncBybitClient:
             params["orderFilter"] = order_filter
         res = await self._request("POST", "/v5/order/cancel", params=params, signed=True)
         if not res.get("success"):
-            # If it fails, try the other filter just in case
+            # If it fails, try the other filters just in case
             if not order_filter:
                 params["orderFilter"] = "StopOrder"
                 res = await self._request("POST", "/v5/order/cancel", params=params, signed=True)
+                if not res.get("success"):
+                    params["orderFilter"] = "tpslOrder"
+                    res = await self._request("POST", "/v5/order/cancel", params=params, signed=True)
         return res
 
     async def get_balance(self, asset: str = "USDT") -> float:
@@ -319,11 +322,13 @@ class AsyncBybitClient:
     async def get_open_orders(self, symbol: str) -> list:
         params_normal = {"category": "linear", "symbol": symbol.replace("-", "").upper(), "orderFilter": "Order"}
         params_stop = {"category": "linear", "symbol": symbol.replace("-", "").upper(), "orderFilter": "StopOrder"}
+        params_tpsl = {"category": "linear", "symbol": symbol.replace("-", "").upper(), "orderFilter": "tpslOrder"}
         
         import asyncio
-        res_normal, res_stop = await asyncio.gather(
+        res_normal, res_stop, res_tpsl = await asyncio.gather(
             self._request("GET", "/v5/order/realtime", params=params_normal, signed=True),
-            self._request("GET", "/v5/order/realtime", params=params_stop, signed=True)
+            self._request("GET", "/v5/order/realtime", params=params_stop, signed=True),
+            self._request("GET", "/v5/order/realtime", params=params_tpsl, signed=True)
         )
         
         orders = []
@@ -331,6 +336,8 @@ class AsyncBybitClient:
             orders.extend(res_normal.get("data", {}).get("list", []))
         if res_stop and res_stop.get("success"):
             orders.extend(res_stop.get("data", {}).get("list", []))
+        if res_tpsl and res_tpsl.get("success"):
+            orders.extend(res_tpsl.get("data", {}).get("list", []))
             
         return orders
 
