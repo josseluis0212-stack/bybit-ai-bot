@@ -134,12 +134,12 @@ class ExchangeSynchronizer:
                                     is_tp = True
                                 else:
                                     # Price-based inference for opaque conditional orders
-                                    if trade.get("position_side") == "LONG":
+                                    if trade.get("side") == "LONG":
                                         if stop_px < trade.get("entry_price", 0):
                                             is_sl = True
                                         else:
                                             is_tp = True
-                                    elif trade.get("position_side") == "SHORT":
+                                    elif trade.get("side") == "SHORT":
                                         if stop_px > trade.get("entry_price", float('inf')):
                                             is_sl = True
                                         else:
