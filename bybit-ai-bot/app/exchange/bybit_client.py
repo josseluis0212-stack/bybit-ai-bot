@@ -280,13 +280,20 @@ class AsyncBybitClient:
         
         return res_normal.get("success", False) or res_stop.get("success", False)
 
-    async def cancel_order(self, symbol: str, order_id: str):
+    async def cancel_order(self, symbol: str, order_id: str, order_filter: str = None):
         params = {
             "category": "linear",
             "symbol": symbol.replace("-", "").upper(),
             "orderId": order_id
         }
+        if order_filter:
+            params["orderFilter"] = order_filter
         res = await self._request("POST", "/v5/order/cancel", params=params, signed=True)
+        if not res.get("success"):
+            # If it fails, try the other filter just in case
+            if not order_filter:
+                params["orderFilter"] = "StopOrder"
+                res = await self._request("POST", "/v5/order/cancel", params=params, signed=True)
         return res
 
     async def get_balance(self, asset: str = "USDT") -> float:
