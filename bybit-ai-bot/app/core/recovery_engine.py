@@ -4,6 +4,8 @@ from app.logger import logger
 from app.database import crud
 from app.exchange.bybit_client import AsyncBybitClient
 from app.exchange.order_executor import OrderExecutor
+import pandas as pd
+import pandas_ta as ta
 
 class RecoveryEngine:
     """
@@ -275,7 +277,16 @@ class RecoveryEngine:
                             sl_price = profit_lock_price
                             if guessed_strategy == "SuperTrendRegimeMTF" and current_price >= entry + (2.5 * atr):
                                 trailing_active = True
-                                sl_price = current_price - atr
+                                klines = await self.client.get_klines(sym, interval="15", limit=30)
+                                if klines:
+                                    df = pd.DataFrame(klines)
+                                    ema21 = ta.ema(df['close'], length=21)
+                                    if ema21 is not None and not ema21.empty:
+                                        sl_price = max(sl_price, ema21.iloc[-1])
+                                    else:
+                                        sl_price = current_price - atr
+                                else:
+                                    sl_price = current_price - atr
                     else:
                         if guessed_strategy == "AntigravityV13" and current_price <= tp1_price:
                             tp1_hit = True
@@ -287,7 +298,16 @@ class RecoveryEngine:
                             sl_price = profit_lock_price
                             if guessed_strategy == "SuperTrendRegimeMTF" and current_price <= entry - (2.5 * atr):
                                 trailing_active = True
-                                sl_price = current_price + atr
+                                klines = await self.client.get_klines(sym, interval="15", limit=30)
+                                if klines:
+                                    df = pd.DataFrame(klines)
+                                    ema21 = ta.ema(df['close'], length=21)
+                                    if ema21 is not None and not ema21.empty:
+                                        sl_price = min(sl_price, ema21.iloc[-1])
+                                    else:
+                                        sl_price = current_price + atr
+                                else:
+                                    sl_price = current_price + atr
                     
                     trade_db = await crud.create_trade(
                         symbol=sym,
