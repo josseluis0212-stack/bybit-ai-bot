@@ -177,8 +177,8 @@ class Engine:
                         # Activa al 33.3% de ROE (3.33% de mov. de precio a 10x)
                         be_threshold = entry_price * (0.333 / Config.LEVERAGE)
                     else:
-                        # SuperTrend activa BE a los 1.5 ATR
-                        be_threshold = trade["atr"] * 1.5
+                        # SuperTrend activa BE a los 2.0 ATR
+                        be_threshold = trade["atr"] * 2.0
                         
                     if side == "LONG" and mark_price >= entry_price + be_threshold:
                         await self._activate_profit_lock(symbol, trade)
@@ -264,18 +264,35 @@ class Engine:
         async def evaluate_and_execute(symbol):
             async with semaphore:
                 try:
-                    # Actualizar EMA21 de los trades activos para el trailing
                     trade = self.trade_state.get(symbol)
-                    if trade and trade.get("trailing_active"):
-                        klines = await self.client.get_klines(symbol, interval="15", limit=30)
-                        if klines:
-                            df = pd.DataFrame(klines)
-                            ema21 = ta.ema(df['close'], length=21)
-                            if ema21 is not None and not ema21.empty:
-                                trade["ema_21"] = ema21.iloc[-1]
+                    
+                    if trade:
+                        # Evaluar early exit si es SuperTrend
+                        if trade.get("strategy") == "SuperTrendRegimeMTF":
+                            try:
+                                st_res = await evaluate_supertrend_regime(self.client, symbol)
+                                if trade["side"] == "LONG" and st_res.get("exit_long"):
+                                    logger.warning(f"🚨 [EARLY EXIT] Patrón bajista detectado en {symbol}. Cerrando LONG anticipadamente.")
+                                    await self.executor.close_position_market(symbol, "LONG")
+                                    await self._close_position_internal(symbol, "Early Exit - Patrón Contrario")
+                                    return
+                                elif trade["side"] == "SHORT" and st_res.get("exit_short"):
+                                    logger.warning(f"🚨 [EARLY EXIT] Patrón alcista detectado en {symbol}. Cerrando SHORT anticipadamente.")
+                                    await self.executor.close_position_market(symbol, "SHORT")
+                                    await self._close_position_internal(symbol, "Early Exit - Patrón Contrario")
+                                    return
+                            except Exception as e:
+                                logger.error(f"[EARLY EXIT] Error evaluando {symbol}: {e}")
 
-                    # Si ya tiene trade, no abrimos otro, salimos
-                    if trade: return
+                        # Actualizar EMA21 de los trades activos para el trailing
+                        if trade.get("trailing_active"):
+                            klines = await self.client.get_klines(symbol, interval="15", limit=30)
+                            if klines:
+                                df = pd.DataFrame(klines)
+                                ema21 = ta.ema(df['close'], length=21)
+                                if ema21 is not None and not ema21.empty:
+                                    trade["ema_21"] = ema21.iloc[-1]
+                        return
 
                     # Timeout de 15 segundos máximo por moneda para evitar bloqueos
                     ag_task = asyncio.create_task(evaluate_antigravity_v13(self.client, symbol))
