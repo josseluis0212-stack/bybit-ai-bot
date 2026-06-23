@@ -5,7 +5,8 @@ from app.database.models import Base, TradeState, TradeHistory, SymbolCooldown
 import datetime
 import os
 
-DB_URL = "sqlite+aiosqlite:///app.db"
+DB_DIR = "/data" if os.path.exists("/data") else "."
+DB_URL = f"sqlite+aiosqlite:///{DB_DIR}/app.db"
 engine = create_async_engine(DB_URL, echo=False)
 async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
