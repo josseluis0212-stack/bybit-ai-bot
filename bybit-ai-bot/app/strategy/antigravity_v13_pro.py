@@ -51,22 +51,22 @@ async def evaluate_antigravity_v13(client, symbol: str) -> dict:
     rising_ema20 = ta_rising(ema20, 3)
     falling_ema20 = ta_falling(ema20, 3)
     
-    trendBull = current_close > ema200[-1] and ema20[-1] > ema50[-1] and rising_ema20
-    trendBear = current_close < ema200[-1] and ema20[-1] < ema50[-1] and falling_ema20
+    trendBull = current_close > ema100[-1] and ema20[-1] > ema50[-1] and rising_ema20
+    trendBear = current_close < ema100[-1] and ema20[-1] < ema50[-1] and falling_ema20
     
-    # Volume Filter
-    volSurge = current_volume > volMA[-1] * 1.15
-    volIncreasing = current_volume > volSMA50[-1] * 0.95
+    # Volume Filter (Relaxed slightly)
+    volSurge = current_volume > volMA[-1] * 1.05
+    volIncreasing = current_volume > volSMA50[-1] * 0.85
     volFilter = volSurge and volIncreasing
     
-    # ADX Filter
-    adxThreshold = 16
+    # ADX Filter (Relaxed)
+    adxThreshold = 14
     adxFilterBull = adx14[-1] > adxThreshold and plus_di[-1] > minus_di[-1]
     adxFilterBear = adx14[-1] > adxThreshold and minus_di[-1] > plus_di[-1]
     
     # RSI Filter
-    rsiFilterBull = rsi14[-1] > 32 and rsi14[-1] < 78
-    rsiFilterBear = rsi14[-1] < 68 and rsi14[-1] > 22
+    rsiFilterBull = rsi14[-1] > 30 and rsi14[-1] < 80
+    rsiFilterBear = rsi14[-1] < 70 and rsi14[-1] > 20
     
     # MACD Filter
     macdBull = macd_line[-1] > signal_line[-1]
