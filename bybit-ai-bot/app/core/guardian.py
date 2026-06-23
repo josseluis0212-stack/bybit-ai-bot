@@ -121,9 +121,33 @@ class ExchangeSynchronizer:
                             order_type = order.get("orderType", "").upper()
                             stop_order_type = order.get("stopOrderType", "").upper()
                             
-                            if "STOP" in order_type or "STOPLOSS" in stop_order_type:
+                            is_conditional = stop_px > 0
+                            
+                            is_sl = False
+                            is_tp = False
+                            
+                            if is_conditional:
+                                # String-based identification
+                                if "STOP" in order_type or "STOPLOSS" in stop_order_type:
+                                    is_sl = True
+                                elif "TAKE" in order_type or "TAKEPROFIT" in stop_order_type:
+                                    is_tp = True
+                                else:
+                                    # Price-based inference for opaque conditional orders
+                                    if trade.get("position_side") == "LONG":
+                                        if stop_px < trade.get("entry_price", 0):
+                                            is_sl = True
+                                        else:
+                                            is_tp = True
+                                    elif trade.get("position_side") == "SHORT":
+                                        if stop_px > trade.get("entry_price", float('inf')):
+                                            is_sl = True
+                                        else:
+                                            is_tp = True
+                                            
+                            if is_sl:
                                 sl_orders.append((oid, stop_px))
-                            elif "TAKE_PROFIT" in order_type or "TAKEPROFIT" in stop_order_type:
+                            elif is_tp:
                                 # Inferir si es TP1 o TP2 por cercanía al precio original
                                 if trade.get("tp1_price") and abs(stop_px - trade["tp1_price"]) < (trade["atr"] * 0.5):
                                     tp1_orders.append((oid, stop_px))
