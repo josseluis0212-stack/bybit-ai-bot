@@ -209,7 +209,7 @@ class Engine:
                     # Usamos el EMA21 calculado asíncronamente en el polling, o caemos al ATR
                     ema_21 = trade.get("ema_21", 0)
                     if ema_21 > 0:
-                        new_sl = ema_21 - trade["atr"] if side == "LONG" else ema_21 + trade["atr"]
+                        new_sl = ema_21
                         # Asegurar que NUNCA retroceda el SL
                         if side == "LONG" and new_sl < trade["sl_price"]: new_sl = trade["sl_price"]
                         if side == "SHORT" and new_sl > trade["sl_price"]: new_sl = trade["sl_price"]
