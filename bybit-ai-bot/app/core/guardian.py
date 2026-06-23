@@ -132,11 +132,12 @@ class ExchangeSynchronizer:
                                     
                     # Limpiar Stop Loss Duplicados
                     if len(sl_orders) > 1:
-                        logger.warning(f"🦸‍♂️ [SUPER SUPERVISOR] Detectados {len(sl_orders)} Stop Loss duplicados para {symbol}. Limpiando...")
-                        for oid, _ in sl_orders:
+                        logger.warning(f"🦸‍♂️ [SUPER SUPERVISOR] Detectados {len(sl_orders)} Stop Loss duplicados para {symbol}. Limpiando excedentes...")
+                        for oid, _ in sl_orders[1:]:
                             await self.client.cancel_order(symbol, oid)
-                        sl_orders = [] # Forzar recreación
-                    elif len(sl_orders) == 1:
+                        sl_orders = [sl_orders[0]] # Conservar uno para evitar loop de recreación
+
+                    if len(sl_orders) == 1:
                         found_sl = True
                         trade["sl_order_id"] = sl_orders[0][0]
                         exchange_sl_price = sl_orders[0][1]

@@ -79,7 +79,7 @@ class RetroactivePositionManager:
 
         if side == "LONG":
             # ── Detección de TP1 por mecha ────────────────────────────────
-            if not trade.get("tp1_hit") and hist_high >= tp1:
+            if tp1 is not None and not trade.get("tp1_hit") and hist_high >= tp1:
                 logger.info(f"🔭 [RETRO-PM] {symbol} LONG: Mecha detectada en TP1 {tp1:.4f} (high={hist_high:.4f}). Marcando TP1.")
                 trade["tp1_hit"] = True
                 trade["remaining_size"] = max(trade["remaining_size"] - trade["position_size"] * 0.3, 0)
@@ -92,7 +92,7 @@ class RetroactivePositionManager:
                 changed = True
 
             # ── Detección de TP2 / Trailing por mecha ────────────────────
-            if not trade.get("tp2_hit") and hist_high >= tp2:
+            if tp2 is not None and not trade.get("tp2_hit") and hist_high >= tp2:
                 logger.info(f"🔭 [RETRO-PM] {symbol} LONG: Mecha detectada en TP2 {tp2:.4f} (high={hist_high:.4f}). Activando Trailing.")
                 trade["tp2_hit"] = True
                 trade["trailing_active"] = True
@@ -120,7 +120,7 @@ class RetroactivePositionManager:
 
         elif side == "SHORT":
             # ── Detección de TP1 por mecha ────────────────────────────────
-            if not trade.get("tp1_hit") and hist_low <= tp1:
+            if tp1 is not None and not trade.get("tp1_hit") and hist_low <= tp1:
                 logger.info(f"🔭 [RETRO-PM] {symbol} SHORT: Mecha detectada en TP1 {tp1:.4f} (low={hist_low:.4f}). Marcando TP1.")
                 trade["tp1_hit"] = True
                 trade["remaining_size"] = max(trade["remaining_size"] - trade["position_size"] * 0.3, 0)
@@ -133,7 +133,7 @@ class RetroactivePositionManager:
                 changed = True
 
             # ── Detección de TP2 / Trailing por mecha ────────────────────
-            if not trade.get("tp2_hit") and hist_low <= tp2:
+            if tp2 is not None and not trade.get("tp2_hit") and hist_low <= tp2:
                 logger.info(f"🔭 [RETRO-PM] {symbol} SHORT: Mecha detectada en TP2 {tp2:.4f} (low={hist_low:.4f}). Activando Trailing.")
                 trade["tp2_hit"] = True
                 trade["trailing_active"] = True
