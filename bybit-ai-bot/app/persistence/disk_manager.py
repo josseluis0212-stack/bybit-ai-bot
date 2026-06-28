@@ -28,7 +28,7 @@ class FTPDiskManager:
         self.ftp_pass       = os.getenv("NETWORK_DISK_PASS", "")
         self.local_fallback = os.getenv(
             "STORAGE_DIR",
-            os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "storage")
+            "/data/storage" if os.path.exists("/data") else os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "storage")
         )
 
         self._available   = False
