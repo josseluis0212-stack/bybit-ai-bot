@@ -13,6 +13,9 @@ from app.risk.trailing_manager import TrailingManager
 from app.database import crud
 from app.strategy.antigravity_v13_pro import evaluate_antigravity_v13
 from app.strategy.supertrend_regime import evaluate_supertrend_regime
+from app.persistence.disk_manager import disk_manager
+from app.persistence.trade_recorder import trade_recorder
+from app.persistence.state_snapshot import state_snapshot
 import pandas as pd
 import pandas_ta as ta
 class Engine:
@@ -35,6 +38,28 @@ class Engine:
     async def start(self):
         self.running = True
         logger.info("🚀 [ENGINE] Iniciando Antigravity Bot (Demo/Testnet)...")
+        
+        # ── Inicializar disco de red (NAS via router ETB) ──────────────────
+        logger.info("[ENGINE] Conectando al disco de red...")
+        disk_ok = disk_manager.initialize()
+        if disk_ok:
+            logger.info("[ENGINE] ✅ Disco de red disponible. Logs y operaciones en red local.")
+        else:
+            logger.warning("[ENGINE] ⚠️ Disco de red no disponible. Usando almacenamiento local.")
+        
+        # Registrar callbacks de disco
+        disk_manager.on_disconnect(self._on_disk_disconnect)
+        disk_manager.on_reconnect(self._on_disk_reconnect)
+        
+        # ── Cargar estado persistido desde el disco ────────────────────────
+        saved = state_snapshot.load()
+        if saved.get("trade_state"):
+            self.trade_state = saved["trade_state"]
+            logger.info(f"[ENGINE] 🔄 {len(self.trade_state)} operaciones restauradas del disco.")
+        if saved.get("cooldowns"):
+            self.cooldowns = saved["cooldowns"]
+            logger.info(f"[ENGINE] 🕒 {len(self.cooldowns)} cooldowns restaurados.")
+        
         await crud.init_db()
         await self.recovery.execute_recovery()
 
@@ -47,6 +72,11 @@ class Engine:
 
     async def stop(self):
         self.running = False
+        
+        # ── Guardar estado completo antes de apagar ───────────────────────
+        logger.info("[ENGINE] 💾 Guardando estado en disco antes de apagar...")
+        state_snapshot.save(self.trade_state, self.cooldowns)
+        
         await self.synchronizer.stop()
         await self.ws.stop()
         if hasattr(self, '_polling_task'):
@@ -54,6 +84,33 @@ class Engine:
         if hasattr(self, '_sync_task'):
             self._sync_task.cancel()
         logger.info("[ENGINE] Apagado completado.")
+
+    def _on_disk_disconnect(self):
+        """Callback cuando el disco de red se desconecta."""
+        logger.error("[ENGINE] 🔴 DISCO DE RED DESCONECTADO. Operando en modo local temporal.")
+        # Notificar por Telegram si está configurado
+        try:
+            from app.notifications.telegram import send_telegram
+            import asyncio
+            asyncio.create_task(send_telegram(
+                "⚠️ *ALERTA DISCO*: El disco de red se desconectó. "
+                "El bot continúa operando con almacenamiento local temporal."
+            ))
+        except Exception:
+            pass
+
+    def _on_disk_reconnect(self):
+        """Callback cuando el disco de red vuelve a conectarse."""
+        logger.info("[ENGINE] 🟢 DISCO DE RED RECONECTADO. Datos sincronizados.")
+        try:
+            from app.notifications.telegram import send_telegram
+            import asyncio
+            asyncio.create_task(send_telegram(
+                "✅ *DISCO RECONECTADO*: El disco de red está disponible nuevamente. "
+                "Datos locales sincronizados al disco."
+            ))
+        except Exception:
+            pass
 
     async def force_scan(self):
         logger.info("🚀 [ENGINE] Escaneo inmediato forzado...")
@@ -177,8 +234,8 @@ class Engine:
                         # Activa al 33.3% de ROE (3.33% de mov. de precio a 10x)
                         be_threshold = entry_price * (0.333 / Config.LEVERAGE)
                     else:
-                        # SuperTrend activa BE a los 2.0 ATR
-                        be_threshold = trade["atr"] * 2.0
+                        # SuperTrend activa BE a los 1.8 ATR
+                        be_threshold = trade["atr"] * 1.8
                         
                     if side == "LONG" and mark_price >= entry_price + be_threshold:
                         await self._activate_profit_lock(symbol, trade)
@@ -239,7 +296,7 @@ class Engine:
         except Exception as e:
             logger.error(f"[WS MARK PRICE] Error: {e}")
 
-    async def _close_position_internal(self, symbol: str, reason: str):
+    async def _close_position_internal(self, symbol: str, reason: str, pnl: float = 0.0):
         trade = self.trade_state.pop(symbol, None)
         if trade:
             db_trade = await crud.get_trade_by_id(trade["trade_id"])
@@ -252,8 +309,28 @@ class Engine:
             if not trade.get("tp1_hit") and not trade.get("profit_lock_active") and not trade.get("trailing_active"):
                 logger.info(f"💤 [COOLDOWN] {symbol} cerró en pérdida. Puesta a descansar por 1 hora.")
                 self.cooldowns[symbol] = time.time() + 3600 # 1 hour
+            
+            # ── Registrar cierre en disco de red ──────────────────────────
+            try:
+                trade_recorder.record_close(
+                    trade_id = trade.get("trade_id", symbol),
+                    symbol   = symbol,
+                    side     = trade.get("side", ""),
+                    pnl      = pnl,
+                    reason   = reason,
+                    extra    = {
+                        "breakeven_activado": trade.get("profit_lock_active", False),
+                        "trailing_activado":  trade.get("trailing_active", False),
+                        "tp1_tocado":         trade.get("tp1_hit", False),
+                        "tp2_tocado":         trade.get("tp2_hit", False),
+                        "estrategia":         trade.get("strategy", ""),
+                    }
+                )
+            except Exception as e:
+                logger.error(f"[TRADE-RECORDER] Error registrando cierre en disco: {e}")
                 
             await self.ws.unsubscribe_mark_price(symbol)
+
 
     async def _kline_polling_loop(self):
         await asyncio.sleep(5)
@@ -452,3 +529,20 @@ class Engine:
             tp2_price=tp2_price,
             profit_lock_price=profit_lock_price
         )
+        
+        # ── Registrar en disco de red ───────────────────────────────────
+        try:
+            trade_recorder.record_open(order_id, {
+                "symbol":       symbol,
+                "strategy":     strategy_name,
+                "side":         side,
+                "entry_price":  entry_price,
+                "sl_price":     sl_price,
+                "tp1_price":    tp1_price,
+                "tp2_price":    tp2_price,
+                "profit_lock_price": profit_lock_price,
+                "position_size": size,
+                "atr":          atr,
+            })
+        except Exception as e:
+            logger.error(f"[TRADE-RECORDER] Error registrando apertura en disco: {e}")

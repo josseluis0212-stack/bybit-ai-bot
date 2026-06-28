@@ -96,7 +96,7 @@ class ExchangeSynchronizer:
                                     from app.config import Config
                                     be_threshold = entry_price * (0.333 / Config.LEVERAGE)
                                 else:
-                                    be_threshold = atr * 2.0
+                                    be_threshold = atr * 1.8
                                     
                                 be_triggered = (
                                     (side == "LONG" and mark_price >= entry_price + be_threshold) or

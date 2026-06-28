@@ -258,7 +258,7 @@ class RecoveryEngine:
                         tp1_price = None
                         tp2_price = None
                         profit_lock_price = entry + (entry * (0.15 / 10)) if side == "LONG" else entry - (entry * (0.15 / 10))
-                        be_threshold = atr * 1.5
+                        be_threshold = atr * 1.8
                     
                     sl_price = entry - (2.5 * atr) if side == "LONG" else entry + (2.5 * atr)
                     
