@@ -1,6 +1,7 @@
 import asyncio
 import time
 import json
+import os
 import websockets
 import hmac
 import hashlib
@@ -47,10 +48,19 @@ class BybitWebSocket:
         asyncio.create_task(self._connect_public())
         asyncio.create_task(self._connect_private())
 
+    def _ws_proxy(self):
+        """Devuelve el proxy configurado para WebSocket (soporta HTTP tunneling)."""
+        proxy = os.getenv("BYBIT_PROXY") or os.getenv("HTTP_PROXY") or os.getenv("HTTPS_PROXY")
+        return proxy  # websockets acepta proxy como str 'http://host:port'
+
     async def _connect_public(self):
         while self.running:
             try:
-                async with websockets.connect(self.ws_public_url) as ws:
+                proxy = self._ws_proxy()
+                connect_kwargs = {}
+                if proxy:
+                    connect_kwargs["proxy"] = proxy
+                async with websockets.connect(self.ws_public_url, **connect_kwargs) as ws:
                     self.ws_public = ws
                     logger.info(f"Public WS connected to {self.ws_public_url}")
                     
@@ -70,7 +80,11 @@ class BybitWebSocket:
     async def _connect_private(self):
         while self.running:
             try:
-                async with websockets.connect(self.ws_private_url) as ws:
+                proxy = self._ws_proxy()
+                connect_kwargs = {}
+                if proxy:
+                    connect_kwargs["proxy"] = proxy
+                async with websockets.connect(self.ws_private_url, **connect_kwargs) as ws:
                     self.ws_private = ws
                     logger.info(f"Private WS connected to {self.ws_private_url}")
                     
