@@ -148,85 +148,126 @@ function updateDashboard(data) {
 }
 
 // ── Stats + History ───────────────────────────────────────────
+// ── Stats + Master History Table ──────────────────────────────
+async function fetchMasterHistory() {
+    try {
+        const res = await fetch(`${API_BASE}/trade_history?limit=50`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const histList = document.getElementById('history-list');
+        const trades = data.operaciones || [];
+
+        if (trades.length === 0) {
+            histList.innerHTML = '<tr><td colspan="10" style="text-align: center; color: #64748b; padding: 2rem;">No hay operaciones registradas en el disco de memoria.</td></tr>';
+            return;
+        }
+
+        let hHTML = '';
+        trades.forEach(t => {
+            const estado = t.estado_final || t.estado || 'CERRADA';
+            const isWin  = estado === 'GANADA' || (t.pnl_realizado || 0) > 0;
+            const isLoss = estado === 'PERDIDA' || (t.pnl_realizado || 0) < 0;
+            
+            const colorMain = isWin ? '#22c55e' : (isLoss ? '#ef4444' : '#eab308');
+            const bgHover   = isWin ? 'rgba(34,197,94,0.05)' : 'rgba(239,68,68,0.05)';
+
+            // Formatear fechas
+            const fApertura = t.apertura ? t.apertura.replace('T', ' ').substring(0, 19) : '--';
+            const fCierre   = t.cierre   ? t.cierre.replace('T', ' ').substring(0, 19) : (t.fecha_cierre || '--');
+
+            // Moneda y dirección
+            const sideStr = t.side || (t.signal || 'LONG');
+            const sideClass = sideStr === 'LONG' ? 'text-green' : 'text-red';
+
+            // Estrategia
+            const strat = t.strategy || t.estrategia || 'QUANTUM V13';
+
+            // Precios y volúmenes
+            const pEntrada = formatPrice(t.precio_entrada || t.entry_price);
+            const volumenUsdt = t.margen_usdt ? `$${(t.margen_usdt * (t.apalancamiento || 10)).toFixed(2)} USDT` : '$150.00 USDT';
+            const tokens = t.tamanio_posicion ? formatCrypto(t.tamanio_posicion) : (t.qty ? formatCrypto(t.qty) : '--');
+
+            // Distancias SL / TP
+            const slStr  = t.stop_loss ? `SL: <b>${formatPrice(t.stop_loss)}</b>` : 'SL: --';
+            const tp1Str = t.take_profit_1 ? `TP1: <b>${formatPrice(t.take_profit_1)}</b>` : '';
+            const tp2Str = t.take_profit_2 ? `TP2: <b>${formatPrice(t.take_profit_2)}</b>` : '';
+            const levels = [slStr, tp1Str, tp2Str].filter(Boolean).join('<br>');
+
+            // BE & Trailing Flags
+            let beBadge = t.breakeven_activado || (t.extra && t.extra.breakeven_activado)
+                ? '<span style="background:rgba(168,85,247,0.2);color:#c084fc;border:1px solid rgba(168,85,247,0.4);padding:2px 6px;border-radius:4px;font-size:0.7rem;font-weight:700;">🛡️ BREAKEVEN</span>'
+                : '<span style="color:#64748b;font-size:0.7rem;">Inactivo</span>';
+
+            let trailBadge = t.trailing_activado || (t.extra && t.extra.trailing_activado)
+                ? '<span style="background:rgba(59,130,246,0.2);color:#60a5fa;border:1px solid rgba(59,130,246,0.4);padding:2px 6px;border-radius:4px;font-size:0.7rem;font-weight:700;margin-left:4px;">🔁 TRAILING</span>'
+                : '';
+
+            const pnlVal = t.pnl_realizado !== undefined ? t.pnl_realizado : (t.pnl || 0);
+            const pnlStr = formatCurrency(pnlVal, '$', 4);
+
+            hHTML += `
+                <tr style="border-left: 4px solid ${colorMain}; background: rgba(255,255,255,0.01); transition: all 0.2s;" onmouseover="this.style.background='${bgHover}'" onmouseout="this.style.background='rgba(255,255,255,0.01)'">
+                    <td style="padding: 0.8rem; font-family: monospace; color:#94a3b8;">${fApertura}</td>
+                    <td style="padding: 0.8rem;"><span style="font-weight:800; font-size:0.9rem;">${t.symbol}</span> <span class="${sideClass}" style="font-size:0.75rem; font-weight:700; margin-left:4px;">${sideStr}</span></td>
+                    <td style="padding: 0.8rem;"><span style="color:#c084fc; font-weight:700;">${strat}</span></td>
+                    <td style="padding: 0.8rem; font-family: monospace;"><b>${pEntrada}</b></td>
+                    <td style="padding: 0.8rem; color:#e2e8f0; font-weight:600;">${volumenUsdt}</td>
+                    <td style="padding: 0.8rem; font-family: monospace; color:#cbd5e1;">${tokens}</td>
+                    <td style="padding: 0.8rem; font-size:0.75rem; color:#94a3b8; line-height:1.3;">${levels}</td>
+                    <td style="padding: 0.8rem;">${beBadge} ${trailBadge}</td>
+                    <td style="padding: 0.8rem; font-family: monospace; color:#94a3b8;">${fCierre}</td>
+                    <td style="padding: 0.8rem; text-align:right;">
+                        <div style="font-weight:900; font-size:0.85rem; color:${colorMain};">${estado}</div>
+                        <div style="font-family:monospace; font-weight:800; font-size:1.05rem; color:${colorMain};">${pnlStr}</div>
+                    </td>
+                </tr>
+            `;
+        });
+        histList.innerHTML = hHTML;
+    } catch (e) { console.error('Error fetching master history', e); }
+}
+
+async function fetchDiskStatus() {
+    try {
+        const res = await fetch(`${API_BASE}/disk_status`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const badgeText = document.getElementById('disk-status-text');
+        if (badgeText && data.disk) {
+            if (data.disk.connected) {
+                badgeText.innerHTML = `🟢 FTP RED NAS (${data.disk.ftp_host})`;
+                badgeText.style.color = '#22c55e';
+            } else {
+                badgeText.innerHTML = `🟡 LOCAL FAILSAFE (${data.disk.local_base})`;
+                badgeText.style.color = '#eab308';
+            }
+        }
+    } catch (e) {}
+}
+
 function updateStats(stats) {
     if (!stats) return;
 
     const updatePnl = (id, val) => {
         const el = document.getElementById(id);
-        el.innerText  = formatCurrency(val);
-        el.className  = `pnl-amount ${val >= 0 ? 'text-green' : 'text-red'}`;
+        if (el) {
+            el.innerText  = formatCurrency(val);
+            el.className  = `pnl-amount ${val >= 0 ? 'text-green' : 'text-red'}`;
+        }
     };
 
     updatePnl('pnl-today', stats.pnl_today);
 
-    document.getElementById('win-today').innerText    = stats.win_today;
-    document.getElementById('loss-today').innerText   = stats.loss_today;
+    if (document.getElementById('win-today')) document.getElementById('win-today').innerText    = stats.win_today;
+    if (document.getElementById('loss-today')) document.getElementById('loss-today').innerText   = stats.loss_today;
 
-    document.getElementById('winrate-pct').innerText          = `${stats.win_rate.toFixed(1)}%`;
-    document.getElementById('winrate-bar').style.width        = `${Math.min(stats.win_rate, 100)}%`;
-    document.getElementById('profit-factor').innerText        = stats.profit_factor.toFixed(2);
-    document.getElementById('mean-win').innerText             = formatCurrency(stats.mean_win);
-    document.getElementById('mean-loss').innerText            = formatCurrency(stats.mean_loss);
-
-    // History List — enrich with BE/Trailing flags if present
-    const histList = document.getElementById('history-list');
-    if (stats.recent_trades && stats.recent_trades.length > 0) {
-        let hHTML = '';
-        stats.recent_trades.forEach(t => {
-            const isWin    = t.pnl >= 0;
-            const pnlClass = isWin ? 'green' : 'red';
-
-            const colorMain = isWin ? '#22c55e' : '#ef4444';
-            const bgHover = isWin ? 'rgba(34,197,94,0.05)' : 'rgba(239,68,68,0.05)';
-            const borderGlow = isWin ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)';
-
-            // Optional flags from closed trade record
-            let flags = '';
-            if (t.breakeven_hit)   flags += '<span class="tag be" style="background:rgba(168,85,247,0.2);color:#a855f7;border:1px solid #a855f7;font-size:0.55rem;padding:0.2rem 0.4rem;border-radius:4px;margin-left:0.3rem">🛡️ BE</span>';
-            if (t.trailing_active) flags += '<span class="tag trail" style="background:rgba(59,130,246,0.2);color:#3b82f6;border:1px solid #3b82f6;font-size:0.55rem;padding:0.2rem 0.4rem;border-radius:4px;margin-left:0.3rem">🔁 TRAIL</span>';
-
-            // Time formatting
-            let timeStr = '--';
-            if (t.time) {
-                const d = new Date(t.time);
-                timeStr = d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
-            }
-
-            // Initials for avatar
-            const initials = t.symbol.replace('USDT','').replace('-','').substring(0,2).toUpperCase();
-            
-            // Format strategy name
-            let strategyNameText = t.strategy ? t.strategy.replace(/_/g, ' ') : 'UNKNOWN';
-            if (strategyNameText === 'UNKNOWN STRATEGY' && t.symbol === 'BTCUSDT') strategyNameText = 'QUANTUM V10 PRO'; // Example fallback
-
-            hHTML += `
-                <tr style="border-left: 3px solid ${colorMain}; background: linear-gradient(90deg, ${isWin?'rgba(34,197,94,0.03)':'rgba(239,68,68,0.03)'} 0%, transparent 100%); transition: all 0.3s;" onmouseover="this.style.background='${bgHover}'; this.style.boxShadow='inset 4px 0 10px ${borderGlow}'" onmouseout="this.style.background=''; this.style.boxShadow='none'">
-                    <td style="padding: 1rem;">
-                        <div style="display:flex; align-items:center; gap:0.6rem;">
-                            <div style="width:26px; height:26px; border-radius:50%; background:rgba(255,255,255,0.05); display:flex; align-items:center; justify-content:center; font-size:0.6rem; font-weight:800; color:${colorMain}; border: 1px solid ${isWin ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}">
-                                ${initials}
-                            </div>
-                            <span style="font-weight:800; font-size:0.9rem;">${t.symbol}</span>
-                        </div>
-                    </td>
-                    <td style="padding: 1rem;"><span style="color:#60a5fa; font-weight:bold; font-size:0.8rem; letter-spacing:0.5px;">${strategyNameText}</span></td>
-                    <td style="padding: 1rem;"><span style="color:white; font-weight:bold; font-size:0.8rem;">${t.side}</span></td>
-                    <td style="padding: 1rem;">
-                        <div style="display:flex; align-items:center;">
-                            <span style="font-size:0.75rem; color:#ccc; background:rgba(255,255,255,0.05); padding:0.2rem 0.5rem; border-radius:4px;"><i class="fa-solid fa-border-all" style="color:#60a5fa; margin-right:4px;"></i>${t.reason ? t.reason.toUpperCase() : 'CERRADO POR EXCHANGE'}</span>
-                            ${flags}
-                        </div>
-                    </td>
-                    <td style="padding: 1rem;"><span style="font-size:0.8rem; color:#9ca3af;">${timeStr}</span></td>
-                    <td style="padding: 1rem; text-align:right;"><span class="${pnlClass}" style="font-size:1.1rem; font-weight:900; color:${colorMain}; font-family:monospace;">${formatCurrency(t.pnl)}</span></td>
-                </tr>
-            `;
-        });
-        histList.innerHTML = hHTML;
-    } else {
-        histList.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">NO HAY POSICIONES ACTIVAS EN BYBIT</td></tr>';
-    }
+    if (document.getElementById('winrate-pct')) document.getElementById('winrate-pct').innerText          = `${stats.win_rate.toFixed(1)}%`;
+    if (document.getElementById('winrate-bar')) document.getElementById('winrate-bar').style.width        = `${Math.min(stats.win_rate, 100)}%`;
+    if (document.getElementById('profit-factor')) document.getElementById('profit-factor').innerText        = stats.profit_factor.toFixed(2);
+    if (document.getElementById('mean-win')) document.getElementById('mean-win').innerText             = formatCurrency(stats.mean_win);
+    if (document.getElementById('mean-loss')) document.getElementById('mean-loss').innerText            = formatCurrency(stats.mean_loss);
 }
+
 
 // ── Terminal de Ejecución ─────────────────────────────────────
 function updateLogs(logs) {
@@ -295,10 +336,14 @@ async function fetchLogs() {
 fetchDashboard();
 fetchStats();
 fetchLogs();
+fetchMasterHistory();
+fetchDiskStatus();
 
-setInterval(fetchDashboard,  8000);   //  8s  — posiciones + riesgo
-setInterval(fetchStats,      45000);  // 45s  — estadísticas (pesado)
-setInterval(fetchLogs,        4000);  //  4s  — terminal en tiempo casi real
+setInterval(fetchDashboard,      8000);   //  8s  — posiciones + riesgo
+setInterval(fetchMasterHistory, 10000);   // 10s  — registro maestro de operaciones
+setInterval(fetchDiskStatus,    15000);   // 15s  — estado del almacenamiento
+setInterval(fetchStats,         45000);  // 45s  — estadísticas (pesado)
+setInterval(fetchLogs,           4000);  //  4s  — terminal en tiempo casi real
 
 // ── Button Listeners ──────────────────────────────────────────
 document.getElementById('btn-correr').addEventListener('click', async () => {

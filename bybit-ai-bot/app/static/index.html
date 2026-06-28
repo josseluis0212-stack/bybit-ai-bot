@@ -121,31 +121,40 @@
             </div>
         </section>
 
-        <!-- Row 4: History & Terminal -->
-        <section class="card history-card grid-col-span-2">
-            <h2><i class="fa-solid fa-clock-rotate-left"></i> HISTORIAL DE TRADES</h2>
+        <!-- Row 4: Master Operational Record Table & Terminal -->
+        <section class="card history-card grid-col-span-3" style="margin-top: 1rem;">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h2><i class="fa-solid fa-database"></i> REGISTRO MAESTRO DE OPERACIONES (PERSISTENCIA Y MEMORIA)</h2>
+                <div class="disk-badge-info" id="disk-status-badge" style="font-size: 0.8rem; background: rgba(59, 130, 246, 0.1); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); padding: 0.3rem 0.8rem; border-radius: 6px;">
+                    💾 ALMACENAMIENTO: <span id="disk-status-text">LOCAL / FAILSAFE</span>
+                </div>
+            </div>
             <div style="overflow-x: auto;">
-                <table class="hist-table" style="width: 100%; border-collapse: separate; border-spacing: 0 6px;">
+                <table class="hist-table" style="width: 100%; border-collapse: separate; border-spacing: 0 6px; font-size: 0.82rem;">
                     <thead>
-                        <tr>
-                            <th>SÍMBOLO</th>
-                            <th>ESTRATEGIA</th>
-                            <th>DIRECCIÓN</th>
-                            <th>MOTIVO</th>
-                            <th>FECHA/HORA</th>
-                            <th style="text-align: right;">PNL</th>
+                        <tr style="background: rgba(255, 255, 255, 0.03); text-align: left; color: #94a3b8; font-weight: 700;">
+                            <th style="padding: 0.8rem;">FECHA APERTURA</th>
+                            <th style="padding: 0.8rem;">MONEDA</th>
+                            <th style="padding: 0.8rem;">ESTRATEGIA</th>
+                            <th style="padding: 0.8rem;">PRECIO ENTRADA</th>
+                            <th style="padding: 0.8rem;">VOLUMEN ($ USDT)</th>
+                            <th style="padding: 0.8rem;">TOKENS COMPRADOS</th>
+                            <th style="padding: 0.8rem;">DISTANCIA SL / TP</th>
+                            <th style="padding: 0.8rem;">BREAKEVEN & TRAILING</th>
+                            <th style="padding: 0.8rem;">FECHA/HORA CIERRE</th>
+                            <th style="padding: 0.8rem; text-align: right;">RESULTADO & PNL</th>
                         </tr>
                     </thead>
                     <tbody id="history-list">
-                        <tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2rem;">Sin historial de trades en esta sesión.</td></tr>
+                        <tr><td colspan="10" style="text-align: center; color: var(--text-muted); padding: 2rem;">Cargando registro maestro de operaciones desde almacenamiento...</td></tr>
                     </tbody>
                 </table>
             </div>
         </section>
 
-        <section class="card terminal-card grid-col-span-1">
-            <h2><i class="fa-solid fa-terminal"></i> TERMINAL DE EJECUCIÓN</h2>
-            <div class="terminal-console" id="terminal-console">
+        <section class="card terminal-card grid-col-span-3" style="margin-top: 1rem;">
+            <h2><i class="fa-solid fa-terminal"></i> TERMINAL DE LOGS EN TIEMPO REAL</h2>
+            <div class="terminal-console" id="terminal-console" style="height: 250px;">
                 <div class="log-line system">[SYSTEM] Conectando a LRMC PRO Engine...</div>
             </div>
         </section>

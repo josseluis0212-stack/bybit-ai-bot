@@ -16,6 +16,10 @@ from app.logger import logger
 from app.exchange.bybit_client import AsyncBybitClient
 from app.config import Config
 from app.constants import BOT_LOG_FILE, TRADES_FILE
+from app.persistence.disk_manager  import disk_manager
+from app.persistence.trade_recorder import trade_recorder
+from app.persistence.state_snapshot import state_snapshot
+
 
 engine = Engine()
 watchdog = Watchdog(engine)
@@ -429,6 +433,48 @@ async def get_health():
 @app.get("/ping")
 async def ping():
     return {"pong": True}
+
+# ─── Endpoints de Disco de Red y Persistencia ─────────────────────────────────
+
+@app.get("/api/disk_status")
+async def api_disk_status():
+    """Estado del disco de red (NAS via router ETB) en tiempo real."""
+    status = disk_manager.get_status()
+    snap   = state_snapshot.get_snapshot_info()
+    open_trades = trade_recorder.get_all_open()
+    return JSONResponse({
+        "disk":         status,
+        "snapshot":     snap,
+        "open_on_disk": len(open_trades),
+    })
+
+@app.get("/api/trade_history")
+async def api_trade_history(limit: int = 50):
+    """Historial de operaciones cerradas guardadas en el disco de red."""
+    try:
+        history = trade_recorder.get_history(limit=limit)
+        total_ganadas = sum(1 for t in history if t.get("estado_final") == "GANADA")
+        total_perdidas = sum(1 for t in history if t.get("estado_final") == "PERDIDA")
+        pnl_total = sum(t.get("pnl_realizado", 0) for t in history)
+        return JSONResponse({
+            "total":         len(history),
+            "ganadas":       total_ganadas,
+            "perdidas":      total_perdidas,
+            "pnl_total":     round(pnl_total, 4),
+            "operaciones":   history,
+        })
+    except Exception as e:
+        logger.error(f"Error obteniendo historial del disco: {e}")
+        return JSONResponse({"total": 0, "operaciones": [], "error": str(e)})
+
+@app.get("/api/open_trades_disk")
+async def api_open_trades_disk():
+    """Operaciones abiertas registradas en el disco de red."""
+    try:
+        trades = trade_recorder.get_all_open()
+        return JSONResponse({"total": len(trades), "trades": trades})
+    except Exception as e:
+        return JSONResponse({"total": 0, "trades": [], "error": str(e)})
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7860))

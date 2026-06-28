@@ -74,15 +74,16 @@ class AsyncBybitClient:
                 headers["X-BAPI-RECV-WINDOW"] = recv_window
                 headers["X-BAPI-SIGN"] = sig
 
+            proxy = os.getenv("BYBIT_PROXY") or os.getenv("HTTP_PROXY") or os.getenv("HTTPS_PROXY")
             try:
                 if method.upper() == "GET":
-                    async with session.get(url_with_params, headers=headers, timeout=10) as resp:
+                    async with session.get(url_with_params, headers=headers, timeout=10, proxy=proxy) as resp:
                         text = await resp.text()
                         if not text:
                             raise ValueError(f"Empty response from Bybit. Status: {resp.status}")
                         res_json = json.loads(text)
                 elif method.upper() == "POST":
-                    async with session.post(url_with_params, headers=headers, data=payload, timeout=10) as resp:
+                    async with session.post(url_with_params, headers=headers, data=payload, timeout=10, proxy=proxy) as resp:
                         text = await resp.text()
                         if not text:
                             raise ValueError(f"Empty response from Bybit. Status: {resp.status}")
