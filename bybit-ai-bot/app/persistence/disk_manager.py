@@ -95,14 +95,8 @@ class FTPDiskManager:
         return ftp
 
     def _test_connection(self) -> bool:
-        """Verifica si el FTP responde."""
-        try:
-            ftp = self._get_ftp()
-            ftp.quit()
-            return True
-        except Exception as e:
-            logger.warning(f"[DISK] FTP no disponible: {e}")
-            return False
+        """Verifica si el FTP responde. (Desactivado para la nube)"""
+        return False
 
     def _create_remote_dirs(self):
         """Crea la estructura de carpetas en el disco FTP."""
