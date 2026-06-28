@@ -6,6 +6,7 @@ import time
 from datetime import datetime, timedelta
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from app.core.engine import Engine
@@ -64,6 +65,14 @@ app = FastAPI(
     description="SMC Strategy on Bybit Demo",
     version="10.0.0",
     lifespan=lifespan
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Mount static files for Elite Terminal Dashboard
