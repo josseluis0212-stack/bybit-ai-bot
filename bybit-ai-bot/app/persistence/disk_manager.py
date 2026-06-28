@@ -12,7 +12,6 @@ import ftplib
 from pathlib import Path
 from datetime import datetime
 from app.logger import logger
-from app.config import Config
 
 
 class FTPDiskManager:
@@ -22,11 +21,15 @@ class FTPDiskManager:
     """
 
     def __init__(self):
-        self.ftp_host     = Config.NETWORK_DISK_IP        # 192.168.2.7
-        self.ftp_port     = int(os.getenv("NETWORK_DISK_PORT", "21"))
-        self.ftp_user     = Config.NETWORK_DISK_USER      # usuario FTP
-        self.ftp_pass     = Config.NETWORK_DISK_PASS      # contraseña FTP
-        self.local_fallback = Config.STORAGE_DIR
+        # Lee config directamente de ENV para funcionar en cualquier entorno (local o nube)
+        self.ftp_host       = os.getenv("NETWORK_DISK_IP", "192.168.2.7")
+        self.ftp_port       = int(os.getenv("NETWORK_DISK_PORT", "21"))
+        self.ftp_user       = os.getenv("NETWORK_DISK_USER", "")
+        self.ftp_pass       = os.getenv("NETWORK_DISK_PASS", "")
+        self.local_fallback = os.getenv(
+            "STORAGE_DIR",
+            os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "storage")
+        )
 
         self._available   = False
         self._lock        = threading.Lock()
